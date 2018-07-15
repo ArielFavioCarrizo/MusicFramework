@@ -2,8 +2,9 @@
   "ExpandedNodes": [
     "",
     "\\EsferixisMusicFrameworkBackend",
-    "\\EsferixisMusicFrameworkBackend\\EsferixisMFB_Base"
+    "\\EsferixisMusicFrameworkBackend\\EsferixisMFB_Base",
+    "\\EsferixisMusicFrameworkBackend\\EsferixisMF_STK_Test"
   ],
-  "SelectedNode": "\\EsferixisMusicFrameworkBackend\\EsferixisMFB_Base\\EsferixisMFB_Base.vcxproj",
+  "SelectedNode": "\\EsferixisMusicFrameworkBackend\\EsferixisMF_STK_Test\\EsferixisMF_STK_Test.cpp",
   "PreviewInSolutionExplorer": false
 }
