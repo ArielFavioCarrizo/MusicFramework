@@ -30,6 +30,12 @@
     <ClInclude Include="include\EMFB_STK_GUITAR.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\EMFB_STK_FILEWVOUT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\EMFB_STK_FILEWRITE.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -42,6 +48,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\EMFB_STK_GUITAR.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EMFB_STK_FILEWVOUT.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EMFB_STK_FILEWRITE.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EMFB_STK_COMMON.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
