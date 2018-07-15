@@ -26,10 +26,7 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="EsferixisMF_STKCPPCLI.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="dllmain.cpp">
+    <ClCompile Include="EsferixisMF_STK_Test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
