@@ -4,26 +4,21 @@
 #include <FileWvOut.h>
 #include <string>
 
-void * emfb_stk_filewvout_create() {
-	return static_cast<void *>(new stk::FileWvOut());
+void * emfb_stk_filewvout_create(char **exception_desc, void *fileWvOut, char *fileName, unsigned int nChannels, unsigned long type, unsigned long format, unsigned int bufferFrames) {
+	EMFB_STK_CATCHEXCEPT_BEGIN
+	return static_cast<void *>(new stk::FileWvOut(std::string(fileName), nChannels, type, format, bufferFrames));
+	EMFB_STK_CATCHEXCEPT_END
+	return NULL;
 }
 
-void emfb_stk_filewvout_delete(void *fileWvOut) {
+void emfb_stk_filewvout_delete(char **exception_desc, void *fileWvOut) {
+	EMFB_STK_CATCHEXCEPT_BEGIN
 	delete static_cast<stk::FileWvOut *>(fileWvOut);
+	EMFB_STK_CATCHEXCEPT_END
 }
 
-void emfb_stk_filewvout_openFile(void *fileWvOut, char **exception_desc, char *fileName, unsigned int nChannels, unsigned long type, unsigned long format) {
-	*exception_desc = NULL;
-
-	try {
-		static_cast<stk::FileWvOut *>(fileWvOut)->openFile(std::string(fileName), nChannels, type, format);
-	}
-	catch (stk::StkError e) {
-		*exception_desc = emfb_stk_cppStrToCStr(e.getMessage());
-	}
-	
-}
-
-void emfb_stk_filewvout_tick(void *fileWvOut, void *frames) {
-	static_cast<stk::FileWvOut *>(fileWvOut)->tick( *( (static_cast<stk::StkFrames *>(frames) ) ) );
+void emfb_stk_filewvout_tick(char **exception_desc, void *fileWvOut, void *frames) {
+	EMFB_STK_CATCHEXCEPT_BEGIN
+	static_cast<stk::FileWvOut *>(fileWvOut)->tick(*((static_cast<stk::StkFrames *>(frames))));
+	EMFB_STK_CATCHEXCEPT_END
 }

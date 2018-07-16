@@ -2,6 +2,7 @@
 
 #ifdef __cplusplus
 #include <string>
+#include <Stk.h>
 #endif
 
 #ifdef _WIN32
@@ -15,5 +16,16 @@
 #endif
 
 #ifdef __cplusplus
+unsigned long emfb_stk_sint16();
+
 char * emfb_stk_cppStrToCStr(const std::string cppstr);
+
+#define EMFB_STK_CATCHEXCEPT_BEGIN \
+	*exception_desc = NULL; \
+	try {
+#define EMFB_STK_CATCHEXCEPT_END \
+	} \
+	catch (stk::StkError e) { \
+		*exception_desc = emfb_stk_cppStrToCStr(e.getMessage()); \
+	}
 #endif
