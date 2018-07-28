@@ -4,7 +4,7 @@
 #include <FileWvOut.h>
 #include <string>
 
-void * emfb_stk_filewvout_create(char **exception_desc, void *fileWvOut, char *fileName, unsigned int nChannels, unsigned long type, unsigned long format, unsigned int bufferFrames) {
+void * emfb_stk_filewvout_create(char **exception_desc, char *fileName, unsigned int nChannels, unsigned long type, unsigned long format, unsigned int bufferFrames) {
 	EMFB_STK_CATCHEXCEPT_BEGIN
 	return static_cast<void *>(new stk::FileWvOut(std::string(fileName), nChannels, type, format, bufferFrames));
 	EMFB_STK_CATCHEXCEPT_END
