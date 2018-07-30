@@ -1,6 +1,6 @@
 #include "EMFB_STK_COMMON.h"
 #include <FileWrite.h>
 
-int emfb_stk_filewrite_FILE_WAV() {
+long emfb_stk_filewrite_FILE_WAV() {
 	return stk::FileWrite::FILE_WAV;
 }

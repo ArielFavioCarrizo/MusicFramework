@@ -2,4 +2,4 @@
 
 #include "EMFB_STK_COMMON.h"
 
-EMFB_STK_API int emfb_stk_filewrite_FILE_WAV();
+EMFB_STK_API long emfb_stk_filewrite_FILE_WAV();
