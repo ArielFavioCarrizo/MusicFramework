@@ -7,6 +7,7 @@ void * emfb_stk_guitar_new(char **exception_desc, unsigned int nStrings, char *b
 	EMFB_STK_CATCHEXCEPT_BEGIN
 	return static_cast<void *>(new stk::Guitar(nStrings, std::string(bodyfile)));
 	EMFB_STK_CATCHEXCEPT_END
+	return nullptr;
 }
 
 void emfb_stk_guitar_delete(char **exception_desc, void *guitar) {

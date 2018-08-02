@@ -1,9 +1,12 @@
-module Esferixis.MusicFramework.Backend.STK.Internal.Frames where
+{-# LANGUAGE MultiParamTypeClasses #-}
 
-import Esferixis.MusicFramework.Backend.STK.Internal.Misc
+module Esferixis.MusicFramework.Backend.STK.Frames where
 
 import Foreign.C
 import Foreign.Ptr (Ptr, nullPtr)
+
+import Esferixis.MusicFramework.Backend.STK
+import Esferixis.MusicFramework.Backend.STK.Internal.Misc
 
 data NativeFrames
 type FramesPtr = Ptr NativeFrames

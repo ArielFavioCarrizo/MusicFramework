@@ -1,1 +1,1 @@
-:set -iEsferixis\MusicFramework\Backend\STK -iEsferixis\MusicFramework\Backend\STK\Internal -lC:\Users\arifa\Documents\github\esferixis\esferixis-MusicFramework\EsferixisMusicFrameworkBackend\x64\Release\EMFB_STK.dll
+:set -iEsferixis\MusicFramework\Backend\STK -iEsferixis\MusicFramework\Backend\STK\Internal -lC:\Users\arifa\Documents\github\esferixis\esferixis-MusicFramework\EsferixisMusicFrameworkNative\x64\Release\EMFB_STK.dll

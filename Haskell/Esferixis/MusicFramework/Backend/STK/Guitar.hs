@@ -1,13 +1,17 @@
-module Esferixis.MusicFramework.Backend.STK.Internal.Guitar where
+{-# LANGUAGE MultiParamTypeClasses #-}
 
-import Esferixis.MusicFramework.Backend.STK.Internal.Misc
-import Esferixis.MusicFramework.Backend.STK.Internal.Frames
+module Esferixis.MusicFramework.Backend.STK.Guitar where
 
 import Foreign.C
 import Foreign.Ptr (Ptr, nullPtr)
 
+import Esferixis.MusicFramework.Backend.STK.Internal.Misc
+import Esferixis.MusicFramework.Backend.STK.Frames
+
 data NativeGuitar
 type GuitarPtr = Ptr NativeGuitar
+
+data Guitar = GuitarPtr
 
 foreign import ccall "emfb_stk_guitar_new" c_emfb_stk_guitar_new :: Ptr ExceptDescPtr -> CUInt -> CString -> IO GuitarPtr
 foreign import ccall "emfb_stk_guitar_delete" c_emfb_stk_guitar_delete :: Ptr ExceptDescPtr -> GuitarPtr -> IO ()
