@@ -2,7 +2,8 @@
 
 module Esferixis.MusicFramework.Backend.STK.FileWvOut
    ( FileWvOut
-   , createFileWvOut ) where
+   , createFileWvOut
+   , closeFileWvOut ) where
 
 import Foreign.C
 import Foreign.Ptr (Ptr, nullPtr)
@@ -11,6 +12,7 @@ import Control.Exception
 
 import Data.Typeable
 import Data.Int
+import Data.Word
 
 import Esferixis.MusicFramework.Backend.STK
 import Esferixis.MusicFramework.Backend.STK.Internal.Misc
@@ -27,24 +29,28 @@ import Foreign.Concurrent
 data NativeFileWvOut
 type FileWvOutPtr = Ptr NativeFileWvOut
 
-foreign import ccall "emfb_stk_filewvout_create" c_emfb_stk_filewvout_create :: Ptr CString -> CString -> CInt -> CLong -> CLong -> CInt -> IO FileWvOutPtr
-foreign import ccall "emfb_stk_filewvout_tick" c_emfb_stk_filewvout_tick :: Ptr CString -> FileWvOutPtr -> FramesPtr -> IO ()
+foreign import ccall "emfb_stk_filewvout_create" c_emfb_stk_filewvout_create :: Ptr CString -> CString -> CUInt -> CULong -> CULong -> CUInt -> IO FileWvOutPtr
+foreign import ccall "emfb_stk_filewvout_tick" c_emfb_stk_filewvout_tick :: Ptr CString -> FileWvOutPtr -> StkFramesPtr -> IO ()
 foreign import ccall "emfb_stk_filewvout_delete" c_emfb_stk_filewvout_delete :: Ptr CString -> FileWvOutPtr -> IO ()
 
 data FileWvOut = FileWvOut (ForeignPtr NativeFileWvOut)
-stkForeignPtr (FileWvOut a) = a
+fileWvOutForeignPtr (FileWvOut a) = a
 
-createFileWvOut :: String -> Int32 -> FileType -> StkFormat -> Int32 -> IO FileWvOut
+createFileWvOut :: String -> Word32 -> FileType -> StkFormat -> Word32 -> IO FileWvOut
 createFileWvOut fileName nChannels fileType format bufferFrames = do
    c_fileName <- newCString fileName
-   fileWvOutPtr_raw <- handleStkExcept (\exceptDescCStrPtr -> c_emfb_stk_filewvout_create exceptDescCStrPtr c_fileName (CInt nChannels) ( cvalue fileType ) ( cvalue format ) ( CInt bufferFrames ) ) `finally` free c_fileName
+   fileWvOutPtr_raw <- handleStkExcept (\exceptDescCStrPtr -> c_emfb_stk_filewvout_create exceptDescCStrPtr c_fileName (CUInt nChannels) ( cvalue fileType ) ( cvalue format ) ( CUInt bufferFrames ) ) `finally` free c_fileName
    fileWvOutPtr <- Foreign.Concurrent.newForeignPtr fileWvOutPtr_raw ( deleteFileWvOut_raw fileWvOutPtr_raw )
    return ( FileWvOut fileWvOutPtr )
 
+fileWvOutTick :: FileWvOut -> StkFrames -> IO ()
+fileWvOutTick fileWvOut frames = do
+   withStkFramesPtr frames (\c_framesPtr -> withForeignPtr ( fileWvOutForeignPtr fileWvOut ) (\c_fileWvOutPtr -> handleStkExcept (\c_exceptDescPtr -> c_emfb_stk_filewvout_tick c_exceptDescPtr c_fileWvOutPtr c_framesPtr ) ) )
+
 closeFileWvOut :: FileWvOut -> IO ()
-closeFileWvOut fileWvOut = finalizeForeignPtr ( stkForeignPtr fileWvOut )
+closeFileWvOut fileWvOut = finalizeForeignPtr ( fileWvOutForeignPtr fileWvOut )
 
 deleteFileWvOut_raw :: Ptr NativeFileWvOut -> IO ()
 deleteFileWvOut_raw fileWvOutPtr = do
-   handleStkExcept (\exceptDescCStrPtr -> c_emfb_stk_filewvout_delete exceptDescCStrPtr fileWvOutPtr )
+   handleStkExcept (\c_exceptDescPtr -> c_emfb_stk_filewvout_delete c_exceptDescPtr fileWvOutPtr )
 

@@ -17,7 +17,7 @@ import Control.Exception
 class StkValue a b where
    cvalue :: a -> b
 
-foreign import ccall "emfb_stk_sint16" c_emfb_stk_sint16 :: CLong
+foreign import ccall "emfb_stk_sint16" c_emfb_stk_sint16 :: CULong
 
 data StkException = StkException String
    deriving Typeable
@@ -26,5 +26,5 @@ instance Show StkException where
 instance Exception StkException
 
 data StkFormat = StkSInt16 deriving Show
-instance StkValue StkFormat CLong where
+instance StkValue StkFormat CULong where
    cvalue StkSInt16 = c_emfb_stk_sint16
