@@ -11,7 +11,7 @@ import Esferixis.MusicFramework.Backend.STK.Internal.Misc
 data NativeFrames
 type FramesPtr = Ptr NativeFrames
 
-foreign import ccall "emfb_stk_frames_new_zero" c_emfb_stk_frames_new_zero :: Ptr ExceptDescPtr -> CInt -> CInt -> IO FramesPtr
-foreign import ccall "emfb_stk_frames_new_valued" c_emfb_stk_frames_new_valued :: Ptr ExceptDescPtr -> CFloat -> CInt -> CInt -> IO FramesPtr
-foreign import ccall "emfb_stk_frames_channels" c_emfb_stk_frames_channels :: Ptr ExceptDescPtr -> FramesPtr -> IO CInt
-foreign import ccall "emfb_stk_frames_delete" c_emfb_stk_frames_delete :: Ptr ExceptDescPtr -> FramesPtr -> IO ()
+foreign import ccall "emfb_stk_stkframes_new_zero" c_emfb_stk_frames_new_zero :: Ptr ExceptDescPtr -> CInt -> CInt -> IO FramesPtr
+foreign import ccall "emfb_stk_stkframes_new_valued" c_emfb_stk_frames_new_valued :: Ptr ExceptDescPtr -> CFloat -> CInt -> CInt -> IO FramesPtr
+foreign import ccall "emfb_stk_stkframes_channels" c_emfb_stk_frames_channels :: Ptr ExceptDescPtr -> FramesPtr -> IO CInt
+foreign import ccall "emfb_stk_stkframes_delete" c_emfb_stk_frames_delete :: Ptr ExceptDescPtr -> FramesPtr -> IO ()

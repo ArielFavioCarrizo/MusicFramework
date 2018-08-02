@@ -2,7 +2,6 @@
 
 module Esferixis.MusicFramework.Backend.STK
    ( StkValue(cvalue)
-   , StkPtr(cptr)
    , StkException(StkException)
    , StkFormat(StkSInt16) ) where
 
@@ -12,15 +11,13 @@ import Foreign.Ptr (Ptr, nullPtr)
 import Data.Typeable
 import Data.Int
 
+import Foreign.ForeignPtr
 import Control.Exception
-
-foreign import ccall "emfb_stk_sint16" c_emfb_stk_sint16 :: CLong
 
 class StkValue a b where
    cvalue :: a -> b
 
-class StkPtr a b where
-   cptr :: a -> Ptr b
+foreign import ccall "emfb_stk_sint16" c_emfb_stk_sint16 :: CLong
 
 data StkException = StkException String
    deriving Typeable

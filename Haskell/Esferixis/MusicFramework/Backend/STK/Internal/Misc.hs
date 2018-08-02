@@ -6,6 +6,7 @@ import Foreign.C
 import Foreign.Ptr (Ptr, nullPtr)
 import Foreign.Marshal.Alloc
 import Foreign.Storable
+import Foreign.ForeignPtr
 
 import Esferixis.MusicFramework.Backend.STK
 

@@ -15,8 +15,9 @@
 	#define EMFB_STK extern "C"
 #endif
 
+EMFB_STK_API unsigned long emfb_stk_sint16();
+
 #ifdef __cplusplus
-unsigned long emfb_stk_sint16();
 
 char * emfb_stk_cppStrToCStr(const std::string cppstr);
 

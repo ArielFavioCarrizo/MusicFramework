@@ -18,12 +18,6 @@ void emfb_stk_filewvout_tick(char **exception_desc, void *fileWvOut, void *frame
 	EMFB_STK_CATCHEXCEPT_END
 }
 
-EMFB_STK_API void emfb_stk_filewvout_closeFile(char **exception_desc, void *fileWvOut) {
-	EMFB_STK_CATCHEXCEPT_BEGIN
-		static_cast<stk::FileWvOut *>(fileWvOut)->closeFile();
-	EMFB_STK_CATCHEXCEPT_END
-}
-
 void emfb_stk_filewvout_delete(char **exception_desc, void *fileWvOut) {
 	EMFB_STK_CATCHEXCEPT_BEGIN
 	delete static_cast<stk::FileWvOut *>(fileWvOut);
