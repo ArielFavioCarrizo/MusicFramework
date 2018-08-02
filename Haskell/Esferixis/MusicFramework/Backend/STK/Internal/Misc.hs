@@ -12,7 +12,7 @@ import Esferixis.MusicFramework.Backend.STK
 
 import Control.Exception
 
-type ExceptDescPtr = Ptr CString
+type ExceptDescPtr = CString
 
 handleStkExcept :: ( Ptr CString -> IO a ) -> IO a
 handleStkExcept fun = do

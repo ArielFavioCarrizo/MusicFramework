@@ -6,6 +6,7 @@ module Esferixis.MusicFramework.Backend.STK.Frames
    , channelsStkFrames
    , withStkFramesPtr
    , StkFrames
+   , StkChannelFrames( stkChannelFrames_frames, stkChannelFrames_nChannel )
    , StkFramesPtr
    , NativeStkFrames ) where
 
@@ -28,6 +29,10 @@ foreign import ccall "&emfb_stk_stkframes_delete" c_emfb_stk_frames_delete_ptr :
 
 data StkFrames = StkFrames ( ForeignPtr NativeStkFrames )
 framesForeignPtr (StkFrames a) = a
+
+data StkChannelFrames = StkChannelFrames { stkChannelFrames_frames :: StkFrames
+                                         , stkChannelFrames_nChannel :: Word32
+                                         }
 
 newZeroedStkFrames :: Word32 -> Word32 -> IO StkFrames
 newZeroedStkFrames nFrames nChannels = do

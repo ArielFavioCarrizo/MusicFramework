@@ -7,6 +7,10 @@ module Esferixis.MusicFramework.Backend.STK.FileWvOut
 
 import Foreign.C
 import Foreign.Ptr (Ptr, nullPtr)
+import Foreign.Marshal.Alloc
+import Foreign.Storable
+import Foreign.ForeignPtr
+import Foreign.Concurrent
 
 import Control.Exception
 
@@ -20,11 +24,6 @@ import Esferixis.MusicFramework.Backend.STK.Frames
 
 import Esferixis.MusicFramework.Backend.STK.Filewrite
 
-import Foreign.Marshal.Alloc
-import Foreign.Storable
-
-import Foreign.ForeignPtr
-import Foreign.Concurrent
 
 data NativeFileWvOut
 type FileWvOutPtr = Ptr NativeFileWvOut
