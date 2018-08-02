@@ -14,20 +14,15 @@ void * emfb_stk_stkframes_new_zero(char **exception_desc, unsigned int nFrames, 
 
 void * emfb_stk_stkframes_new_valued(char **exception_desc, float value, unsigned int nFrames, unsigned int nChannels) {
 	EMFB_STK_CATCHEXCEPT_BEGIN
-	return static_cast<void *>(new stk::StkFrames(nFrames, nChannels));
+	return static_cast<void *>(new stk::StkFrames(value, nFrames, nChannels));
 	EMFB_STK_CATCHEXCEPT_END
 	return nullptr;
 }
 
-unsigned int emfb_stk_stkframes_channels(char **exception_desc, void *frames) {
-	EMFB_STK_CATCHEXCEPT_BEGIN
+unsigned int emfb_stk_stkframes_channels(void *frames) {
 	return static_cast<stk::StkFrames *>(frames)->channels();
-	EMFB_STK_CATCHEXCEPT_END
-	return 0;
 }
 
-void emfb_stk_stkframes_delete(char **exception_desc, void *frames) {
-	EMFB_STK_CATCHEXCEPT_BEGIN
+void emfb_stk_stkframes_delete(void *frames) {
 	delete static_cast<stk::StkFrames *>(frames);
-	EMFB_STK_CATCHEXCEPT_END
 }
