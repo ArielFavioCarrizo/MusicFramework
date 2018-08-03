@@ -5,6 +5,7 @@ module Esferixis.MusicFramework.Bindings.STK.Internal.Misc
    , withCurriedStkExceptHandlingNewObject_partial
    , withCurriedStkExceptHandlingObjectAction
    , exceptionSafeStkObjectAction
+   , withStkObjectPtr
    , deleteStkObject ) where
 
 import Foreign.C
@@ -43,5 +44,7 @@ withCurriedStkExceptHandlingNewObject_partial wrappedObjectFromForeignPtr native
 withCurriedStkExceptHandlingObjectAction foreignPtrFromWrappedObject nativeFun actionFun wrappedObject = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) (\c_objectPtr -> ( withCurriedStkExceptHandling nativeFun ) (\fun -> actionFun ( fun c_objectPtr ) ) )
 
 exceptionSafeStkObjectAction foreignPtrFromWrappedObject nativeFun actionFun wrappedObject = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) (\c_objectPtr -> actionFun ( nativeFun c_objectPtr ) )
+
+withStkObjectPtr foreignPtrFromWrappedObject wrappedObject = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) 
 
 deleteStkObject foreignPtrFromWrappedObject wrappedObject = finalizeForeignPtr ( foreignPtrFromWrappedObject wrappedObject )
