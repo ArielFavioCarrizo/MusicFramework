@@ -12,7 +12,7 @@ void * emfb_stk_stkframes_new_zero(char **exception_desc, unsigned int nFrames, 
 	return nullptr;
 }
 
-void * emfb_stk_stkframes_new_valued(char **exception_desc, float value, unsigned int nFrames, unsigned int nChannels) {
+void * emfb_stk_stkframes_new_valued(char **exception_desc, double value, unsigned int nFrames, unsigned int nChannels) {
 	EMFB_STK_CATCHEXCEPT_BEGIN
 	return static_cast<void *>(new stk::StkFrames(value, nFrames, nChannels));
 	EMFB_STK_CATCHEXCEPT_END

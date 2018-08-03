@@ -1,8 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Esferixis.MusicFramework.Backend.STK.FileWvOut
+module Esferixis.MusicFramework.Bindings.STK.FileWvOut
    ( FileWvOut
-   , createFileWvOut
+   , newFileWvOut
+   , fileWvOutTick
    , closeFileWvOut ) where
 
 import Foreign.C
@@ -18,11 +19,11 @@ import Data.Typeable
 import Data.Int
 import Data.Word
 
-import Esferixis.MusicFramework.Backend.STK
-import Esferixis.MusicFramework.Backend.STK.Internal.Misc
-import Esferixis.MusicFramework.Backend.STK.Frames
+import Esferixis.MusicFramework.Bindings.STK
+import Esferixis.MusicFramework.Bindings.STK.Internal.Misc
+import Esferixis.MusicFramework.Bindings.STK.Frames
 
-import Esferixis.MusicFramework.Backend.STK.Filewrite
+import Esferixis.MusicFramework.Bindings.STK.Filewrite
 
 
 data NativeFileWvOut
@@ -35,8 +36,8 @@ foreign import ccall "emfb_stk_filewvout_delete" c_emfb_stk_filewvout_delete :: 
 data FileWvOut = FileWvOut (ForeignPtr NativeFileWvOut)
 fileWvOutForeignPtr (FileWvOut a) = a
 
-createFileWvOut :: String -> Word32 -> FileType -> StkFormat -> Word32 -> IO FileWvOut
-createFileWvOut fileName nChannels fileType format bufferFrames = do
+newFileWvOut :: String -> Word32 -> FileType -> StkFormat -> Word32 -> IO FileWvOut
+newFileWvOut fileName nChannels fileType format bufferFrames = do
    c_fileName <- newCString fileName
    fileWvOutPtr_raw <- handleStkExcept (\exceptDescCStrPtr -> c_emfb_stk_filewvout_create exceptDescCStrPtr c_fileName (CUInt nChannels) ( cvalue fileType ) ( cvalue format ) ( CUInt bufferFrames ) ) `finally` free c_fileName
    fileWvOutPtr <- Foreign.Concurrent.newForeignPtr fileWvOutPtr_raw ( deleteFileWvOut_raw fileWvOutPtr_raw )

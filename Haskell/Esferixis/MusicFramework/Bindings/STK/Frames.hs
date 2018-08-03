@@ -1,12 +1,12 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Esferixis.MusicFramework.Backend.STK.Frames
+module Esferixis.MusicFramework.Bindings.STK.Frames
    ( newZeroedStkFrames
    , newValuedStkFrames
    , channelsStkFrames
    , withStkFramesPtr
    , StkFrames
-   , StkChannelFrames( stkChannelFrames_frames, stkChannelFrames_nChannel )
+   , StkChannelFrames( StkChannelFrames, stkChannelFrames_frames, stkChannelFrames_nChannel )
    , StkFramesPtr
    , NativeStkFrames ) where
 
@@ -16,14 +16,14 @@ import Foreign.ForeignPtr
 
 import Data.Word
 
-import Esferixis.MusicFramework.Backend.STK
-import Esferixis.MusicFramework.Backend.STK.Internal.Misc
+import Esferixis.MusicFramework.Bindings.STK
+import Esferixis.MusicFramework.Bindings.STK.Internal.Misc
 
 data NativeStkFrames
 type StkFramesPtr = Ptr NativeStkFrames
 
 foreign import ccall "emfb_stk_stkframes_new_zero" c_emfb_stk_frames_new_zero :: Ptr CString -> CUInt -> CUInt -> IO StkFramesPtr
-foreign import ccall "emfb_stk_stkframes_new_valued" c_emfb_stk_frames_new_valued :: Ptr CString -> CFloat -> CUInt -> CUInt -> IO StkFramesPtr
+foreign import ccall "emfb_stk_stkframes_new_valued" c_emfb_stk_frames_new_valued :: Ptr CString -> CDouble -> CUInt -> CUInt -> IO StkFramesPtr
 foreign import ccall "emfb_stk_stkframes_channels" c_emfb_stk_frames_channels :: StkFramesPtr -> IO CUInt
 foreign import ccall "&emfb_stk_stkframes_delete" c_emfb_stk_frames_delete_ptr :: FunPtr ( Ptr NativeStkFrames -> IO () )
 
@@ -40,9 +40,9 @@ newZeroedStkFrames nFrames nChannels = do
    frames_foreignptr <- ( newForeignPtr c_emfb_stk_frames_delete_ptr frames_rawptr )
    return ( StkFrames frames_foreignptr )
 
-newValuedStkFrames :: Float -> Word32 -> Word32 -> IO StkFrames
+newValuedStkFrames :: Double -> Word32 -> Word32 -> IO StkFrames
 newValuedStkFrames value nFrames nChannels = do
-   frames_rawptr <- handleStkExcept ( \c_exceptDescPtr -> c_emfb_stk_frames_new_valued c_exceptDescPtr (CFloat value) ( CUInt nFrames ) ( CUInt nChannels ) )
+   frames_rawptr <- handleStkExcept ( \c_exceptDescPtr -> c_emfb_stk_frames_new_valued c_exceptDescPtr (CDouble value) ( CUInt nFrames ) ( CUInt nChannels ) )
    frames_foreignptr <- ( newForeignPtr c_emfb_stk_frames_delete_ptr frames_rawptr )
    return ( StkFrames frames_foreignptr )
 

@@ -22,31 +22,31 @@ void emfb_stk_guitar_clear(char **exception_desc, void *guitar) {
 	EMFB_STK_CATCHEXCEPT_END
 }
 
-void emfb_stk_guitar_setLoopGain(char **exception_desc, void *guitar, float gain, unsigned int string) {
+void emfb_stk_guitar_setLoopGain(char **exception_desc, void *guitar, double gain, int string) {
 	EMFB_STK_CATCHEXCEPT_BEGIN
 	static_cast<stk::Guitar *>(guitar)->setLoopGain(gain, string);
 	EMFB_STK_CATCHEXCEPT_END
 }
 
-void emfb_stk_guitar_setPluckPosition(char **exception_desc, void *guitar, float position, unsigned int string) {
+void emfb_stk_guitar_setPluckPosition(char **exception_desc, void *guitar, double position, int string) {
 	EMFB_STK_CATCHEXCEPT_BEGIN
 	static_cast<stk::Guitar *>(guitar)->setPluckPosition(position, string);
 	EMFB_STK_CATCHEXCEPT_END
 }
 
-void emfb_stk_guitar_setFrequency(char **exception_desc, void *guitar, float frequency, unsigned int string) {
+void emfb_stk_guitar_setFrequency(char **exception_desc, void *guitar, double frequency, unsigned int string) {
 	EMFB_STK_CATCHEXCEPT_BEGIN
 	static_cast<stk::Guitar *>(guitar)->setFrequency(frequency, string);
 	EMFB_STK_CATCHEXCEPT_END
 }
 
-void emfb_stk_guitar_noteOn(char **exception_desc, void *guitar, float frequency, float amplitude, unsigned int string) {
+void emfb_stk_guitar_noteOn(char **exception_desc, void *guitar, double frequency, double amplitude, unsigned int string) {
 	EMFB_STK_CATCHEXCEPT_BEGIN
 	static_cast<stk::Guitar *>(guitar)->noteOn(frequency, amplitude, string);
 	EMFB_STK_CATCHEXCEPT_END
 }
 
-void emfb_stk_guitar_noteOff(char **exception_desc, void *guitar, float amplitude, unsigned int string) {
+void emfb_stk_guitar_noteOff(char **exception_desc, void *guitar, double amplitude, unsigned int string) {
 	EMFB_STK_CATCHEXCEPT_BEGIN
 	static_cast<stk::Guitar *>(guitar)->noteOff(amplitude, string);
 	EMFB_STK_CATCHEXCEPT_END

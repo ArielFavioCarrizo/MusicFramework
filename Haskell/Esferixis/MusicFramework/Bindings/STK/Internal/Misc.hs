@@ -1,4 +1,4 @@
-module Esferixis.MusicFramework.Backend.STK.Internal.Misc
+module Esferixis.MusicFramework.Bindings.STK.Internal.Misc
    ( ExceptDescPtr
    , handleStkExcept ) where
 
@@ -8,7 +8,7 @@ import Foreign.Marshal.Alloc
 import Foreign.Storable
 import Foreign.ForeignPtr
 
-import Esferixis.MusicFramework.Backend.STK
+import Esferixis.MusicFramework.Bindings.STK
 
 import Control.Exception
 

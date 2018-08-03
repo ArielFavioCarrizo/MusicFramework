@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Esferixis.MusicFramework.Backend.STK.Guitar
+module Esferixis.MusicFramework.Bindings.STK.Guitar
    ( Guitar
    , newGuitar
    , deleteGuitar
@@ -12,6 +12,9 @@ module Esferixis.MusicFramework.Backend.STK.Guitar
    , guitarNoteOff
    , guitarTick ) where
 
+import Data.Word
+import Data.Int
+
 import Foreign.C
 import Foreign.Ptr (Ptr, nullPtr)
 import Foreign.Marshal.Alloc
@@ -21,10 +24,8 @@ import Foreign.Concurrent
 
 import Control.Exception
 
-import Esferixis.MusicFramework.Backend.STK.Internal.Misc
-import Esferixis.MusicFramework.Backend.STK.Frames
-
-import Data.Word
+import Esferixis.MusicFramework.Bindings.STK.Internal.Misc
+import Esferixis.MusicFramework.Bindings.STK.Frames
 
 data NativeGuitar
 type GuitarPtr = Ptr NativeGuitar
@@ -40,11 +41,11 @@ withCurriedNativeGuitarFun guitar nativeFun actionFun = withGuitarPtr guitar (\c
 foreign import ccall "emfb_stk_guitar_new" c_emfb_stk_guitar_new :: Ptr ExceptDescPtr -> CUInt -> CString -> IO GuitarPtr
 foreign import ccall "emfb_stk_guitar_delete" c_emfb_stk_guitar_delete :: Ptr ExceptDescPtr -> GuitarPtr -> IO ()
 foreign import ccall "emfb_stk_guitar_clear" c_emfb_stk_guitar_clear :: Ptr ExceptDescPtr -> GuitarPtr -> IO ()
-foreign import ccall "emfb_stk_guitar_setLoopGain" c_emfb_stk_guitar_setLoopGain :: Ptr ExceptDescPtr -> GuitarPtr -> CFloat -> CUInt -> IO ()
-foreign import ccall "emfb_stk_guitar_setPluckPosition" c_emfb_stk_guitar_setPluckPosition :: Ptr ExceptDescPtr -> GuitarPtr -> CFloat -> CUInt -> IO ()
-foreign import ccall "emfb_stk_guitar_setFrequency" c_emfb_stk_guitar_setFrequency :: Ptr ExceptDescPtr -> GuitarPtr -> CFloat -> CUInt -> IO ()
-foreign import ccall "emfb_stk_guitar_noteOn" c_emfb_stk_guitar_noteOn :: Ptr ExceptDescPtr -> GuitarPtr -> CFloat -> CFloat -> CUInt -> IO ()
-foreign import ccall "emfb_stk_guitar_noteOff" c_emfb_stk_guitar_noteOff :: Ptr ExceptDescPtr -> GuitarPtr -> CFloat -> CUInt -> IO ()
+foreign import ccall "emfb_stk_guitar_setLoopGain" c_emfb_stk_guitar_setLoopGain :: Ptr ExceptDescPtr -> GuitarPtr -> CDouble -> CInt -> IO ()
+foreign import ccall "emfb_stk_guitar_setPluckPosition" c_emfb_stk_guitar_setPluckPosition :: Ptr ExceptDescPtr -> GuitarPtr -> CDouble -> CInt -> IO ()
+foreign import ccall "emfb_stk_guitar_setFrequency" c_emfb_stk_guitar_setFrequency :: Ptr ExceptDescPtr -> GuitarPtr -> CDouble -> CUInt -> IO ()
+foreign import ccall "emfb_stk_guitar_noteOn" c_emfb_stk_guitar_noteOn :: Ptr ExceptDescPtr -> GuitarPtr -> CDouble -> CDouble -> CUInt -> IO ()
+foreign import ccall "emfb_stk_guitar_noteOff" c_emfb_stk_guitar_noteOff :: Ptr ExceptDescPtr -> GuitarPtr -> CDouble -> CUInt -> IO ()
 foreign import ccall "emfb_stk_guitar_tick" c_emfb_stk_guitar_tick :: Ptr ExceptDescPtr -> GuitarPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> IO ()
 
 newGuitar :: Word32 -> String -> IO Guitar
@@ -65,20 +66,20 @@ deleteGuitar guitar = finalizeForeignPtr ( guitarForeignPtr guitar )
 guitarClear :: Guitar -> IO ()
 guitarClear guitar = withGuitarPtr guitar (\c_exceptDescPtr c_guitarPtr -> c_emfb_stk_guitar_clear c_exceptDescPtr c_guitarPtr)
 
-guitarSetLoopGain :: Guitar -> Float -> Word32 -> IO ()
-guitarSetLoopGain guitar gain string = withGuitarPtr guitar (\c_exceptDescPtr c_guitarPtr -> c_emfb_stk_guitar_setLoopGain c_exceptDescPtr c_guitarPtr ( CFloat gain )  ( CUInt string ) )
+guitarSetLoopGain :: Guitar -> Double -> Int32 -> IO ()
+guitarSetLoopGain guitar gain string = withGuitarPtr guitar (\c_exceptDescPtr c_guitarPtr -> c_emfb_stk_guitar_setLoopGain c_exceptDescPtr c_guitarPtr ( CDouble gain )  ( CInt string ) )
 
-guitarSetPluckPosition :: Guitar -> Float -> Word32 -> IO ()
-guitarSetPluckPosition guitar position string = withCurriedNativeGuitarFun guitar c_emfb_stk_guitar_setLoopGain (\fun -> fun ( CFloat position ) ( CUInt string ) )
+guitarSetPluckPosition :: Guitar -> Double -> Int32 -> IO ()
+guitarSetPluckPosition guitar position string = withCurriedNativeGuitarFun guitar c_emfb_stk_guitar_setLoopGain (\fun -> fun ( CDouble position ) ( CInt string ) )
 
-guitarSetFrequency :: Guitar -> Float -> Word32 -> IO ()
-guitarSetFrequency guitar frequency string = withCurriedNativeGuitarFun guitar c_emfb_stk_guitar_setFrequency (\fun -> fun ( CFloat frequency ) ( CUInt string ) )
+guitarSetFrequency :: Guitar -> Double -> Word32 -> IO ()
+guitarSetFrequency guitar frequency string = withCurriedNativeGuitarFun guitar c_emfb_stk_guitar_setFrequency (\fun -> fun ( CDouble frequency ) ( CUInt string ) )
 
-guitarNoteOn :: Guitar -> Float -> Float -> Word32 -> IO ()
-guitarNoteOn guitar frequency amplitude string = withCurriedNativeGuitarFun guitar c_emfb_stk_guitar_noteOn (\fun -> fun ( CFloat frequency ) ( CFloat amplitude ) ( CUInt string ) )
+guitarNoteOn :: Guitar -> Double -> Double -> Word32 -> IO ()
+guitarNoteOn guitar frequency amplitude string = withCurriedNativeGuitarFun guitar c_emfb_stk_guitar_noteOn (\fun -> fun ( CDouble frequency ) ( CDouble amplitude ) ( CUInt string ) )
 
-guitarNoteOff :: Guitar -> Float -> Word32 -> IO ()
-guitarNoteOff guitar amplitude string = withCurriedNativeGuitarFun guitar c_emfb_stk_guitar_noteOff (\fun -> fun ( CFloat amplitude ) ( CUInt string ) )
+guitarNoteOff :: Guitar -> Double -> Word32 -> IO ()
+guitarNoteOff guitar amplitude string = withCurriedNativeGuitarFun guitar c_emfb_stk_guitar_noteOff (\fun -> fun ( CDouble amplitude ) ( CUInt string ) )
 
 guitarTick :: Guitar -> StkChannelFrames -> StkChannelFrames -> IO ()
 guitarTick guitar ichannelframes ochannelframes = let iframes = ( stkChannelFrames_frames ichannelframes )

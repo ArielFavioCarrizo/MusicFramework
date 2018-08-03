@@ -16,6 +16,8 @@
 #endif
 
 EMFB_STK_API unsigned long emfb_stk_sint16();
+EMFB_STK_API double emfb_stk_sampleRate();
+EMFB_STK_API void emfb_stk_setSampleRate(double rate);
 
 #ifdef __cplusplus
 
