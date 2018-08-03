@@ -2,6 +2,10 @@
 
 #include <Stk.h>
 
+EMFB_STK_API void emfb_stk_cfree(void *ptr) {
+	free(ptr);
+}
+
 unsigned long emfb_stk_sint16() {
 	return stk::Stk::STK_SINT16;
 }

@@ -17,6 +17,7 @@ import Data.Int
 
 import Foreign.C
 import Foreign.Ptr (Ptr, nullPtr)
+import Foreign.C.String
 import Foreign.Marshal.Alloc
 import Foreign.Storable
 import Foreign.ForeignPtr
@@ -53,8 +54,7 @@ foreign import ccall "emfb_stk_guitar_tick" c_emfb_stk_guitar_tick :: Ptr Except
 newGuitar :: Word32 -> String -> IO Guitar
 newGuitar nStrings bodyFile = do
    let c_nStrings = CUInt nStrings
-   c_bodyFile <- newCString bodyFile
-   c_guitarPtr <- handleStkExcept (\c_exceptDescPtr -> c_emfb_stk_guitar_new c_exceptDescPtr c_nStrings c_bodyFile) `finally` free c_bodyFile
+   c_guitarPtr <- withCString bodyFile (\c_bodyFile -> handleStkExcept (\c_exceptDescPtr -> c_emfb_stk_guitar_new c_exceptDescPtr c_nStrings c_bodyFile) )
    guitarForeignPtr <- Foreign.Concurrent.newForeignPtr c_guitarPtr ( deleteGuitar_raw c_guitarPtr )
    return ( Guitar guitarForeignPtr )
 

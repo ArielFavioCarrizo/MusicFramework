@@ -15,6 +15,9 @@
 	#define EMFB_STK extern "C"
 #endif
 
+// Provisto para evitar problemas con las diferentes bibliotecas del runtime de C
+EMFB_STK_API void emfb_stk_cfree(void *ptr);
+
 EMFB_STK_API unsigned long emfb_stk_sint16();
 EMFB_STK_API double emfb_stk_sampleRate();
 EMFB_STK_API void emfb_stk_setSampleRate(double rate);

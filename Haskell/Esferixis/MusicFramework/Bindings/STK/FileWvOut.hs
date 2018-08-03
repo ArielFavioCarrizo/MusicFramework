@@ -8,6 +8,7 @@ module Esferixis.MusicFramework.Bindings.STK.FileWvOut
 
 import Foreign.C
 import Foreign.Ptr (Ptr, nullPtr)
+import Foreign.C.String
 import Foreign.Marshal.Alloc
 import Foreign.Storable
 import Foreign.ForeignPtr
@@ -38,8 +39,7 @@ fileWvOutForeignPtr (FileWvOut a) = a
 
 newFileWvOut :: String -> Word32 -> FileType -> StkFormat -> Word32 -> IO FileWvOut
 newFileWvOut fileName nChannels fileType format bufferFrames = do
-   c_fileName <- newCString fileName
-   fileWvOutPtr_raw <- handleStkExcept (\exceptDescCStrPtr -> c_emfb_stk_filewvout_create exceptDescCStrPtr c_fileName (CUInt nChannels) ( cvalue fileType ) ( cvalue format ) ( CUInt bufferFrames ) ) `finally` free c_fileName
+   fileWvOutPtr_raw <- withCString fileName (\c_fileName -> handleStkExcept (\exceptDescCStrPtr -> c_emfb_stk_filewvout_create exceptDescCStrPtr c_fileName (CUInt nChannels) ( cvalue fileType ) ( cvalue format ) ( CUInt bufferFrames ) ) )
    fileWvOutPtr <- Foreign.Concurrent.newForeignPtr fileWvOutPtr_raw ( deleteFileWvOut_raw fileWvOutPtr_raw )
    return ( FileWvOut fileWvOutPtr )
 

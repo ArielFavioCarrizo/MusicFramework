@@ -16,6 +16,8 @@ import Control.Exception
 
 type ExceptDescPtr = CString
 
+foreign import ccall "emfb_stk_cfree" nativeStkCFree :: Ptr a -> IO ()
+
 handleStkExcept :: ( Ptr CString -> IO a ) -> IO a
 handleStkExcept fun = do
    alloca $ \exceptDescCStrPtr -> do
@@ -25,6 +27,7 @@ handleStkExcept fun = do
           then return funret
           else do
              exceptDescStr <- peekCString exceptDescCStr
+             nativeStkCFree exceptDescCStr
              throwIO ( StkException exceptDescStr )
 
 build_withObjectPtr :: (objectWrapper -> ForeignPtr nativeObject ) -> ( objectWrapper -> (Ptr ExceptDescPtr -> Ptr nativeObject -> IO r) -> IO r )
