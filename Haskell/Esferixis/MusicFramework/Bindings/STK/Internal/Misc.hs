@@ -1,6 +1,8 @@
 module Esferixis.MusicFramework.Bindings.STK.Internal.Misc
    ( ExceptDescPtr
-   , handleStkExcept ) where
+   , handleStkExcept
+   , build_withObjectPtr
+   , build_withCurriedNativeObjectFun ) where
 
 import Foreign.C
 import Foreign.Ptr (Ptr, nullPtr)
@@ -24,3 +26,9 @@ handleStkExcept fun = do
           else do
              exceptDescStr <- peekCString exceptDescCStr
              throwIO ( StkException exceptDescStr )
+
+build_withObjectPtr :: (objectWrapper -> ForeignPtr nativeObject ) -> ( objectWrapper -> (Ptr ExceptDescPtr -> Ptr nativeObject -> IO r) -> IO r )
+build_withObjectPtr objectForeignPtr = \object fun -> withForeignPtr ( objectForeignPtr object ) (\c_objectPtr -> handleStkExcept (\c_exceptDescPtr -> fun c_exceptDescPtr c_objectPtr) )
+
+build_withCurriedNativeObjectFun withObjectPtr = \object nativeFun actionFun -> withObjectPtr object (\c_exceptDescPtr c_objectPtr -> actionFun ( nativeFun c_exceptDescPtr c_objectPtr ) )
+

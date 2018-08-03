@@ -33,10 +33,12 @@ type GuitarPtr = Ptr NativeGuitar
 data Guitar = Guitar (ForeignPtr NativeGuitar)
 guitarForeignPtr (Guitar a) = a
 
-withGuitarPtr :: Guitar -> (Ptr ExceptDescPtr -> Ptr NativeGuitar -> IO a ) -> IO a
-withGuitarPtr guitar fun = withForeignPtr ( guitarForeignPtr guitar ) (\c_guitarPtr -> handleStkExcept (\c_exceptDescPtr -> fun c_exceptDescPtr c_guitarPtr) )
+-- withGuitarPtr :: Guitar -> (Ptr ExceptDescPtr -> Ptr NativeGuitar -> IO a) -> IO a
+-- withGuitarPtr guitar fun = withForeignPtr ( guitarForeignPtr guitar ) (\c_guitarPtr -> handleStkExcept (\c_exceptDescPtr -> fun c_exceptDescPtr c_guitarPtr) )
+withGuitarPtr = build_withObjectPtr guitarForeignPtr
 
-withCurriedNativeGuitarFun guitar nativeFun actionFun = withGuitarPtr guitar (\c_exceptDescPtr c_guitarPtr -> actionFun ( nativeFun c_exceptDescPtr c_guitarPtr ) )
+-- withCurriedNativeGuitarFun guitar nativeFun actionFun = withGuitarPtr guitar (\c_exceptDescPtr c_guitarPtr -> actionFun ( nativeFun c_exceptDescPtr c_guitarPtr ) )
+withCurriedNativeGuitarFun = build_withCurriedNativeObjectFun withGuitarPtr
 
 foreign import ccall "emfb_stk_guitar_new" c_emfb_stk_guitar_new :: Ptr ExceptDescPtr -> CUInt -> CString -> IO GuitarPtr
 foreign import ccall "emfb_stk_guitar_delete" c_emfb_stk_guitar_delete :: Ptr ExceptDescPtr -> GuitarPtr -> IO ()
