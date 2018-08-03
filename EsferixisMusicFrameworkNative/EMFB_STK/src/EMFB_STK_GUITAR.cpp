@@ -10,10 +10,8 @@ void * emfb_stk_guitar_new(char **exception_desc, unsigned int nStrings, char *b
 	return nullptr;
 }
 
-void emfb_stk_guitar_delete(char **exception_desc, void *guitar) {
-	EMFB_STK_CATCHEXCEPT_BEGIN
+void emfb_stk_guitar_delete(void *guitar) {
 	delete static_cast<stk::Guitar *>(guitar);
-	EMFB_STK_CATCHEXCEPT_END
 }
 
 void emfb_stk_guitar_clear(char **exception_desc, void *guitar) {

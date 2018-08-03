@@ -32,6 +32,44 @@ void * emfb_stk_stkframes_clone(char **exception_desc, void *frames) {
 	return nullptr;
 }
 
+EMFB_STK_API void * emfb_stk_stkframes_add(char **exception_desc, void *frames1, void *frames2) {
+	EMFB_STK_CATCHEXCEPT_BEGIN
+	stk::StkFrames& frames1_ref = *static_cast<stk::StkFrames *>(frames1);
+	stk::StkFrames& frames2_ref = *static_cast<stk::StkFrames *>(frames2);
+	stk::StkFrames *resultFrames = new stk::StkFrames(frames1_ref.frames(), frames1_ref.channels());
+
+	stk::StkFloat *frames1Data = &frames1_ref[0];
+	stk::StkFloat *frames2Data = &frames2_ref[0];
+	stk::StkFloat *dstData = &( (*resultFrames)[0] );
+
+	for (int i = 0; i < frames1_ref.size(); i++) {
+		dstData[i] = frames1Data[i] + frames2Data[i];
+	}
+
+	return resultFrames;
+	EMFB_STK_CATCHEXCEPT_END
+	return nullptr;
+}
+
+EMFB_STK_API void * emfb_stk_stkframes_mulHomologs(char **exception_desc, void *frames1, void *frames2) {
+	EMFB_STK_CATCHEXCEPT_BEGIN
+    stk::StkFrames& frames1_ref = *static_cast<stk::StkFrames *>(frames1);
+	stk::StkFrames& frames2_ref = *static_cast<stk::StkFrames *>(frames2);
+	stk::StkFrames *resultFrames = new stk::StkFrames(frames1_ref.frames(), frames1_ref.channels());
+
+	stk::StkFloat *frames1Data = &frames1_ref[0];
+	stk::StkFloat *frames2Data = &frames2_ref[0];
+	stk::StkFloat *dstData = &((*resultFrames)[0]);
+
+	for (int i = 0; i < frames1_ref.size(); i++) {
+		dstData[i] = frames1Data[i] * frames2Data[i];
+	}
+
+	return resultFrames;
+	EMFB_STK_CATCHEXCEPT_END
+    return nullptr;
+}
+
 void emfb_stk_stkframes_addInplace(void *selfFrames, void *otherFrames) {
 	(*static_cast<stk::StkFrames *>(selfFrames)) += (*static_cast<stk::StkFrames *>(otherFrames));
 }

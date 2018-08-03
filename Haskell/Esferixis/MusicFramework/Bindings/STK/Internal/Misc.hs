@@ -1,11 +1,14 @@
 module Esferixis.MusicFramework.Bindings.STK.Internal.Misc
    ( ExceptDescPtr
    , handleStkExcept
-   , build_withObjectPtr
-   , build_withCurriedNativeObjectFun ) where
+   , withCurriedStkExceptHandling
+   , withCurriedStkExceptHandlingNewObject_partial
+   , withCurriedStkExceptHandlingObjectAction
+   , exceptionSafeStkObjectAction
+   , deleteStkObject ) where
 
 import Foreign.C
-import Foreign.Ptr (Ptr, nullPtr)
+import Foreign.Ptr (Ptr, nullPtr, FunPtr)
 import Foreign.Marshal.Alloc
 import Foreign.Storable
 import Foreign.ForeignPtr
@@ -30,8 +33,15 @@ handleStkExcept fun = do
              nativeStkCFree exceptDescCStr
              throwIO ( StkException exceptDescStr )
 
-build_withObjectPtr :: (objectWrapper -> ForeignPtr nativeObject ) -> ( objectWrapper -> (Ptr ExceptDescPtr -> Ptr nativeObject -> IO r) -> IO r )
-build_withObjectPtr objectForeignPtr = \object fun -> withForeignPtr ( objectForeignPtr object ) (\c_objectPtr -> handleStkExcept (\c_exceptDescPtr -> fun c_exceptDescPtr c_objectPtr) )
+withCurriedStkExceptHandling nativeFun actionFun = handleStkExcept (\c_exceptDescPtr -> actionFun ( nativeFun c_exceptDescPtr ) )
 
-build_withCurriedNativeObjectFun withObjectPtr = \object nativeFun actionFun -> withObjectPtr object (\c_exceptDescPtr c_objectPtr -> actionFun ( nativeFun c_exceptDescPtr c_objectPtr ) )
+withCurriedStkExceptHandlingNewObject_partial wrappedObjectFromForeignPtr nativeDeletePtr nativeNew actionFun = do
+   object_rawptr <- withCurriedStkExceptHandling nativeNew ( \fun -> actionFun fun )
+   object_foreignptr <- ( newForeignPtr nativeDeletePtr object_rawptr )
+   return ( wrappedObjectFromForeignPtr object_foreignptr )
 
+withCurriedStkExceptHandlingObjectAction foreignPtrFromWrappedObject nativeFun actionFun wrappedObject = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) (\c_objectPtr -> ( withCurriedStkExceptHandling nativeFun ) (\fun -> actionFun ( fun c_objectPtr ) ) )
+
+exceptionSafeStkObjectAction foreignPtrFromWrappedObject nativeFun actionFun wrappedObject = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) (\c_objectPtr -> actionFun ( nativeFun c_objectPtr ) )
+
+deleteStkObject foreignPtrFromWrappedObject wrappedObject = finalizeForeignPtr ( foreignPtrFromWrappedObject wrappedObject )

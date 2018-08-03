@@ -4,7 +4,7 @@
 
 EMFB_STK_API void * emfb_stk_guitar_new(char **exception_desc, unsigned int nStrings, char *bodyfile);
 
-EMFB_STK_API void emfb_stk_guitar_delete(char **exception_desc, void *guitar);
+EMFB_STK_API void emfb_stk_guitar_delete(void *guitar);
 
 EMFB_STK_API void emfb_stk_guitar_clear(char **exception_desc, void *guitar);
 

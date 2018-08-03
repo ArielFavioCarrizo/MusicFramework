@@ -34,22 +34,19 @@ data StkChannelFrames = StkChannelFrames { stkChannelFrames_frames :: StkFrames
                                          , stkChannelFrames_nChannel :: Word32
                                          }
 
+newStkFrames = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> StkFrames foreignPtr) c_emfb_stk_frames_delete_ptr
+unhandledFramesAction = exceptionSafeStkObjectAction framesForeignPtr
+
 newZeroedStkFrames :: Word32 -> Word32 -> IO StkFrames
-newZeroedStkFrames nFrames nChannels = do
-   frames_rawptr <- handleStkExcept ( \c_exceptDescPtr -> c_emfb_stk_frames_new_zero c_exceptDescPtr ( CUInt nFrames ) ( CUInt nChannels ) )
-   frames_foreignptr <- ( newForeignPtr c_emfb_stk_frames_delete_ptr frames_rawptr )
-   return ( StkFrames frames_foreignptr )
+newZeroedStkFrames nFrames nChannels = newStkFrames c_emfb_stk_frames_new_zero (\fun -> fun ( CUInt nFrames ) ( CUInt nChannels ) )
 
 newValuedStkFrames :: Double -> Word32 -> Word32 -> IO StkFrames
-newValuedStkFrames value nFrames nChannels = do
-   frames_rawptr <- handleStkExcept ( \c_exceptDescPtr -> c_emfb_stk_frames_new_valued c_exceptDescPtr (CDouble value) ( CUInt nFrames ) ( CUInt nChannels ) )
-   frames_foreignptr <- ( newForeignPtr c_emfb_stk_frames_delete_ptr frames_rawptr )
-   return ( StkFrames frames_foreignptr )
+newValuedStkFrames value nFrames nChannels = newStkFrames c_emfb_stk_frames_new_valued (\fun -> fun (CDouble value) ( CUInt nFrames) (CUInt nChannels ) )
 
 channelsStkFrames :: StkFrames -> IO Word32
-channelsStkFrames frames = do
-   channels <- withForeignPtr ( framesForeignPtr frames ) (\frames_ptr -> c_emfb_stk_frames_channels frames_ptr )
-   return ( fromIntegral channels )
+channelsStkFrames = unhandledFramesAction c_emfb_stk_frames_channels (\fun -> do
+   c_channels <- fun
+   return (fromIntegral c_channels) )
 
 withStkFramesPtr :: StkFrames -> ( Ptr NativeStkFrames -> IO a ) -> IO a
 withStkFramesPtr frames fun = withForeignPtr ( framesForeignPtr frames ) fun
