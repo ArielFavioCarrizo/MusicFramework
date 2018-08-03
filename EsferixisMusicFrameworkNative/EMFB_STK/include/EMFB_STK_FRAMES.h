@@ -8,4 +8,12 @@ EMFB_STK_API void * emfb_stk_stkframes_new_valued(char **exception_desc, double 
 
 EMFB_STK_API unsigned int emfb_stk_stkframes_channels(void *frames);
 
+EMFB_STK_API unsigned int emfb_stk_stkframes_nFrames(void *frames);
+
+EMFB_STK_API void * emfb_stk_stkframes_clone(char **exception_desc, void *frames);
+
+EMFB_STK_API void emfb_stk_stkframes_addInplace(void *selfFrames, void *otherFrames);
+
+EMFB_STK_API void emfb_stk_stkframes_mulHomologsInplace(void *selfFrames, void *otherFrames);
+
 EMFB_STK_API void emfb_stk_stkframes_delete(void *frames);
