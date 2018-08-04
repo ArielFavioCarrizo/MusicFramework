@@ -12,7 +12,9 @@ module Esferixis.MusicFramework.Bindings.STK.Frames
    , stkFramesLength
    , stkFramesClone
    , stkFramesAdd
-   , stkFramesMulHomologs ) where
+   , stkFramesMulHomologs
+   , stkFramesAddInplace
+   , stkFramesMulHomologsInplace ) where
 
 import Foreign.C
 import Foreign.Ptr (Ptr, nullPtr, FunPtr)
@@ -33,6 +35,8 @@ foreign import ccall "emfb_stk_stkframes_nFrames" c_emfb_stk_stkframes_nFrames :
 foreign import ccall "emfb_stk_stkframes_clone" c_emfb_stk_stkframes_clone :: Ptr ExceptDescPtr -> StkFramesPtr -> IO StkFramesPtr
 foreign import ccall "emfb_stk_stkframes_add" c_emfb_stk_stkframes_add :: Ptr ExceptDescPtr -> StkFramesPtr -> StkFramesPtr -> IO StkFramesPtr
 foreign import ccall "emfb_stk_stkframes_mulHomologs" c_emfb_stk_stkframes_mulHomologs :: Ptr ExceptDescPtr -> StkFramesPtr -> StkFramesPtr -> IO StkFramesPtr
+foreign import ccall "emfb_stk_stkframes_addInplace" c_emfb_stk_stkframes_addInplace :: StkFramesPtr -> StkFramesPtr -> IO ()
+foreign import ccall "emfb_stk_stkframes_mulHomologsInplace" c_emfb_stk_stkframes_mulHomologsInplace :: StkFramesPtr -> StkFramesPtr -> IO ()
 
 foreign import ccall "&emfb_stk_stkframes_delete" c_emfb_stk_frames_delete_ptr :: FunPtr ( Ptr NativeStkFrames -> IO () )
 
@@ -44,6 +48,8 @@ data StkChannelFrames = StkChannelFrames { stkChannelFrames_frames :: StkFrames
                                          }
 
 stkFramesPureBinaryOp nativeFun stkFrames1 stkFrames2 = withStkFramesPtr stkFrames1 (\c_stkFrames1Ptr -> withStkFramesPtr stkFrames2 (\c_stkFrames2Ptr -> newStkFrames nativeFun (\fun -> fun c_stkFrames1Ptr c_stkFrames2Ptr ) ) )
+
+stkFramesImpureBinaryOp nativeFun stkFrames1 stkFrames2 = withStkFramesPtr stkFrames1 (\c_stkFrames1Ptr -> withStkFramesPtr stkFrames2 (\c_stkFrames2Ptr -> nativeFun c_stkFrames1Ptr c_stkFrames2Ptr ) )
 
 newStkFrames = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> StkFrames foreignPtr) c_emfb_stk_frames_delete_ptr
 unhandledFramesAction = exceptionSafeStkObjectAction framesForeignPtr
@@ -75,3 +81,9 @@ stkFramesAdd = stkFramesPureBinaryOp c_emfb_stk_stkframes_add
 
 stkFramesMulHomologs :: StkFrames -> StkFrames -> IO StkFrames
 stkFramesMulHomologs = stkFramesPureBinaryOp c_emfb_stk_stkframes_mulHomologs
+
+stkFramesAddInplace :: StkFrames -> StkFrames -> IO ()
+stkFramesAddInplace = stkFramesImpureBinaryOp c_emfb_stk_stkframes_addInplace
+
+stkFramesMulHomologsInplace :: StkFrames -> StkFrames -> IO ()
+stkFramesMulHomologsInplace = stkFramesImpureBinaryOp c_emfb_stk_stkframes_mulHomologsInplace
