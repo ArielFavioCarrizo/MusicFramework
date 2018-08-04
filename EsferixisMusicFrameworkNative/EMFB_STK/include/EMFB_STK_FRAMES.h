@@ -20,4 +20,8 @@ EMFB_STK_API void emfb_stk_stkframes_addInplace(void *selfFrames, void *otherFra
 
 EMFB_STK_API void emfb_stk_stkframes_mulHomologsInplace(void *selfFrames, void *otherFrames);
 
+EMFB_STK_API void * emfb_stk_stkFrames_scale(char **exception_desc, void *selfFrames, float value);
+
+EMFB_STK_API void emfb_stk_stkFrames_scaleInplace(void *selfFrames, float value);
+
 EMFB_STK_API void emfb_stk_stkframes_delete(void *frames);

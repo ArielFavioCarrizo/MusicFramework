@@ -78,6 +78,33 @@ void emfb_stk_stkframes_mulHomologsInplace(void *selfFrames, void *otherFrames) 
 	(*static_cast<stk::StkFrames *>(selfFrames)) *= (*static_cast<stk::StkFrames *>(otherFrames));
 }
 
+EMFB_STK_API void * emfb_stk_stkFrames_scale(char **exception_desc, void *selfFrames, float value) {
+	EMFB_STK_CATCHEXCEPT_BEGIN
+	stk::StkFrames& selfFrames_ref = *static_cast<stk::StkFrames *>(selfFrames);
+	stk::StkFrames *resultFrames = new stk::StkFrames(selfFrames_ref.frames(), selfFrames_ref.channels());
+
+	stk::StkFloat *selfFramesData = &selfFrames_ref[0];
+	stk::StkFloat *dstData = &((*resultFrames)[0]);
+
+	for (int i = 0; i < selfFrames_ref.size(); i++) {
+		dstData[i] = selfFramesData[i] * value;
+	}
+
+	return resultFrames;
+	EMFB_STK_CATCHEXCEPT_END
+	return nullptr;
+}
+
+EMFB_STK_API void emfb_stk_stkFrames_scaleInplace(void *selfFrames, float value) {
+	stk::StkFrames& selfFrames_ref = *static_cast<stk::StkFrames *>(selfFrames);
+
+	stk::StkFloat *selfFramesData = &selfFrames_ref[0];
+
+	for (int i = 0; i < selfFrames_ref.size(); i++) {
+		selfFramesData[i] *= value;
+	}
+}
+
 void emfb_stk_stkframes_delete(void *frames) {
 	delete static_cast<stk::StkFrames *>(frames);
 }
