@@ -1,0 +1,5 @@
+* Implementar sobremuestreo y submuestreo, para evitar 'aliasing' al aplicar la distorsión de la salida de la guitarra
+* Implementar el filtro de distorsión, los filtros pasabajos, pasaaltos, pasabanda y stopbanda. Con ayuda de STK.
+* Hacer un DSL en Haskell que represente las señales y un grafo de descripción de operaciones con éstas señales.
+* Implementar la transformación de éste DSL a un grafo de dependencias de las operaciones con los chunks de frames y los distintos módulos sintetizadores: De tal manera de evitar la menor cantidad posible de clonados, y en lo posible reducir ciertas cadenas de transformaciones a cadenas de mutaciones.
+* Construir la representación de la guitarra como una generadora de señal.
