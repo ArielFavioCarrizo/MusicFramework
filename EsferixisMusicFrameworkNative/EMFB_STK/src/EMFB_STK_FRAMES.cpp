@@ -1,7 +1,15 @@
 #include "EMFB_STK_FRAMES.h"
 #include "Stk.h"
 
-#include "Stk.h"
+void checkSameDimensions(stk::StkFrames& frames1, stk::StkFrames& frames2) {
+	if ( frames1.channels() != frames2.channels() ) {
+		throw std::runtime_error("Channels mismatch");
+	}
+
+	if (frames1.frames() != frames2.frames()) {
+		throw std::runtime_error("Frames mismatch");
+	}
+}
 
 void * emfb_stk_stkframes_new_zero(char **exception_desc, unsigned int nFrames, unsigned int nChannels) {
 	EMFB_STK_CATCHEXCEPT_BEGIN
@@ -36,6 +44,8 @@ EMFB_STK_API void * emfb_stk_stkframes_add(char **exception_desc, void *frames1,
 	EMFB_STK_CATCHEXCEPT_BEGIN
 	stk::StkFrames& frames1_ref = *static_cast<stk::StkFrames *>(frames1);
 	stk::StkFrames& frames2_ref = *static_cast<stk::StkFrames *>(frames2);
+	checkSameDimensions(frames1_ref, frames2_ref);
+
 	stk::StkFrames *resultFrames = new stk::StkFrames(frames1_ref.frames(), frames1_ref.channels());
 
 	stk::StkFloat *frames1Data = &frames1_ref[0];
@@ -55,6 +65,8 @@ EMFB_STK_API void * emfb_stk_stkframes_mulHomologs(char **exception_desc, void *
 	EMFB_STK_CATCHEXCEPT_BEGIN
     stk::StkFrames& frames1_ref = *static_cast<stk::StkFrames *>(frames1);
 	stk::StkFrames& frames2_ref = *static_cast<stk::StkFrames *>(frames2);
+	checkSameDimensions(frames1_ref, frames2_ref);
+
 	stk::StkFrames *resultFrames = new stk::StkFrames(frames1_ref.frames(), frames1_ref.channels());
 
 	stk::StkFloat *frames1Data = &frames1_ref[0];
@@ -70,24 +82,37 @@ EMFB_STK_API void * emfb_stk_stkframes_mulHomologs(char **exception_desc, void *
     return nullptr;
 }
 
-void emfb_stk_stkframes_addInplace(void *selfFrames, void *otherFrames) {
-	(*static_cast<stk::StkFrames *>(selfFrames)) += (*static_cast<stk::StkFrames *>(otherFrames));
-}
-
-void emfb_stk_stkframes_mulHomologsInplace(void *selfFrames, void *otherFrames) {
-	(*static_cast<stk::StkFrames *>(selfFrames)) *= (*static_cast<stk::StkFrames *>(otherFrames));
-}
-
-EMFB_STK_API void * emfb_stk_stkFrames_scale(char **exception_desc, void *selfFrames, float value) {
+void emfb_stk_stkframes_addInplace(char **exception_desc, void *selfFrames, void *otherFrames) {
 	EMFB_STK_CATCHEXCEPT_BEGIN
 	stk::StkFrames& selfFrames_ref = *static_cast<stk::StkFrames *>(selfFrames);
-	stk::StkFrames *resultFrames = new stk::StkFrames(selfFrames_ref.frames(), selfFrames_ref.channels());
+	stk::StkFrames& otherFrames_ref = *static_cast<stk::StkFrames *>(otherFrames);
+	checkSameDimensions(selfFrames_ref, otherFrames_ref);
 
-	stk::StkFloat *selfFramesData = &selfFrames_ref[0];
+	selfFrames_ref += otherFrames_ref;
+	EMFB_STK_CATCHEXCEPT_END
+}
+
+void emfb_stk_stkframes_mulHomologsInplace(char **exception_desc, void *selfFrames, void *otherFrames) {
+	EMFB_STK_CATCHEXCEPT_BEGIN
+	stk::StkFrames& selfFrames_ref = *static_cast<stk::StkFrames *>(selfFrames);
+	stk::StkFrames& otherFrames_ref = *static_cast<stk::StkFrames *>(otherFrames);
+	checkSameDimensions(selfFrames_ref, otherFrames_ref);
+
+	selfFrames_ref *= otherFrames_ref;
+	EMFB_STK_CATCHEXCEPT_END
+}
+
+EMFB_STK_API void * emfb_stk_stkframes_scale(char **exception_desc, void *frames, double scalar) {
+	EMFB_STK_CATCHEXCEPT_BEGIN
+	stk::StkFrames& frames_ref = *static_cast<stk::StkFrames *>(frames);
+
+	stk::StkFrames *resultFrames = new stk::StkFrames(frames_ref.frames(), frames_ref.channels());
+
+	stk::StkFloat *selfFramesData = &frames_ref[0];
 	stk::StkFloat *dstData = &((*resultFrames)[0]);
 
-	for (int i = 0; i < selfFrames_ref.size(); i++) {
-		dstData[i] = selfFramesData[i] * value;
+	for (int i = 0; i < frames_ref.size(); i++) {
+		dstData[i] = selfFramesData[i] * scalar;
 	}
 
 	return resultFrames;
@@ -95,13 +120,13 @@ EMFB_STK_API void * emfb_stk_stkFrames_scale(char **exception_desc, void *selfFr
 	return nullptr;
 }
 
-EMFB_STK_API void emfb_stk_stkFrames_scaleInplace(void *selfFrames, float value) {
-	stk::StkFrames& selfFrames_ref = *static_cast<stk::StkFrames *>(selfFrames);
+EMFB_STK_API void emfb_stk_stkframes_scaleInplace(void *frames, double scalar) {
+	stk::StkFrames& frames_ref = *static_cast<stk::StkFrames *>(frames);
 
-	stk::StkFloat *selfFramesData = &selfFrames_ref[0];
+	stk::StkFloat *selfFramesData = &frames_ref[0];
 
-	for (int i = 0; i < selfFrames_ref.size(); i++) {
-		selfFramesData[i] *= value;
+	for (int i = 0; i < frames_ref.size(); i++) {
+		selfFramesData[i] *= scalar;
 	}
 }
 

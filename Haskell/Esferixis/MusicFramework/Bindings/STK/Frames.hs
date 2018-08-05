@@ -14,7 +14,9 @@ module Esferixis.MusicFramework.Bindings.STK.Frames
    , stkFramesAdd
    , stkFramesMulHomologs
    , stkFramesAddInplace
-   , stkFramesMulHomologsInplace ) where
+   , stkFramesMulHomologsInplace
+   , stkFramesScale
+   , stkFramesScaleInplace ) where
 
 import Foreign.C
 import Foreign.Ptr (Ptr, nullPtr, FunPtr)
@@ -35,8 +37,10 @@ foreign import ccall "emfb_stk_stkframes_nFrames" c_emfb_stk_stkframes_nFrames :
 foreign import ccall "emfb_stk_stkframes_clone" c_emfb_stk_stkframes_clone :: Ptr ExceptDescPtr -> StkFramesPtr -> IO StkFramesPtr
 foreign import ccall "emfb_stk_stkframes_add" c_emfb_stk_stkframes_add :: Ptr ExceptDescPtr -> StkFramesPtr -> StkFramesPtr -> IO StkFramesPtr
 foreign import ccall "emfb_stk_stkframes_mulHomologs" c_emfb_stk_stkframes_mulHomologs :: Ptr ExceptDescPtr -> StkFramesPtr -> StkFramesPtr -> IO StkFramesPtr
-foreign import ccall "emfb_stk_stkframes_addInplace" c_emfb_stk_stkframes_addInplace :: StkFramesPtr -> StkFramesPtr -> IO ()
-foreign import ccall "emfb_stk_stkframes_mulHomologsInplace" c_emfb_stk_stkframes_mulHomologsInplace :: StkFramesPtr -> StkFramesPtr -> IO ()
+foreign import ccall "emfb_stk_stkframes_addInplace" c_emfb_stk_stkframes_addInplace :: Ptr ExceptDescPtr -> StkFramesPtr -> StkFramesPtr -> IO ()
+foreign import ccall "emfb_stk_stkframes_mulHomologsInplace" c_emfb_stk_stkframes_mulHomologsInplace :: Ptr ExceptDescPtr -> StkFramesPtr -> StkFramesPtr -> IO ()
+foreign import ccall "emfb_stk_stkframes_scale" c_emfb_stk_stkframes_scale :: Ptr ExceptDescPtr -> StkFramesPtr -> CDouble -> IO StkFramesPtr
+foreign import ccall "emfb_stk_stkframes_scaleInplace" c_emfb_stk_stkframes_scaleInplace :: StkFramesPtr -> CDouble -> IO ()
 
 foreign import ccall "&emfb_stk_stkframes_delete" c_emfb_stk_frames_delete_ptr :: FunPtr ( Ptr NativeStkFrames -> IO () )
 
@@ -47,13 +51,13 @@ data StkChannelFrames = StkChannelFrames { stkChannelFrames_frames :: StkFrames
                                          , stkChannelFrames_nChannel :: Word32
                                          }
 
-stkFramesPureBinaryOp nativeFun stkFrames1 stkFrames2 = withStkFramesPtr stkFrames1 (\c_stkFrames1Ptr -> withStkFramesPtr stkFrames2 (\c_stkFrames2Ptr -> newStkFrames nativeFun (\fun -> fun c_stkFrames1Ptr c_stkFrames2Ptr ) ) )
-
-stkFramesImpureBinaryOp nativeFun stkFrames1 stkFrames2 = withStkFramesPtr stkFrames1 (\c_stkFrames1Ptr -> withStkFramesPtr stkFrames2 (\c_stkFrames2Ptr -> nativeFun c_stkFrames1Ptr c_stkFrames2Ptr ) )
-
 newStkFrames = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> StkFrames foreignPtr) c_emfb_stk_frames_delete_ptr
 unhandledFramesAction = exceptionSafeStkObjectAction framesForeignPtr
 exceptHandledFramesAction frames nativeFun actionFun = ( withCurriedStkExceptHandlingObjectAction framesForeignPtr nativeFun actionFun ) frames
+
+stkFramesPureBinaryOp nativeFun stkFrames1 stkFrames2 = withStkFramesPtr stkFrames1 (\c_stkFrames1Ptr -> withStkFramesPtr stkFrames2 (\c_stkFrames2Ptr -> newStkFrames nativeFun (\fun -> fun c_stkFrames1Ptr c_stkFrames2Ptr ) ) )
+
+stkFramesImpureBinaryOp nativeFun stkFrames1 stkFrames2 = withStkFramesPtr stkFrames2 (\c_stkFrames2 -> exceptHandledFramesAction stkFrames1 nativeFun (\fun -> fun c_stkFrames2 ) )
 
 newZeroedStkFrames :: Word32 -> Word32 -> IO StkFrames
 newZeroedStkFrames nFrames nChannels = newStkFrames c_emfb_stk_frames_new_zero (\fun -> fun ( CUInt nFrames ) ( CUInt nChannels ) )
@@ -87,3 +91,9 @@ stkFramesAddInplace = stkFramesImpureBinaryOp c_emfb_stk_stkframes_addInplace
 
 stkFramesMulHomologsInplace :: StkFrames -> StkFrames -> IO ()
 stkFramesMulHomologsInplace = stkFramesImpureBinaryOp c_emfb_stk_stkframes_mulHomologsInplace
+
+stkFramesScale :: StkFrames -> Double -> IO StkFrames
+stkFramesScale stkFrames scalar = withStkFramesPtr stkFrames (\c_stkFramesPtr -> newStkFrames c_emfb_stk_stkframes_scale (\fun -> fun c_stkFramesPtr ( CDouble scalar ) ) )
+
+stkFramesScaleInplace :: StkFrames -> Double -> IO ()
+stkFramesScaleInplace stkFrames scalar = withStkFramesPtr stkFrames (\c_stkFramesPtr -> c_emfb_stk_stkframes_scaleInplace c_stkFramesPtr ( CDouble scalar ) )

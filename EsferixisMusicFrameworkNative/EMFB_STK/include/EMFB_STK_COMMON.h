@@ -3,6 +3,7 @@
 #ifdef __cplusplus
 #include <string>
 #include <Stk.h>
+#include <stdexcept>
 #endif
 
 #ifdef _WIN32
@@ -33,5 +34,8 @@ char * emfb_stk_cppStrToCStr(const std::string cppstr);
 	} \
 	catch (stk::StkError e) { \
 		*exception_desc = emfb_stk_cppStrToCStr(e.getMessage()); \
+	} \
+	catch (const std::exception& e) { \
+		*exception_desc = emfb_stk_cppStrToCStr( std::string( e.what() ) ); \
 	}
 #endif
