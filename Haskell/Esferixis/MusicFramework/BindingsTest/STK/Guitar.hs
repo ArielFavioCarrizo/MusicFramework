@@ -9,6 +9,7 @@ import Esferixis.MusicFramework.Bindings.STK.Filewrite
 import Esferixis.MusicFramework.Bindings.STK.FileWvOut
 import Esferixis.MusicFramework.Bindings.STK.Frames
 import Esferixis.MusicFramework.Bindings.STK.Guitar
+import Esferixis.MusicFramework.Bindings.STK.Cubic
 
 pitchToFrequency :: Double -> Double
 pitchToFrequency pitch = 2.0 ** ( 1.0 / 12.0 * ( pitch - 49.0 ) ) * 440.0 
@@ -16,7 +17,7 @@ pitchToFrequency pitch = 2.0 ** ( 1.0 / 12.0 * ( pitch - 49.0 ) ) * 440.0
 doSimpleGuitarTest :: IO ()
 doSimpleGuitarTest = do
    let nChannels = 1 -- Un canal
-   let time = 5 :: Double
+   let time = 10 :: Double
    currentSampleRate <- sampleRate
    let nFrames = ceiling ( time * currentSampleRate ) :: Word32
 
@@ -45,6 +46,18 @@ doSimpleGuitarTest = do
 
    -- Sintetizar
    guitarTick guitar inputFrames outputFrames 0 0
+
+   -- Amplificar
+   --stkFramesScaleInplace outputFrames 100.0
+
+   -- Crear un filtro cubico
+   --cubic <- newCubic
+ 
+   -- Aplicar el filtro
+   --cubicTickInplace cubic outputFrames 0
+
+   -- Destruir el filtro
+   --deleteCubic cubic
 
    -- Poner la salida en el archivo
    fileWvOutTick fileWvOut outputFrames

@@ -6,7 +6,8 @@ module Esferixis.MusicFramework.Bindings.STK.Frames
    , NativeStkFrames
    , StkChannelFrames( StkChannelFrames, stkChannelFrames_frames, stkChannelFrames_nChannel )
    , stkFramesCheckSameShape
-   , createStkFramesIOTickFun
+   , createStkFramesTickFun
+   , createStkFramesTickInplaceFun
    , newZeroedStkFrames
    , newValuedStkFrames
    , withStkFramesPtr
@@ -82,11 +83,15 @@ stkFramesCheckSameShape stkFrames1 stkFrames2 = do
    stkFramesCheckSameLength stkFrames1 stkFrames2
    stkFramesCheckSameChannels stkFrames1 stkFrames2
 
-createStkFramesIOTickFun doUnhandledObjectAction nativeFun = (\object iframes oframes ichannel ochannel -> do
+createStkFramesTickInplaceFun doUnhandledObjectAction nativeFun = \object frames channel -> do
+   stkFramesCheckChannelExists frames channel
+   withStkFramesPtr frames (\c_frames -> doUnhandledObjectAction object nativeFun (\fun -> fun c_frames (CUInt channel) ) )
+
+createStkFramesTickFun doUnhandledObjectAction nativeFun = \object iframes oframes ichannel ochannel -> do
    stkFramesCheckSameLength iframes oframes
    stkFramesCheckChannelExists iframes ichannel
    stkFramesCheckChannelExists oframes ochannel
-   withStkFramesPtr iframes (\c_iframes -> withStkFramesPtr oframes (\c_oframes -> doUnhandledObjectAction object nativeFun (\fun -> fun c_iframes c_oframes (CUInt ichannel) (CUInt ochannel) ) ) ) )
+   withStkFramesPtr iframes (\c_iframes -> withStkFramesPtr oframes (\c_oframes -> doUnhandledObjectAction object nativeFun (\fun -> fun c_iframes c_oframes (CUInt ichannel) (CUInt ochannel) ) ) )
 
 newStkFramesFromSourceAndForeignPtr sourceStkFrames newStkFramesForeignPtr = StkFrames newStkFramesForeignPtr ( stkFramesLength sourceStkFrames ) ( stkFramesChannels sourceStkFrames )
 

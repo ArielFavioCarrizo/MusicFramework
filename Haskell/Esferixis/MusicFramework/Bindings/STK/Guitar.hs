@@ -69,4 +69,4 @@ guitarNoteOff :: Guitar -> Double -> Word32 -> IO ()
 guitarNoteOff guitar amplitude string = unhandledGuitarAction guitar c_emfb_stk_guitar_noteOff (\fun -> fun ( CDouble amplitude ) ( CUInt string ) )
 
 guitarTick :: Guitar -> StkFrames -> StkFrames -> Word32 -> Word32 -> IO ()
-guitarTick = createStkFramesIOTickFun unhandledGuitarAction c_emfb_stk_guitar_tick
+guitarTick = createStkFramesTickFun unhandledGuitarAction c_emfb_stk_guitar_tick
