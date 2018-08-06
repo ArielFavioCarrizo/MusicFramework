@@ -67,9 +67,5 @@ guitarNoteOn guitar frequency amplitude string = exceptHandledGuitarAction guita
 guitarNoteOff :: Guitar -> Double -> Word32 -> IO ()
 guitarNoteOff guitar amplitude string = exceptHandledGuitarAction guitar c_emfb_stk_guitar_noteOff (\fun -> fun ( CDouble amplitude ) ( CUInt string ) )
 
-guitarTick :: Guitar -> StkChannelFrames -> StkChannelFrames -> IO ()
-guitarTick guitar ichannelframes ochannelframes = let iframes = ( stkChannelFrames_frames ichannelframes )
-                                                      oframes = ( stkChannelFrames_frames ochannelframes )
-                                                      c_ichannel = ( CUInt ( stkChannelFrames_nChannel ichannelframes ) )
-                                                      c_ochannel = ( CUInt ( stkChannelFrames_nChannel ochannelframes ) )
-                                                  in withStkFramesPtr iframes (\c_iframes -> withStkFramesPtr oframes (\c_oframes -> exceptHandledGuitarAction guitar c_emfb_stk_guitar_tick (\fun -> fun c_iframes c_oframes c_ichannel c_ochannel ) ) )
+guitarTick :: Guitar -> StkFrames -> StkFrames -> Word32 -> Word32 -> IO ()
+guitarTick guitar iframes oframes ichannel ochannel = withStkFramesPtr iframes (\c_iframes -> withStkFramesPtr oframes (\c_oframes -> exceptHandledGuitarAction guitar c_emfb_stk_guitar_tick (\fun -> fun c_iframes c_oframes (CUInt ichannel) (CUInt ochannel) ) ) )

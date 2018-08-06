@@ -44,7 +44,7 @@ doSimpleGuitarTest = do
    guitarNoteOn guitar ( pitchToFrequency ( 30.0 + 7.0 ) ) 1.0 1
 
    -- Sintetizar
-   guitarTick guitar ( StkChannelFrames inputFrames 0 ) ( StkChannelFrames outputFrames 0 )
+   guitarTick guitar inputFrames outputFrames 0 0
 
    -- Poner la salida en el archivo
    fileWvOutTick fileWvOut outputFrames
