@@ -44,41 +44,37 @@ foreign import ccall "emfb_stk_stkframes_scaleInplace" c_emfb_stk_stkframes_scal
 
 foreign import ccall "&emfb_stk_stkframes_delete" c_emfb_stk_frames_delete_ptr :: FunPtr ( Ptr NativeStkFrames -> IO () )
 
-data StkFrames = StkFrames ( ForeignPtr NativeStkFrames )
-framesForeignPtr (StkFrames a) = a
+data StkFrames = StkFrames { framesForeignPtr :: ForeignPtr NativeStkFrames
+                           ,  stkFramesLength :: Word32
+                           ,  stkFramesChannels :: Word32 }
 
 data StkChannelFrames = StkChannelFrames { stkChannelFrames_frames :: StkFrames
                                          , stkChannelFrames_nChannel :: Word32
                                          }
 
-newStkFrames = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> StkFrames foreignPtr) c_emfb_stk_frames_delete_ptr
+newStkFramesFromSourceAndForeignPtr sourceStkFrames newStkFramesForeignPtr = StkFrames newStkFramesForeignPtr ( stkFramesLength sourceStkFrames ) ( stkFramesChannels sourceStkFrames )
+
+newStkFramesFromExisting sourceFrames = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> newStkFramesFromSourceAndForeignPtr sourceFrames foreignPtr) c_emfb_stk_frames_delete_ptr
+
+newStkFramesOriginal nFrames nChannels = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> StkFrames foreignPtr nFrames nChannels ) c_emfb_stk_frames_delete_ptr
+
 unhandledFramesAction = exceptionSafeStkObjectAction framesForeignPtr
 exceptHandledFramesAction frames nativeFun actionFun = ( withCurriedStkExceptHandlingObjectAction framesForeignPtr nativeFun actionFun ) frames
 
-stkFramesPureBinaryOp nativeFun stkFrames1 stkFrames2 = withStkFramesPtr stkFrames1 (\c_stkFrames1Ptr -> withStkFramesPtr stkFrames2 (\c_stkFrames2Ptr -> newStkFrames nativeFun (\fun -> fun c_stkFrames1Ptr c_stkFrames2Ptr ) ) )
+stkFramesPureBinaryOp nativeFun stkFrames1 stkFrames2 = withStkFramesPtr stkFrames1 (\c_stkFrames1Ptr -> withStkFramesPtr stkFrames2 (\c_stkFrames2Ptr -> newStkFramesFromExisting stkFrames2 nativeFun (\fun -> fun c_stkFrames1Ptr c_stkFrames2Ptr ) ) )
 
 stkFramesImpureBinaryOp nativeFun stkFrames1 stkFrames2 = withStkFramesPtr stkFrames2 (\c_stkFrames2 -> exceptHandledFramesAction stkFrames1 nativeFun (\fun -> fun c_stkFrames2 ) )
 
 newZeroedStkFrames :: Word32 -> Word32 -> IO StkFrames
-newZeroedStkFrames nFrames nChannels = newStkFrames c_emfb_stk_frames_new_zero (\fun -> fun ( CUInt nFrames ) ( CUInt nChannels ) )
+newZeroedStkFrames nFrames nChannels = newStkFramesOriginal nFrames nChannels c_emfb_stk_frames_new_zero (\fun -> fun ( CUInt nFrames ) ( CUInt nChannels ) )
 
 newValuedStkFrames :: Double -> Word32 -> Word32 -> IO StkFrames
-newValuedStkFrames value nFrames nChannels = newStkFrames c_emfb_stk_frames_new_valued (\fun -> fun (CDouble value) ( CUInt nFrames) (CUInt nChannels ) )
+newValuedStkFrames value nFrames nChannels = newStkFramesOriginal nFrames nChannels c_emfb_stk_frames_new_valued (\fun -> fun (CDouble value) ( CUInt nFrames) (CUInt nChannels ) )
 
 withStkFramesPtr = withStkObjectPtr framesForeignPtr
 
-stkFramesChannels :: StkFrames -> IO Word32
-stkFramesChannels = unhandledFramesAction c_emfb_stk_frames_channels (\fun -> do
-   c_channels <- fun
-   return (fromIntegral c_channels) )
-
-stkFramesLength :: StkFrames -> IO Word32
-stkFramesLength = unhandledFramesAction c_emfb_stk_stkframes_nFrames (\fun -> do
-   c_nFrames <- fun
-   return (fromIntegral c_nFrames) )
-
 stkFramesClone :: StkFrames -> IO StkFrames
-stkFramesClone stkFrames = withStkFramesPtr stkFrames (\c_stkFramesPtr -> newStkFrames c_emfb_stk_stkframes_clone (\fun -> fun c_stkFramesPtr ) )
+stkFramesClone stkFrames = withStkFramesPtr stkFrames (\c_stkFramesPtr -> newStkFramesFromExisting stkFrames c_emfb_stk_stkframes_clone (\fun -> fun c_stkFramesPtr ) )
 
 stkFramesAdd :: StkFrames -> StkFrames -> IO StkFrames
 stkFramesAdd = stkFramesPureBinaryOp c_emfb_stk_stkframes_add
@@ -93,7 +89,7 @@ stkFramesMulHomologsInplace :: StkFrames -> StkFrames -> IO ()
 stkFramesMulHomologsInplace = stkFramesImpureBinaryOp c_emfb_stk_stkframes_mulHomologsInplace
 
 stkFramesScale :: StkFrames -> Double -> IO StkFrames
-stkFramesScale stkFrames scalar = withStkFramesPtr stkFrames (\c_stkFramesPtr -> newStkFrames c_emfb_stk_stkframes_scale (\fun -> fun c_stkFramesPtr ( CDouble scalar ) ) )
+stkFramesScale stkFrames scalar = withStkFramesPtr stkFrames (\c_stkFramesPtr -> newStkFramesFromExisting stkFrames c_emfb_stk_stkframes_scale (\fun -> fun c_stkFramesPtr ( CDouble scalar ) ) )
 
 stkFramesScaleInplace :: StkFrames -> Double -> IO ()
 stkFramesScaleInplace stkFrames scalar = withStkFramesPtr stkFrames (\c_stkFramesPtr -> c_emfb_stk_stkframes_scaleInplace c_stkFramesPtr ( CDouble scalar ) )
