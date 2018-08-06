@@ -25,6 +25,8 @@ import Control.Exception
 import Esferixis.MusicFramework.Bindings.STK.Internal.Misc
 import Esferixis.MusicFramework.Bindings.STK.Frames
 
+import Esferixis.Foreign.Objects
+
 data NativeCubic
 type CubicPtr = Ptr NativeCubic
 
@@ -35,11 +37,11 @@ unhandledCubicAction cubic nativeFun actionFun = withForeignPtr ( cubicForeignPt
 
 foreign import ccall "emfb_stk_cubic_new" c_emfb_stk_cubic_new :: Ptr ExceptDescPtr -> IO CubicPtr
 foreign import ccall "&emfb_stk_cubic_delete" c_emfb_stk_cubic_delete_ptr :: FunPtr ( CubicPtr -> IO () )
-foreign import ccall "emfb_stk_cubic_setA1" c_emfb_stk_cubic_setA1 :: CubicPtr -> CDouble -> IO ()
-foreign import ccall "emfb_stk_cubic_setA2" c_emfb_stk_cubic_setA2 :: CubicPtr -> CDouble -> IO ()
-foreign import ccall "emfb_stk_cubic_setA3" c_emfb_stk_cubic_setA3 :: CubicPtr -> CDouble -> IO ()
-foreign import ccall "emfb_stk_cubic_setGain" c_emfb_stk_cubic_setGain :: CubicPtr -> CDouble -> IO ()
-foreign import ccall "emfb_stk_cubic_setThreshold" c_emfb_stk_cubic_setThreshold :: CubicPtr -> CDouble -> IO ()
+foreign import ccall unsafe "emfb_stk_cubic_setA1" c_emfb_stk_cubic_setA1 :: CubicPtr -> CDouble -> IO ()
+foreign import ccall unsafe "emfb_stk_cubic_setA2" c_emfb_stk_cubic_setA2 :: CubicPtr -> CDouble -> IO ()
+foreign import ccall unsafe "emfb_stk_cubic_setA3" c_emfb_stk_cubic_setA3 :: CubicPtr -> CDouble -> IO ()
+foreign import ccall unsafe "emfb_stk_cubic_setGain" c_emfb_stk_cubic_setGain :: CubicPtr -> CDouble -> IO ()
+foreign import ccall unsafe "emfb_stk_cubic_setThreshold" c_emfb_stk_cubic_setThreshold :: CubicPtr -> CDouble -> IO ()
 foreign import ccall "emfb_stk_cubic_tickInplace" c_emfb_stk_cubic_tickInplace :: CubicPtr -> StkFramesPtr -> CUInt -> IO ()
 foreign import ccall "emfb_stk_cubic_tick" c_emfb_stk_cubic_tick :: CubicPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> IO ()
 
@@ -50,7 +52,7 @@ deleteCubic :: Cubic -> IO ()
 deleteCubic = deleteStkObject cubicForeignPtr
 
 createSetCubicValue :: ( CubicPtr -> CDouble -> IO () ) -> ( Cubic -> Double -> IO () )
-createSetCubicValue nativeFun = \cubic value -> unhandledCubicAction cubic nativeFun (\fun -> fun ( CDouble value ) )
+createSetCubicValue = createSetterFun unhandledCubicAction
 
 cubicSetA1 = createSetCubicValue c_emfb_stk_cubic_setA1
 cubicSetA2 = createSetCubicValue c_emfb_stk_cubic_setA2

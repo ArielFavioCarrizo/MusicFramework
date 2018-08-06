@@ -37,8 +37,8 @@ unhandledGuitarAction guitar nativeFun actionFun = withForeignPtr ( guitarForeig
 foreign import ccall "emfb_stk_guitar_new" c_emfb_stk_guitar_new :: Ptr ExceptDescPtr -> CUInt -> CString -> IO GuitarPtr
 foreign import ccall "&emfb_stk_guitar_delete" c_emfb_stk_guitar_delete_ptr :: FunPtr ( GuitarPtr -> IO () )
 foreign import ccall "emfb_stk_guitar_clear" c_emfb_stk_guitar_clear :: GuitarPtr -> IO ()
-foreign import ccall "emfb_stk_guitar_setLoopGain" c_emfb_stk_guitar_setLoopGain :: GuitarPtr -> CDouble -> CInt -> IO ()
-foreign import ccall "emfb_stk_guitar_setPluckPosition" c_emfb_stk_guitar_setPluckPosition :: GuitarPtr -> CDouble -> CInt -> IO ()
+foreign import ccall unsafe "emfb_stk_guitar_setLoopGain" c_emfb_stk_guitar_setLoopGain :: GuitarPtr -> CDouble -> CInt -> IO ()
+foreign import ccall unsafe "emfb_stk_guitar_setPluckPosition" c_emfb_stk_guitar_setPluckPosition :: GuitarPtr -> CDouble -> CInt -> IO ()
 foreign import ccall "emfb_stk_guitar_setFrequency" c_emfb_stk_guitar_setFrequency :: GuitarPtr -> CDouble -> CUInt -> IO ()
 foreign import ccall "emfb_stk_guitar_noteOn" c_emfb_stk_guitar_noteOn :: GuitarPtr -> CDouble -> CDouble -> CUInt -> IO ()
 foreign import ccall "emfb_stk_guitar_noteOff" c_emfb_stk_guitar_noteOff :: GuitarPtr -> CDouble -> CUInt -> IO ()
