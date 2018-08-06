@@ -6,16 +6,16 @@ EMFB_STK_API void * emfb_stk_guitar_new(char **exception_desc, unsigned int nStr
 
 EMFB_STK_API void emfb_stk_guitar_delete(void *guitar);
 
-EMFB_STK_API void emfb_stk_guitar_clear(char **exception_desc, void *guitar);
+EMFB_STK_API void emfb_stk_guitar_clear(void *guitar);
 
-EMFB_STK_API void emfb_stk_guitar_setLoopGain(char **exception_desc, void *guitar, double gain, int string);
+EMFB_STK_API void emfb_stk_guitar_setLoopGain(void *guitar, double gain, int string);
 
-EMFB_STK_API void emfb_stk_guitar_setPluckPosition(char **exception_desc, void *guitar, double position, int string);
+EMFB_STK_API void emfb_stk_guitar_setPluckPosition(void *guitar, double position, int string);
 
-EMFB_STK_API void emfb_stk_guitar_setFrequency(char **exception_desc, void *guitar, double frequency, unsigned int string);
+EMFB_STK_API void emfb_stk_guitar_setFrequency(void *guitar, double frequency, unsigned int string);
 
-EMFB_STK_API void emfb_stk_guitar_noteOn(char **exception_desc, void *guitar, double frequency, double amplitude, unsigned int string);
+EMFB_STK_API void emfb_stk_guitar_noteOn(void *guitar, double frequency, double amplitude, unsigned int string);
 
-EMFB_STK_API void emfb_stk_guitar_noteOff(char **exception_desc, void *guitar, double amplitude, unsigned int string);
+EMFB_STK_API void emfb_stk_guitar_noteOff(void *guitar, double amplitude, unsigned int string);
 
-EMFB_STK_API void emfb_stk_guitar_tick(char **exception_desc, void *guitar, void *iframes, void *oframes, unsigned int iChannel, unsigned int oChannel);
+EMFB_STK_API void emfb_stk_guitar_tick(void *guitar, void *iframes, void *oframes, unsigned int iChannel, unsigned int oChannel);

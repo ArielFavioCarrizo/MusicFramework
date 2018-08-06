@@ -5,7 +5,8 @@ module Esferixis.MusicFramework.Bindings.STK.Frames
    , StkFramesPtr
    , NativeStkFrames
    , StkChannelFrames( StkChannelFrames, stkChannelFrames_frames, stkChannelFrames_nChannel )
-   , doSameStkFramesShapeCheckIO
+   , stkFramesCheckSameShape
+   , createStkFramesIOTickFun
    , newZeroedStkFrames
    , newValuedStkFrames
    , withStkFramesPtr
@@ -55,15 +56,37 @@ data StkChannelFrames = StkChannelFrames { stkChannelFrames_frames :: StkFrames
                                          , stkChannelFrames_nChannel :: Word32
                                          }
 
-doSameStkFramesShapeCheckIO :: StkFrames -> StkFrames -> IO a -> IO a
-doSameStkFramesShapeCheckIO stkFrames1 stkFrames2 actionFun = do
+stkFramesCheckChannelExists :: StkFrames -> Word32 -> IO ()
+stkFramesCheckChannelExists stkFrames channel = do
+   if ( ( channel >= 0 ) && ( channel <= ( stkFramesChannels stkFrames - 1 ) ) )
+      then return ()
+   else
+      throwIO ( StkException "Invalid channel number" )
+
+stkFramesCheckSameLength :: StkFrames -> StkFrames -> IO ()
+stkFramesCheckSameLength stkFrames1 stkFrames2 = do
    if (stkFramesLength stkFrames1 ) == ( stkFramesLength stkFrames2 )
-      then if ( stkFramesChannels stkFrames1 ) == ( stkFramesChannels stkFrames2 )
-              then actionFun
-      else
-         throwIO ( StkException "Channels mismatch" )
+      then return ()
    else
       throwIO ( StkException "Length mismatch" )
+
+stkFramesCheckSameChannels :: StkFrames -> StkFrames -> IO ()
+stkFramesCheckSameChannels stkFrames1 stkFrames2 = do
+   if ( stkFramesChannels stkFrames1 ) == ( stkFramesChannels stkFrames2 )
+      then return ()
+   else
+      throwIO ( StkException "Channels mismatch" )
+
+stkFramesCheckSameShape :: StkFrames -> StkFrames -> IO ()
+stkFramesCheckSameShape stkFrames1 stkFrames2 = do
+   stkFramesCheckSameLength stkFrames1 stkFrames2
+   stkFramesCheckSameChannels stkFrames1 stkFrames2
+
+createStkFramesIOTickFun doUnhandledObjectAction nativeFun = (\object iframes oframes ichannel ochannel -> do
+   stkFramesCheckSameLength iframes oframes
+   stkFramesCheckChannelExists iframes ichannel
+   stkFramesCheckChannelExists oframes ochannel
+   withStkFramesPtr iframes (\c_iframes -> withStkFramesPtr oframes (\c_oframes -> doUnhandledObjectAction object nativeFun (\fun -> fun c_iframes c_oframes (CUInt ichannel) (CUInt ochannel) ) ) ) )
 
 newStkFramesFromSourceAndForeignPtr sourceStkFrames newStkFramesForeignPtr = StkFrames newStkFramesForeignPtr ( stkFramesLength sourceStkFrames ) ( stkFramesChannels sourceStkFrames )
 
@@ -74,9 +97,13 @@ newStkFramesOriginal nFrames nChannels = withCurriedStkExceptHandlingNewObject_p
 unhandledFramesAction = exceptionSafeStkObjectAction framesForeignPtr
 exceptHandledFramesAction frames nativeFun actionFun = ( withCurriedStkExceptHandlingObjectAction framesForeignPtr nativeFun actionFun ) frames
 
-stkFramesPureBinaryOp nativeFun stkFrames1 stkFrames2 = doSameStkFramesShapeCheckIO stkFrames1 stkFrames2 ( withStkFramesPtr stkFrames1 (\c_stkFrames1Ptr -> withStkFramesPtr stkFrames2 (\c_stkFrames2Ptr -> newStkFramesFromExisting stkFrames2 nativeFun (\fun -> fun c_stkFrames1Ptr c_stkFrames2Ptr ) ) ) )
+stkFramesPureBinaryOp nativeFun stkFrames1 stkFrames2 = do
+   stkFramesCheckSameShape stkFrames1 stkFrames2
+   withStkFramesPtr stkFrames1 (\c_stkFrames1Ptr -> withStkFramesPtr stkFrames2 (\c_stkFrames2Ptr -> newStkFramesFromExisting stkFrames2 nativeFun (\fun -> fun c_stkFrames1Ptr c_stkFrames2Ptr ) ) )
 
-stkFramesImplaceBinaryOp nativeFun stkFrames1 stkFrames2 = doSameStkFramesShapeCheckIO stkFrames1 stkFrames2 ( withStkFramesPtr stkFrames1 (\c_stkFrames1 -> withStkFramesPtr stkFrames2 (\c_stkFrames2 -> nativeFun c_stkFrames1 c_stkFrames2 ) ) )
+stkFramesImplaceBinaryOp nativeFun stkFrames1 stkFrames2 = do
+   stkFramesCheckSameShape stkFrames1 stkFrames2
+   withStkFramesPtr stkFrames1 (\c_stkFrames1 -> withStkFramesPtr stkFrames2 (\c_stkFrames2 -> nativeFun c_stkFrames1 c_stkFrames2 ) )
 
 newZeroedStkFrames :: Word32 -> Word32 -> IO StkFrames
 newZeroedStkFrames nFrames nChannels = newStkFramesOriginal nFrames nChannels c_emfb_stk_frames_new_zero (\fun -> fun ( CUInt nFrames ) ( CUInt nChannels ) )
