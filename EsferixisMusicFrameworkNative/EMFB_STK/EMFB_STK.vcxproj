@@ -155,6 +155,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\EMFB_STK_CUBIC.h" />
     <ClInclude Include="include\EMFB_STK_FILEWRITE.h" />
     <ClInclude Include="include\EMFB_STK_FILEWVOUT.h" />
     <ClInclude Include="include\EMFB_STK_COMMON.h" />
@@ -166,6 +167,7 @@
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="src\EMFB_STK_COMMON.cpp" />
+    <ClCompile Include="src\EMFB_STK_CUBIC.cpp" />
     <ClCompile Include="src\EMFB_STK_FILEWRITE.cpp" />
     <ClCompile Include="src\EMFB_STK_FILEWVOUT.cpp" />
     <ClCompile Include="src\EMFB_STK_FRAMES.cpp" />
