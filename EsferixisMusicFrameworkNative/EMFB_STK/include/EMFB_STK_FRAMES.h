@@ -16,9 +16,9 @@ EMFB_STK_API void * emfb_stk_stkframes_add(char **exception_desc, void *frames1,
 
 EMFB_STK_API void * emfb_stk_stkframes_mulHomologs(char **exception_desc, void *frames1, void *frames2);
 
-EMFB_STK_API void emfb_stk_stkframes_addInplace(char **exception_desc, void *selfFrames, void *otherFrames);
+EMFB_STK_API void emfb_stk_stkframes_addInplace(void *selfFrames, void *otherFrames);
 
-EMFB_STK_API void emfb_stk_stkframes_mulHomologsInplace(char **exception_desc, void *selfFrames, void *otherFrames);
+EMFB_STK_API void emfb_stk_stkframes_mulHomologsInplace(void *selfFrames, void *otherFrames);
 
 EMFB_STK_API void * emfb_stk_stkframes_scale(char **exception_desc, void *frames, double scalar);
 

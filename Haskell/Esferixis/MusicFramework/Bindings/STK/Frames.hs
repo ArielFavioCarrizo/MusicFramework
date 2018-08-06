@@ -5,6 +5,7 @@ module Esferixis.MusicFramework.Bindings.STK.Frames
    , StkFramesPtr
    , NativeStkFrames
    , StkChannelFrames( StkChannelFrames, stkChannelFrames_frames, stkChannelFrames_nChannel )
+   , doSameStkFramesShapeCheckIO
    , newZeroedStkFrames
    , newValuedStkFrames
    , withStkFramesPtr
@@ -27,6 +28,8 @@ import Data.Word
 import Esferixis.MusicFramework.Bindings.STK
 import Esferixis.MusicFramework.Bindings.STK.Internal.Misc
 
+import Control.Exception
+
 data NativeStkFrames
 type StkFramesPtr = Ptr NativeStkFrames
 
@@ -37,8 +40,8 @@ foreign import ccall "emfb_stk_stkframes_nFrames" c_emfb_stk_stkframes_nFrames :
 foreign import ccall "emfb_stk_stkframes_clone" c_emfb_stk_stkframes_clone :: Ptr ExceptDescPtr -> StkFramesPtr -> IO StkFramesPtr
 foreign import ccall "emfb_stk_stkframes_add" c_emfb_stk_stkframes_add :: Ptr ExceptDescPtr -> StkFramesPtr -> StkFramesPtr -> IO StkFramesPtr
 foreign import ccall "emfb_stk_stkframes_mulHomologs" c_emfb_stk_stkframes_mulHomologs :: Ptr ExceptDescPtr -> StkFramesPtr -> StkFramesPtr -> IO StkFramesPtr
-foreign import ccall "emfb_stk_stkframes_addInplace" c_emfb_stk_stkframes_addInplace :: Ptr ExceptDescPtr -> StkFramesPtr -> StkFramesPtr -> IO ()
-foreign import ccall "emfb_stk_stkframes_mulHomologsInplace" c_emfb_stk_stkframes_mulHomologsInplace :: Ptr ExceptDescPtr -> StkFramesPtr -> StkFramesPtr -> IO ()
+foreign import ccall "emfb_stk_stkframes_addInplace" c_emfb_stk_stkframes_addInplace :: StkFramesPtr -> StkFramesPtr -> IO ()
+foreign import ccall "emfb_stk_stkframes_mulHomologsInplace" c_emfb_stk_stkframes_mulHomologsInplace :: StkFramesPtr -> StkFramesPtr -> IO ()
 foreign import ccall "emfb_stk_stkframes_scale" c_emfb_stk_stkframes_scale :: Ptr ExceptDescPtr -> StkFramesPtr -> CDouble -> IO StkFramesPtr
 foreign import ccall "emfb_stk_stkframes_scaleInplace" c_emfb_stk_stkframes_scaleInplace :: StkFramesPtr -> CDouble -> IO ()
 
@@ -52,6 +55,16 @@ data StkChannelFrames = StkChannelFrames { stkChannelFrames_frames :: StkFrames
                                          , stkChannelFrames_nChannel :: Word32
                                          }
 
+doSameStkFramesShapeCheckIO :: StkFrames -> StkFrames -> IO a -> IO a
+doSameStkFramesShapeCheckIO stkFrames1 stkFrames2 actionFun = do
+   if (stkFramesLength stkFrames1 ) == ( stkFramesLength stkFrames2 )
+      then if ( stkFramesChannels stkFrames1 ) == ( stkFramesChannels stkFrames2 )
+              then actionFun
+      else
+         throwIO ( StkException "Channels mismatch" )
+   else
+      throwIO ( StkException "Length mismatch" )
+
 newStkFramesFromSourceAndForeignPtr sourceStkFrames newStkFramesForeignPtr = StkFrames newStkFramesForeignPtr ( stkFramesLength sourceStkFrames ) ( stkFramesChannels sourceStkFrames )
 
 newStkFramesFromExisting sourceFrames = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> newStkFramesFromSourceAndForeignPtr sourceFrames foreignPtr) c_emfb_stk_frames_delete_ptr
@@ -61,9 +74,9 @@ newStkFramesOriginal nFrames nChannels = withCurriedStkExceptHandlingNewObject_p
 unhandledFramesAction = exceptionSafeStkObjectAction framesForeignPtr
 exceptHandledFramesAction frames nativeFun actionFun = ( withCurriedStkExceptHandlingObjectAction framesForeignPtr nativeFun actionFun ) frames
 
-stkFramesPureBinaryOp nativeFun stkFrames1 stkFrames2 = withStkFramesPtr stkFrames1 (\c_stkFrames1Ptr -> withStkFramesPtr stkFrames2 (\c_stkFrames2Ptr -> newStkFramesFromExisting stkFrames2 nativeFun (\fun -> fun c_stkFrames1Ptr c_stkFrames2Ptr ) ) )
+stkFramesPureBinaryOp nativeFun stkFrames1 stkFrames2 = doSameStkFramesShapeCheckIO stkFrames1 stkFrames2 ( withStkFramesPtr stkFrames1 (\c_stkFrames1Ptr -> withStkFramesPtr stkFrames2 (\c_stkFrames2Ptr -> newStkFramesFromExisting stkFrames2 nativeFun (\fun -> fun c_stkFrames1Ptr c_stkFrames2Ptr ) ) ) )
 
-stkFramesImpureBinaryOp nativeFun stkFrames1 stkFrames2 = withStkFramesPtr stkFrames2 (\c_stkFrames2 -> exceptHandledFramesAction stkFrames1 nativeFun (\fun -> fun c_stkFrames2 ) )
+stkFramesImplaceBinaryOp nativeFun stkFrames1 stkFrames2 = doSameStkFramesShapeCheckIO stkFrames1 stkFrames2 ( withStkFramesPtr stkFrames1 (\c_stkFrames1 -> withStkFramesPtr stkFrames2 (\c_stkFrames2 -> nativeFun c_stkFrames1 c_stkFrames2 ) ) )
 
 newZeroedStkFrames :: Word32 -> Word32 -> IO StkFrames
 newZeroedStkFrames nFrames nChannels = newStkFramesOriginal nFrames nChannels c_emfb_stk_frames_new_zero (\fun -> fun ( CUInt nFrames ) ( CUInt nChannels ) )
@@ -83,10 +96,10 @@ stkFramesMulHomologs :: StkFrames -> StkFrames -> IO StkFrames
 stkFramesMulHomologs = stkFramesPureBinaryOp c_emfb_stk_stkframes_mulHomologs
 
 stkFramesAddInplace :: StkFrames -> StkFrames -> IO ()
-stkFramesAddInplace = stkFramesImpureBinaryOp c_emfb_stk_stkframes_addInplace
+stkFramesAddInplace = stkFramesImplaceBinaryOp c_emfb_stk_stkframes_addInplace
 
 stkFramesMulHomologsInplace :: StkFrames -> StkFrames -> IO ()
-stkFramesMulHomologsInplace = stkFramesImpureBinaryOp c_emfb_stk_stkframes_mulHomologsInplace
+stkFramesMulHomologsInplace = stkFramesImplaceBinaryOp c_emfb_stk_stkframes_mulHomologsInplace
 
 stkFramesScale :: StkFrames -> Double -> IO StkFrames
 stkFramesScale stkFrames scalar = withStkFramesPtr stkFrames (\c_stkFramesPtr -> newStkFramesFromExisting stkFrames c_emfb_stk_stkframes_scale (\fun -> fun c_stkFramesPtr ( CDouble scalar ) ) )
