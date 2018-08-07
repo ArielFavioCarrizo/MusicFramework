@@ -23,6 +23,16 @@ EMFB_STK_API unsigned long emfb_stk_sint16();
 EMFB_STK_API double emfb_stk_sampleRate();
 EMFB_STK_API void emfb_stk_setSampleRate(double rate);
 
+template<typename StkUnitType>
+void emfb_stk_tickInplace(void *self, void *frames, unsigned int channel) {
+	static_cast<StkUnitType *>(self)->tick(*static_cast<stk::StkFrames *>(frames), channel);
+}
+
+template<typename StkUnitType>
+void emfb_stk_tick(void *self, void *iFrames, void *oFrames, unsigned int iChannel, unsigned int oChannel) {
+	static_cast<StkUnitType *>(self)->tick(*static_cast<stk::StkFrames *>(iFrames), *static_cast<stk::StkFrames *>(oFrames), iChannel, oChannel);
+}
+
 #ifdef __cplusplus
 
 char * emfb_stk_cppStrToCStr(const std::string cppstr);

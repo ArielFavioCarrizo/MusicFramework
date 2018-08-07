@@ -14,8 +14,8 @@ EMFB_STK_API void emfb_stk_cubic_setGain(void *cubic, double gain);
 
 EMFB_STK_API void emfb_stk_cubic_setThreshold(void *cubic, double threshold);
 
-EMFB_STK_API void emfb_stk_cubic_tickInplace(void *cubic, void *frames, unsigned int channel);
+EMFB_STK_API void emfb_stk_cubic_tickInplace(void *self, void *frames, unsigned int channel);
 
-EMFB_STK_API void emfb_stk_cubic_tick(void *cubic, void *iFrames, void *oFrames, unsigned int iChannel, unsigned int oChannel);
+EMFB_STK_API void emfb_stk_cubic_tick(void *self, void *iFrames, void *oFrames, unsigned int iChannel, unsigned int oChannel);
 
 EMFB_STK_API void emfb_stk_cubic_delete(void *cubic);

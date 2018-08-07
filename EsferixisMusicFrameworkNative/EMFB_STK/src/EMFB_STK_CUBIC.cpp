@@ -28,12 +28,12 @@ EMFB_STK_API void emfb_stk_cubic_setThreshold(void *cubic, double threshold) {
 	static_cast<stk::Cubic *>(cubic)->setThreshold(threshold);
 }
 
-EMFB_STK_API void emfb_stk_cubic_tickInplace(void *cubic, void *frames, unsigned int channel) {
-	static_cast<stk::Cubic *>(cubic)->tick(*static_cast<stk::StkFrames *>(frames), channel);
+EMFB_STK_API void emfb_stk_cubic_tickInplace(void *self, void *frames, unsigned int channel) {
+	emfb_stk_tickInplace<stk::Cubic>(self, frames, channel);
 }
 
-EMFB_STK_API void emfb_stk_cubic_tick(void *cubic, void *iFrames, void *oFrames, unsigned int iChannel, unsigned int oChannel) {
-	static_cast<stk::Cubic *>(cubic)->tick(*static_cast<stk::StkFrames *>(iFrames), *static_cast<stk::StkFrames *>(oFrames), iChannel, oChannel);
+EMFB_STK_API void emfb_stk_cubic_tick(void *self, void *iFrames, void *oFrames, unsigned int iChannel, unsigned int oChannel) {
+	emfb_stk_tick<stk::Cubic>(self, iFrames, oFrames, iChannel, oChannel);
 }
 
 EMFB_STK_API void emfb_stk_cubic_delete(void *cubic) {
