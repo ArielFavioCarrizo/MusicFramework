@@ -21,7 +21,7 @@ EMFB_STK_API void emfb_stk_cubic_setA3(void *cubic, double a3) {
 }
 
 EMFB_STK_API void emfb_stk_cubic_setGain(void *cubic, double gain) {
-	static_cast<stk::Cubic *>(cubic)->setGain(gain);
+	emfb_stk_setGain<stk::Cubic>(cubic, gain);
 }
 
 EMFB_STK_API void emfb_stk_cubic_setThreshold(void *cubic, double threshold) {

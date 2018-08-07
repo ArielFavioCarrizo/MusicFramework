@@ -45,6 +45,12 @@
     <ClInclude Include="include\EMFB_STK_ONEZERO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\EMFB_STK_TWOPOLE.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\EMFB_STK_TWOZERO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -75,6 +81,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\EMFB_STK_ONEZERO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EMFB_STK_TWOPOLE.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EMFB_STK_TWOZERO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

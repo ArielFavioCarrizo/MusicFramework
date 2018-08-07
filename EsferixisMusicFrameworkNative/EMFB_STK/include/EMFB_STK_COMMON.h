@@ -33,6 +33,11 @@ void emfb_stk_tick(void *self, void *iFrames, void *oFrames, unsigned int iChann
 	static_cast<StkUnitType *>(self)->tick(*static_cast<stk::StkFrames *>(iFrames), *static_cast<stk::StkFrames *>(oFrames), iChannel, oChannel);
 }
 
+template<typename StkUnitType>
+void emfb_stk_setGain(void *self, double gain) {
+	static_cast<StkUnitType *>(self)->setGain(gain);
+}
+
 #ifdef __cplusplus
 
 char * emfb_stk_cppStrToCStr(const std::string cppstr);

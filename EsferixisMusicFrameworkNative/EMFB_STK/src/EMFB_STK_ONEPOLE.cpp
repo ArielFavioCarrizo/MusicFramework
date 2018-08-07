@@ -15,6 +15,10 @@ void emfb_stk_onepole_delete(void *self) {
 	delete static_cast<stk::OnePole *>(self);
 }
 
+void emfb_stk_onepole_setGain(void *self, double gain) {
+	emfb_stk_setGain<stk::OnePole>(self, gain);
+}
+
 void emfb_stk_onepole_setB0(void *self, double b0) {
 	static_cast<stk::OnePole *>(self)->setB0(b0);
 }
@@ -23,8 +27,8 @@ void emfb_stk_onepole_setA1(void *self, double a1) {
 	static_cast<stk::OnePole *>(self)->setA1(a1);
 }
 
-void emfb_stk_onepole_setCoefficients(void *self, double b0, double a1, bool clearState) {
-	static_cast<stk::OnePole *>(self)->setCoefficients(b0, a1, clearState);
+void emfb_stk_onepole_setCoefficients(void *self, double b0, double a1, int clearState) {
+	static_cast<stk::OnePole *>(self)->setCoefficients(b0, a1, clearState != 0);
 }
 
 void emfb_stk_onepole_setPole(void *self, double thePole) {
