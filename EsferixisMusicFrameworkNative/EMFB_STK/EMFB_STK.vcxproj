@@ -156,6 +156,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\EMFB_STK_CUBIC.h" />
+    <ClInclude Include="include\EMFB_STK_DELAY.h" />
     <ClInclude Include="include\EMFB_STK_FILEWRITE.h" />
     <ClInclude Include="include\EMFB_STK_FILEWVOUT.h" />
     <ClInclude Include="include\EMFB_STK_COMMON.h" />
@@ -170,6 +171,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="src\EMFB_STK_DELAY.cpp" />
     <ClCompile Include="src\EMFB_STK_TWOZERO.cpp" />
     <ClCompile Include="src\EMFB_STK_ONEPOLE.cpp" />
     <ClCompile Include="src\EMFB_STK_COMMON.cpp" />
