@@ -52,7 +52,7 @@ deleteCubic :: Cubic -> IO ()
 deleteCubic = deleteStkObject cubicForeignPtr
 
 createSetCubicValue :: ( CubicPtr -> CDouble -> IO () ) -> ( Cubic -> Double -> IO () )
-createSetCubicValue = createSetterFun unhandledCubicAction
+createSetCubicValue = setter unhandledCubicAction
 
 cubicSetA1 = createSetCubicValue c_emfb_stk_cubic_setA1
 cubicSetA2 = createSetCubicValue c_emfb_stk_cubic_setA2

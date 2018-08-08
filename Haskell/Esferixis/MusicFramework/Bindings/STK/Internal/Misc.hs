@@ -3,7 +3,7 @@ module Esferixis.MusicFramework.Bindings.STK.Internal.Misc
    , handleStkExcept
    , withCurriedStkExceptHandling
    , withCurriedStkExceptHandlingNewObject_partial
-   , withCurriedStkExceptHandlingObjectAction
+   , exceptionUnsafeStkObjectAction
    , exceptionSafeStkObjectAction
    , withStkObjectPtr
    , deleteStkObject ) where
@@ -41,9 +41,9 @@ withCurriedStkExceptHandlingNewObject_partial wrappedObjectFromForeignPtr native
    object_foreignptr <- ( newForeignPtr nativeDeletePtr object_rawptr )
    return ( wrappedObjectFromForeignPtr object_foreignptr )
 
-withCurriedStkExceptHandlingObjectAction foreignPtrFromWrappedObject nativeFun actionFun wrappedObject = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) (\c_objectPtr -> ( withCurriedStkExceptHandling nativeFun ) (\fun -> actionFun ( fun c_objectPtr ) ) )
+exceptionUnsafeStkObjectAction foreignPtrFromWrappedObject wrappedObject nativeFun actionFun = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) (\c_objectPtr -> ( withCurriedStkExceptHandling nativeFun ) (\fun -> actionFun ( fun c_objectPtr ) ) )
 
-exceptionSafeStkObjectAction foreignPtrFromWrappedObject nativeFun actionFun wrappedObject = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) (\c_objectPtr -> actionFun ( nativeFun c_objectPtr ) )
+exceptionSafeStkObjectAction foreignPtrFromWrappedObject wrappedObject nativeFun actionFun = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) (\c_objectPtr -> actionFun ( nativeFun c_objectPtr ) )
 
 withStkObjectPtr foreignPtrFromWrappedObject wrappedObject = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) 
 

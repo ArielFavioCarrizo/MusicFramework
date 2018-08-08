@@ -31,8 +31,8 @@ type GuitarPtr = Ptr NativeGuitar
 data Guitar = Guitar (ForeignPtr NativeGuitar)
 guitarForeignPtr (Guitar a) = a
 
-exceptHandledGuitarAction guitar nativeFun actionFun = ( withCurriedStkExceptHandlingObjectAction guitarForeignPtr nativeFun actionFun ) guitar
-unhandledGuitarAction guitar nativeFun actionFun = withForeignPtr ( guitarForeignPtr guitar ) (\c_guitarPtr -> actionFun ( nativeFun c_guitarPtr ) )
+exceptHandledGuitarAction = exceptionUnsafeStkObjectAction guitarForeignPtr
+unhandledGuitarAction = exceptionSafeStkObjectAction guitarForeignPtr
 
 foreign import ccall "emfb_stk_guitar_new" c_emfb_stk_guitar_new :: Ptr ExceptDescPtr -> CUInt -> CString -> IO GuitarPtr
 foreign import ccall "&emfb_stk_guitar_delete" c_emfb_stk_guitar_delete_ptr :: FunPtr ( GuitarPtr -> IO () )

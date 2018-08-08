@@ -53,7 +53,7 @@ deleteOneZero :: OneZero -> IO ()
 deleteOneZero = deleteStkObject oneZeroForeignPtr
 
 createSetValue :: ( OneZeroPtr -> CDouble -> IO () ) -> ( OneZero -> Double -> IO () )
-createSetValue = createSetterFun unhandledOneZeroAction
+createSetValue = setter unhandledOneZeroAction
 
 oneZeroSetGain = createSetValue c_emfb_stk_onezero_setGain
 oneZeroSetB0 = createSetValue c_emfb_stk_onezero_setB0

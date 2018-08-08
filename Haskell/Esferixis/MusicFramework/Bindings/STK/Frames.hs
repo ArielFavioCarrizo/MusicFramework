@@ -100,7 +100,7 @@ newStkFramesFromExisting sourceFrames = withCurriedStkExceptHandlingNewObject_pa
 newStkFramesOriginal nFrames nChannels = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> StkFrames foreignPtr nFrames nChannels ) c_emfb_stk_frames_delete_ptr
 
 unhandledFramesAction = exceptionSafeStkObjectAction framesForeignPtr
-exceptHandledFramesAction frames nativeFun actionFun = ( withCurriedStkExceptHandlingObjectAction framesForeignPtr nativeFun actionFun ) frames
+exceptHandledFramesAction frames nativeFun actionFun = exceptionUnsafeStkObjectAction framesForeignPtr frames nativeFun actionFun
 
 stkFramesPureBinaryOp nativeFun stkFrames1 stkFrames2 = do
    stkFramesCheckSameShape stkFrames1 stkFrames2

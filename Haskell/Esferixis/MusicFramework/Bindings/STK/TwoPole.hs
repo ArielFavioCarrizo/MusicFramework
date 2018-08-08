@@ -57,7 +57,7 @@ deleteTwoPole :: TwoPole -> IO ()
 deleteTwoPole = deleteStkObject twoPoleForeignPtr
 
 createSetValue :: ( TwoPolePtr -> CDouble -> IO () ) -> ( TwoPole -> Double -> IO () )
-createSetValue = createSetterFun unhandledTwoPoleAction
+createSetValue = setter unhandledTwoPoleAction
 
 twoPoleSetGain = createSetValue c_emfb_stk_twopole_setGain
 

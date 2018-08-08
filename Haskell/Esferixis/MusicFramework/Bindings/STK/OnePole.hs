@@ -53,7 +53,7 @@ deleteOnePole :: OnePole -> IO ()
 deleteOnePole = deleteStkObject onePoleForeignPtr
 
 createSetValue :: ( OnePolePtr -> CDouble -> IO () ) -> ( OnePole -> Double -> IO () )
-createSetValue = createSetterFun unhandledOnePoleAction
+createSetValue = setter unhandledOnePoleAction
 
 onePoleSetGain = createSetValue c_emfb_stk_onepole_setGain
 onePoleSetB0 = createSetValue c_emfb_stk_onepole_setB0

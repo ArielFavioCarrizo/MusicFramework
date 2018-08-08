@@ -57,7 +57,7 @@ deleteTwoZero :: TwoZero -> IO ()
 deleteTwoZero = deleteStkObject twoZeroForeignPtr
 
 createSetValue :: ( TwoZeroPtr -> CDouble -> IO () ) -> ( TwoZero -> Double -> IO () )
-createSetValue = createSetterFun unhandledTwoZeroAction
+createSetValue = setter unhandledTwoZeroAction
 
 twoZeroSetGain = createSetValue c_emfb_stk_twozero_setGain
 
