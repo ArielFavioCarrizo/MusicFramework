@@ -4,6 +4,10 @@ module Esferixis.MusicFramework.Bindings.STK.DelayA
    ( DelayA
    , newDelayA
    , deleteDelayA
+   , delayASetGain
+   , delayAClear
+   , delayASetMaximumDelay
+   , delayASetDelay
    , delayATickInplace
    , delayATick ) where
 
@@ -32,17 +36,17 @@ delayAForeignPtr (DelayA a) = a
 exceptionUnsafeSelfAction = exceptionUnsafeStkObjectAction delayAForeignPtr
 exceptionSafeSelfAction = exceptionSafeStkObjectAction delayAForeignPtr
 
-exceptionSafeSelfSetter = setter exceptionSafeSelfAction
-exceptionUnsafeSelfSetter = exceptionUnsafeSetter exceptionUnsafeSelfAction
+exceptionSafeSelfSetter nativeFun = setter exceptionSafeSelfAction nativeFun
+exceptionUnsafeSelfSetter nativeFun = exceptionUnsafeSetter exceptionUnsafeSelfAction nativeFun
+
+selfGetter nativeFun = getter exceptionSafeSelfAction nativeFun
 
 foreign import ccall "emfb_stk_delaya_new" c_emfb_stk_delaya_new :: Ptr ExceptDescPtr -> CDouble -> CULong -> IO DelayAPtr
 foreign import ccall "&emfb_stk_delaya_delete" c_emfb_stk_delaya_delete_ptr :: FunPtr ( DelayAPtr -> IO () )
 foreign import ccall unsafe "emfb_stk_delaya_setGain" c_emfb_stk_delaya_setGain :: DelayAPtr -> CDouble -> IO ()
 foreign import ccall unsafe "emfb_stk_delaya_clear" c_emfb_stk_delaya_clear :: DelayAPtr -> IO ()
-foreign import ccall unsafe "emfb_stk_delaya_getMaximumDelay" c_emfb_stk_delaya_getMaximumDelay :: DelayAPtr -> IO CULong
 foreign import ccall unsafe "emfb_stk_delaya_setMaximumDelay" c_emfb_stk_delaya_setMaximumDelay :: DelayAPtr -> CULong -> IO ()
 foreign import ccall unsafe "emfb_stk_delaya_setDelay" c_emfb_stk_delaya_setDelay :: Ptr ExceptDescPtr -> DelayAPtr -> CDouble -> IO ()
-foreign import ccall unsafe "emfb_stk_delaya_getDelay" c_emfb_stk_delaya_getDelay :: DelayAPtr -> IO CDouble
 foreign import ccall "emfb_stk_delaya_tickInplace" c_emfb_stk_delaya_tickInplace :: DelayAPtr -> StkFramesPtr -> CUInt -> IO ()
 foreign import ccall "emfb_stk_delaya_tick" c_emfb_stk_delaya_tick :: DelayAPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> IO ()
 
@@ -56,7 +60,13 @@ delayASetGain :: DelayA -> Double -> IO ()
 delayASetGain = exceptionSafeSelfSetter c_emfb_stk_delaya_setGain
 
 delayAClear :: DelayA -> IO ()
-delayAClear self = exceptionSafeSelfAction self c_emfb_stk_delaya_clear (\fun -> fun)
+delayAClear self = exceptionSafeSelfAction self c_emfb_stk_delaya_clear id
+
+delayASetMaximumDelay :: DelayA -> Word32 -> IO ()
+delayASetMaximumDelay = exceptionSafeSelfSetter c_emfb_stk_delaya_setMaximumDelay
+
+delayASetDelay :: DelayA -> Double -> IO ()
+delayASetDelay = exceptionUnsafeSelfSetter c_emfb_stk_delaya_setDelay
 
 delayATickInplace :: DelayA -> StkFrames -> Word32 -> IO ()
 delayATickInplace = createStkFramesTickInplaceFun exceptionSafeSelfAction c_emfb_stk_delaya_tickInplace

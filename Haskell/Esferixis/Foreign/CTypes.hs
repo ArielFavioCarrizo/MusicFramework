@@ -16,6 +16,9 @@ instance HsCTypeBijective Double CDouble where
 instance HsCTypeBijective Word32 CUInt where
    hsctypeconvert haskellValue = CUInt haskellValue
 
+instance HsCTypeBijective Word32 CULong where
+   hsctypeconvert haskellValue = CULong haskellValue
+
 instance HsCTypeBijective Bool CInt where
    hsctypeconvert True = CInt 1
    hsctypeconvert False = CInt 0
