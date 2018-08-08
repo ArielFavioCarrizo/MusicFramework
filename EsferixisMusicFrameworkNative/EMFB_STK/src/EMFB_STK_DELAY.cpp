@@ -11,6 +11,10 @@ void emfb_stk_delay_delete(void *self) {
 	delete static_cast<stk::Delay *>(self);
 }
 
+void emfb_stk_delay_setGain(void *self, double gain) {
+	static_cast<stk::Delay *>(self)->setGain(gain);
+}
+
 unsigned long emfb_stk_delay_getMaximumDelay(void *self) {
 	return static_cast<stk::Delay *>(self)->getMaximumDelay();
 }

@@ -6,6 +6,8 @@ EMFB_STK_API void * emfb_stk_delay_new(char **exception_desc, unsigned long dela
 
 EMFB_STK_API void emfb_stk_delay_delete(void *self);
 
+EMFB_STK_API void emfb_stk_delay_setGain(void *self, double gain);
+
 EMFB_STK_API unsigned long emfb_stk_delay_getMaximumDelay(void *self);
 
 EMFB_STK_API void emfb_stk_delay_setMaximumDelay(void *self, unsigned long delay);

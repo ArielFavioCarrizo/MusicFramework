@@ -2,9 +2,11 @@
 
 #include "EMFB_STK_COMMON.h"
 
-EMFB_STK_API void * emfb_stk_delaya_new(char **exception_desc, unsigned long delay, unsigned long maxDelay);
+EMFB_STK_API void * emfb_stk_delaya_new(char **exception_desc, double delay, unsigned long maxDelay);
 
 EMFB_STK_API void emfb_stk_delaya_delete(void *self);
+
+EMFB_STK_API void emfb_stk_delaya_setGain(void *self, double gain);
 
 EMFB_STK_API void emfb_stk_delaya_clear(void *self);
 
@@ -12,9 +14,9 @@ EMFB_STK_API unsigned long emfb_stk_delaya_getMaximumDelay(void *self);
 
 EMFB_STK_API void emfb_stk_delaya_setMaximumDelay(void *self, unsigned long delay);
 
-EMFB_STK_API void emfb_stk_delaya_setDelay(char **exception_desc, void *self, unsigned long delay);
+EMFB_STK_API void emfb_stk_delaya_setDelay(char **exception_desc, void *self, double delay);
 
-EMFB_STK_API unsigned long emfb_stk_delaya_getDelay(void *self);
+EMFB_STK_API double emfb_stk_delaya_getDelay(void *self);
 
 EMFB_STK_API void emfb_stk_delaya_tickInplace(void *self, void *frames, unsigned int channel);
 

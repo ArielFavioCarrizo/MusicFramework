@@ -3,7 +3,7 @@
 #include <Stk.h>
 #include <DelayA.h>
 
-void * emfb_stk_delaya_new(char **exception_desc, unsigned long delay, unsigned long maxDelay) {
+void * emfb_stk_delaya_new(char **exception_desc, double delay, unsigned long maxDelay) {
 	EMFB_STK_CATCHEXCEPT_BEGIN
 	return static_cast<void *>(new stk::DelayA(delay, maxDelay));
 	EMFB_STK_CATCHEXCEPT_END
@@ -12,6 +12,10 @@ void * emfb_stk_delaya_new(char **exception_desc, unsigned long delay, unsigned 
 
 void emfb_stk_delaya_delete(void *self) {
 	delete static_cast<stk::DelayA *>(self);
+}
+
+void emfb_stk_delaya_setGain(void *self, double gain) {
+	static_cast<stk::DelayA *>(self)->setGain(gain);
 }
 
 void emfb_stk_delaya_clear(void *self) {
@@ -26,11 +30,11 @@ void emfb_stk_delaya_setMaximumDelay(void *self, unsigned long delay) {
 	static_cast<stk::DelayA *>(self)->setMaximumDelay(delay);
 }
 
-void emfb_stk_delaya_setDelay(char **exception_desc, void *self, unsigned long delay) {
+void emfb_stk_delaya_setDelay(char **exception_desc, void *self, double delay) {
 	static_cast<stk::DelayA *>(self)->setDelay(delay);
 }
 
-unsigned long emfb_stk_delaya_getDelay(void *self) {
+double emfb_stk_delaya_getDelay(void *self) {
 	return static_cast<stk::DelayA *>(self)->getDelay();
 }
 
