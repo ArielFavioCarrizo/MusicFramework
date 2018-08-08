@@ -1,0 +1,4 @@
+En EsferixisMusicFrameworkNative, se encuentra la interfaz C para acceder la biblioteca The Synthesis ToolKit (STK).
+En el directorio 'Haskell' se encuentra el framework.
+
+Leer el README de Haskell/README.txt
