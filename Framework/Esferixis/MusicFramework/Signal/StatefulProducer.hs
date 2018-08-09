@@ -1,5 +1,7 @@
 module Esferixis.MusicFramework.Signal.StatefulProducer
-   ( StatefulProducer(StatefulProducer, spActions, spMethods), spStart ) where
+   ( StatefulProducer(StatefulProducer, spActions, spMethods)
+   , StatefulProducerMethods (StatefulProducerMethods, spTick, spClose)
+   , spStart ) where
 
 import Data.Word
 import Data.Maybe
