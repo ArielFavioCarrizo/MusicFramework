@@ -50,8 +50,8 @@ foreign import ccall "emfb_stk_stkframes_scaleInplace" c_emfb_stk_stkframes_scal
 foreign import ccall "&emfb_stk_stkframes_delete" c_emfb_stk_frames_delete_ptr :: FunPtr ( Ptr NativeStkFrames -> IO () )
 
 data StkFrames = StkFrames { framesForeignPtr :: ForeignPtr NativeStkFrames
-                           ,  stkFramesLength :: Word32
-                           ,  stkFramesChannels :: Word32 }
+                           , stkFramesLength :: Word32
+                           , stkFramesChannels :: Word32 }
 
 data StkChannelFrames = StkChannelFrames { stkChannelFrames_frames :: StkFrames
                                          , stkChannelFrames_nChannel :: Word32
