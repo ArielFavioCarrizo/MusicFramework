@@ -1,3 +1,4 @@
+* Reemplazar uso de async, por monad-par.
 * Implementar sobremuestreo y submuestreo, para evitar 'aliasing' al aplicar la distorsión de la salida de la guitarra
 * Implementar el filtro de distorsión, los filtros pasabajos, pasaaltos, pasabanda y stopbanda. Con ayuda de STK.
 * Hacer un DSL en Haskell que represente las señales y un grafo de descripción de operaciones con éstas señales.
