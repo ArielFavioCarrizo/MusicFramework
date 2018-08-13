@@ -1,1 +1,1 @@
-:set -iEsferixis\MusicFramework\Bindings\STK -iEsferixis\MusicFramework\Bindings\STK\Internal -iEsferixis\MusicFramework\BindingsTest\STK -lC:\Users\arifa\Documents\github\esferixis\esferixis-MusicFramework\EsferixisMusicFrameworkNative\x64\Release\EMFB_STK.dll
+:set -iEsferixis -lC:\Users\arifa\Documents\github\esferixis\esferixis-MusicFramework\EsferixisMusicFrameworkNative\x64\Release\EMFB_STK.dll
