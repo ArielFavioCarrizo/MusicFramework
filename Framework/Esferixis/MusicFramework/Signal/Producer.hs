@@ -14,6 +14,7 @@ import Esferixis.MusicFramework.Signal
 
    sd: Signal Data
 -}
-data ProducerState sd = ProducerState { psMaxChunkLength :: Word64 -- Máxima longitud de datos que se puede extraer
-                                      , psPopChunk :: Word64 -> (SignalChunk sd, ProducerState sd) -- Recibe la longitud deseada y devuelve un 'chunk' de señal y la sección siguiente (Si no termina el stream). Cuando termina el stream devuelve un chunk de señal de longitud cero, indicando que termina el stream.
+data ProducerState sd = ProducerState { psChunkLength :: Word64 -- Longitud de datos a extraer. Cuando es cero significa que terminó el stream.
+				      , psReduceChunkLength :: Word64 -> ProducerState -- Reduce la longitud de datos a extraer
+                                      , psPopChunk :: (SignalChunk sd, ProducerState sd) -- Devuelve un 'chunk' de señal y la sección siguiente (Si no termina el stream). Cuando termina el stream devuelve un chunk de señal de longitud cero, indicando que termina el stream.
                                       }
