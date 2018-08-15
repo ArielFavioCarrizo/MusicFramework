@@ -21,6 +21,10 @@ data TransformerState isd osd = TransformerState { tsChunkLength :: Word64 -- Lo
                                                  , tsTransform :: SignalChunk isd -> (SignalChunk osd, TransformerState isd osd) -- Recibe el chunk de señal de entrada, devuelve el chunk de salida y el siguiente estado del transformador. Cuando recibe un chunk de señal de longitud cero, significa que se termina el stream de entrada.
                                                  }
 
+instance SignalProcessorState (TransformerState isd osd) where
+   spChunkLength = tsChunkLength
+   spReduceChunkLength = tsReduceChunkLength
+
 {-
     Dado el estado de productor y el estado de transformador
     especificados, devuelve un estado de productor compuesto
@@ -32,16 +36,16 @@ data TransformerState isd osd = TransformerState { tsChunkLength :: Word64 -- Lo
 -}
 (>>>) :: ProducerState isd -> TransformerState isd osd -> ProducerState osd
 (>>>) producerState transformerState =
-   let ipsChunkLength = psChunkLength producerState
-       itsChunkLength = tsChunkLength transformerState
-       ipsReduceChunkLength = psReduceChunkLength producerState
-       itsReduceChunkLength = tsReduceChunkLength transformerState
+   let ipsChunkLength = spChunkLength producerState
+       itsChunkLength = spChunkLength transformerState
+       ipsReduceChunkLength = spReduceChunkLength producerState
+       itsReduceChunkLength = spReduceChunkLength transformerState
    in case ( compare ipsChunkLength itsChunkLength ) of
       GT -> ( ipsReduceChunkLength itsChunkLength ) >>> transformerState
       LT -> producerState >>> ( itsReduceChunkLength ipsChunkLength )
       EQ -> let chunkLength = ipsChunkLength
             in ProducerState {
-               psChunkLength = chunkLength
+                 psChunkLength = chunkLength
                , psReduceChunkLength = \requestedChunkLength -> ( ipsReduceChunkLength requestedChunkLength ) >>> ( itsReduceChunkLength requestedChunkLength )
                , psPopChunk = 
                     let (inputChunk, nextInputProducerState) = psPopChunk producerState
