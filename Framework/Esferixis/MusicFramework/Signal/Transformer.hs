@@ -26,13 +26,13 @@ instance SignalProcessorState (TransformerState isd osd) where
    spReduceChunkLength = tsReduceChunkLength
 
 {-
-    Dado el estado de productor y el estado de transformador
-    especificados, devuelve un estado de productor compuesto
+   Dado el estado de productor y el estado de transformador
+   especificados, devuelve un estado de productor compuesto
 
-    Tipos
+   Tipos
 
-    isd: Input Signal Data
-    osd: Output Signal Data
+   isd: Input Signal Data
+   osd: Output Signal Data
 -}
 (>>>) :: ProducerState isd -> TransformerState isd osd -> ProducerState osd
 (>>>) producerState transformerState =
