@@ -22,12 +22,3 @@ data ProducerState sd = ProducerState { psChunkLength :: Word64 -- Longitud de d
 instance SignalProcessorState (ProducerState sd) where
    spChunkLength = psChunkLength
    spReduceChunkLength = psReduceChunkLength
-
-{- 
-   Dado el estado de productor crea una bifurcación del
-   productor, generando dos nuevos productores para cada rama.
-   Devuelve el estado de cada nuevo productor en una tupla.
-   Donde el primer elemento corresponde al productor izquierdo,
-   y el segundo elemento corresponde al productor derecho
--}
--- FIXME: Declarar el operador de bifurcado

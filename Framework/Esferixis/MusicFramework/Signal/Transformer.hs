@@ -52,3 +52,37 @@ instance SignalProcessorState (TransformerState isd osd) where
                         (outputChunk, nextTransformerState) = tsTransform transformerState inputChunk
                     in (outputChunk, nextInputProducerState >>> nextTransformerState)
                }
+
+{- 
+   Dado dos transformadores genera un transformador que toma la entrada y la divide entre los
+   dos transformadores, y combina sus salidas en una tupla.
+   Donde el primer elemento corresponde con el transformador izquierdo, y el segundo con el derecho.
+
+   Tipos:
+
+   isd: Input Signal data
+   losd: Left Output Signal Data
+   rosd: Right Output Signal Data
+-}
+(&&&) :: TransformerState isd losd -> TransformerState isd rosd -> TransformerState isd (losd, rosd)
+(&&&) leftTransformerState rightTransformerState =
+   let litChunkLength = spChunkLength leftTransformerState
+       ritChunkLength = spChunkLength rightTransformerState
+       litReduceChunkLength = spReduceChunkLength leftTransformerState
+       ritReduceChunkLength = spReduceChunkLength rightTransformerState
+   in case ( compare litChunkLength ritChunkLength ) of
+      GT -> ( litReduceChunkLength ritChunkLength ) &&& rightTransformerState
+      LT -> leftTransformerState &&& ( ritReduceChunkLength litChunkLength )
+      EQ -> let chunkLength = litChunkLength
+            in TransformerState {
+                 tsChunkLength = chunkLength
+               , tsReduceChunkLength = \requestedChunkLength -> ( litReduceChunkLength requestedChunkLength ) &&& ( ritReduceChunkLength requestedChunkLength )
+               , tsTransform = \inputChunk ->
+                    let (leftOutputChunk, nextLeftTransformerState) = tsTransform leftTransformerState inputChunk
+                        (rightOutputChunk, nextRightTransformerState) = tsTransform rightTransformerState inputChunk
+                        combinedOutputSignalChunk = SignalChunk {
+                             scLength = scLength inputChunk
+                           , scData = ( scData leftOutputChunk, scData rightOutputChunk )
+                           }
+                    in ( combinedOutputSignalChunk, nextLeftTransformerState &&& nextRightTransformerState )
+               }
