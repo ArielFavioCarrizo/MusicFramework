@@ -34,17 +34,17 @@ data TransformerState isd osd = TransformerState { tsChunkLength :: Word64 -- Lo
 (>>>) producerState transformerState =
    let ipsChunkLength = psChunkLength producerState
        itsChunkLength = tsChunkLength transformerState
-   in if ( ipsChunkLength > itsChunkLength )
-         then ( psReduceChunkLength producerState itsChunkLength ) >>> transformerState
-         else if ( itsChunkLength > ipsChunkLength )
-            then producerState >>> ( tsReduceChunkLength transformerState ipsChunkLength )
-            else
-               let chunkLength = ipsChunkLength
-               in ProducerState {
-                    psChunkLength = ipsChunkLength
-                  , psReduceChunkLength = \requestedChunkLength -> ( psReduceChunkLength producerState requestedChunkLength ) >>> ( tsReduceChunkLength transformerState requestedChunkLength )
-                  , psPopChunk = 
-                       let (inputChunk, nextInputProducerState) = psPopChunk producerState
-                           (outputChunk, nextTransformerState) = tsTransform transformerState inputChunk
-                       in (outputChunk, nextInputProducerState >>> nextTransformerState)
-                  }
+       ipsReduceChunkLength = psReduceChunkLength producerState
+       itsReduceChunkLength = tsReduceChunkLength transformerState
+   in case ( compare ipsChunkLength itsChunkLength ) of
+      GT -> ( ipsReduceChunkLength itsChunkLength ) >>> transformerState
+      LT -> producerState >>> ( itsReduceChunkLength ipsChunkLength )
+      EQ -> let chunkLength = ipsChunkLength
+            in ProducerState {
+               psChunkLength = chunkLength
+               , psReduceChunkLength = \requestedChunkLength -> ( ipsReduceChunkLength requestedChunkLength ) >>> ( itsReduceChunkLength requestedChunkLength )
+               , psPopChunk = 
+                    let (inputChunk, nextInputProducerState) = psPopChunk producerState
+                        (outputChunk, nextTransformerState) = tsTransform transformerState inputChunk
+                    in (outputChunk, nextInputProducerState >>> nextTransformerState)
+               }
