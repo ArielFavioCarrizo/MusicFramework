@@ -1,5 +1,5 @@
 module Esferixis.MusicFramework.Signal.Transformer
-   ( TransformerState(TransformerState, tsMaxChunkLength, tsTransform) ) where
+   ( TransformerState(TransformerState, tsChunkLength, tsReduceChunkLength, tsTransform) ) where
 
 import Data.Word
 import Data.Maybe
@@ -17,7 +17,7 @@ import Esferixis.MusicFramework.Signal.Producer
    osd: Output Signal Data
 -}
 data TransformerState isd osd = TransformerState { tsChunkLength :: Word64 -- Longitud de datos a transformar
-                                                 , tsReduceChunkLength :: Word64 -> TransformerState -- Reduce la longitud de datos a transformar al valor especificado, devolviendo un nuevo estado del transformador
+                                                 , tsReduceChunkLength :: Word64 -> TransformerState isd osd -- Reduce la longitud de datos a transformar al valor especificado, devolviendo un nuevo estado del transformador
                                                  , tsTransform :: SignalChunk isd -> (SignalChunk osd, TransformerState isd osd) -- Recibe el chunk de señal de entrada, devuelve el chunk de salida y el siguiente estado del transformador. Cuando recibe un chunk de señal de longitud cero, significa que se termina el stream de entrada.
                                                  }
 
@@ -34,15 +34,17 @@ data TransformerState isd osd = TransformerState { tsChunkLength :: Word64 -- Lo
 (>>>) producerState transformerState =
    let ipsChunkLength = psChunkLength producerState
        itsChunkLength = tsChunkLength transformerState
-   if ( ipsChunkLength > itsChunkLength )
-      then ( producerState psReduceChunkLength itsChunkLength ) >>> transformerState
-      else if ( itsChunkLength > ipsChunkLength )
-         then producerState >>> ( transformerState tsReduceLength ipsChunkLength )
-         else ProducerState {
-            psChunkLength = min ( psChunkLength producerState ) ( tsChunkLength transformerState )
-            , psReduceChunkLength = 
-            , psPopChunk = 
-                 let (inputChunk, nextInputProducerState) = psPopChunk producerState
-                     (outputChunk, nextTransformerState) = tsTransform transformerState inputChunk
-                 in (outputChunk, nextInputProducerState >>> nextTransformerState)
-            }
+   in if ( ipsChunkLength > itsChunkLength )
+         then ( psReduceChunkLength producerState itsChunkLength ) >>> transformerState
+         else if ( itsChunkLength > ipsChunkLength )
+            then producerState >>> ( tsReduceChunkLength transformerState ipsChunkLength )
+            else
+               let chunkLength = ipsChunkLength
+               in ProducerState {
+                    psChunkLength = ipsChunkLength
+                  , psReduceChunkLength = \requestedChunkLength -> ( psReduceChunkLength producerState requestedChunkLength ) >>> ( tsReduceChunkLength transformerState requestedChunkLength )
+                  , psPopChunk = 
+                       let (inputChunk, nextInputProducerState) = psPopChunk producerState
+                           (outputChunk, nextTransformerState) = tsTransform transformerState inputChunk
+                       in (outputChunk, nextInputProducerState >>> nextTransformerState)
+                  }
