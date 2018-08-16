@@ -16,10 +16,30 @@ import Esferixis.MusicFramework.Signal.Producer
    isd: Input Signal Data
    osd: Output Signal Data
 -}
-data TransformerState isd osd = TransformerState { tsChunkLength :: Word64 -- Longitud de datos a transformar
-                                                 , tsReduceChunkLength :: Word64 -> TransformerState isd osd -- Reduce la longitud de datos a transformar al valor especificado, devolviendo un nuevo estado del transformador
-                                                 , tsTransform :: SignalChunk isd -> (SignalChunk osd, TransformerState isd osd) -- Recibe el chunk de señal de entrada, devuelve el chunk de salida y el siguiente estado del transformador. Cuando recibe un chunk de señal de longitud cero, significa que se termina el stream de entrada.
-                                                 }
+data TransformerState isd osd = TransformerState {
+     tsChunkLength :: Word64 -- Longitud de datos a transformar
+   , tsReduceChunkLength :: Word64 -> TransformerState isd osd -- Reduce la longitud de datos a transformar al valor especificado, devolviendo un nuevo estado del transformador
+   , tsTransform :: isd -> (osd, TransformerState isd osd) -- Recibe el chunk de señal de entrada, devuelve el chunk de salida y el siguiente estado del transformador. Cuando recibe un chunk de señal de longitud cero, significa que se termina el stream de entrada.
+   }
+
+{- 
+   Representación abstracta de lo que es un transformador con buffer intermedio.
+   Representa un estado del transformador que se obtendrá efectivamente
+   en un tiempo indeterminado en el futuro.
+
+   Tipos
+
+   isd: Input Signal Data
+   osd: Output Signal Data
+-}
+{-
+data BufferedTransformerState isd osd = BufferedTransformerState {
+     btsPopChunkLength :: Word64
+   , btsReducePopChunkLength :: Word64 -> BufferedTransformerState isd osd
+   , btsPopChunk :: (osd, BufferedTransformerState isd osd)
+   , btsPushChunk :: isd -> BufferedTransformerState isd osd
+   }
+-}
 
 instance SignalProcessorState (TransformerState isd osd) where
    spChunkLength = tsChunkLength
@@ -64,25 +84,10 @@ instance SignalProcessorState (TransformerState isd osd) where
       , tsTransform = \inputChunk ->
            let (leftOutputChunk, nextLeftTransformerState) = tsTransform leftTransformerState inputChunk
                (rightOutputChunk, nextRightTransformerState) = tsTransform rightTransformerState inputChunk
-               combinedOutputSignalChunk = SignalChunk {
-                    scLength = chunkLength
-                  , scData = ( scData leftOutputChunk, scData rightOutputChunk )
-                  }
+               combinedOutputSignalChunk = (leftOutputChunk, rightOutputChunk)
            in ( combinedOutputSignalChunk, nextLeftTransformerState &&& nextRightTransformerState )
       } )
 
-{-
-   Dado dos transformadores genera un transformador donde la señal se combina con la salida del transformador derecho,
-   y luego se inyecta en el transformador izquierdo, después sale como salida y también se inyecta en el transformador derecho
-
-   FIXME: Implementar un buffer de señal
--}
-{-
-loop :: TransformerState (isd, rosd) losd -> TransformerState ( losd, rosd ) -> TransformerState isd losd
-loop = makeSpPairConvert (\chunkLength reduceChunkLength leftTransformerState rightTransformerState ->
-   TransformerState {
-        tsChunkLength = chunkLength
-      , tsReduceChunkLength = reduceChunkLength
-      , tsTransform = \inputChunk -> -- FIXME: Implementar
-      } )
--}
+--loop :: TransformerState (isd, rosd) losd -> BufferedTransformerState ( losd, rosd ) -> TransformerState isd losd
+--loop leftTransformerState rightTransformerState 
+   
