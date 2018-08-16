@@ -65,8 +65,24 @@ instance SignalProcessorState (TransformerState isd osd) where
            let (leftOutputChunk, nextLeftTransformerState) = tsTransform leftTransformerState inputChunk
                (rightOutputChunk, nextRightTransformerState) = tsTransform rightTransformerState inputChunk
                combinedOutputSignalChunk = SignalChunk {
-                    scLength = scLength inputChunk
+                    scLength = chunkLength
                   , scData = ( scData leftOutputChunk, scData rightOutputChunk )
                   }
            in ( combinedOutputSignalChunk, nextLeftTransformerState &&& nextRightTransformerState )
       } )
+
+{-
+   Dado dos transformadores genera un transformador donde la señal se combina con la salida del transformador derecho,
+   y luego se inyecta en el transformador izquierdo, después sale como salida y también se inyecta en el transformador derecho
+
+   FIXME: Implementar un buffer de señal
+-}
+{-
+loop :: TransformerState (isd, rosd) losd -> TransformerState ( losd, rosd ) -> TransformerState isd losd
+loop = makeSpPairConvert (\chunkLength reduceChunkLength leftTransformerState rightTransformerState ->
+   TransformerState {
+        tsChunkLength = chunkLength
+      , tsReduceChunkLength = reduceChunkLength
+      , tsTransform = \inputChunk -> -- FIXME: Implementar
+      } )
+-}

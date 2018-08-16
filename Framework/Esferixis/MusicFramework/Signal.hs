@@ -24,6 +24,11 @@ class SignalProcessorState a where
    spChunkLength :: a -> Word64 -- Longitud de datos a procesar. Cuando es cero significa que terminó el stream.
    spReduceChunkLength :: a -> Word64 -> a -- Reduce la longitud de datos a procesar
 
+{-
+   Genera una función de conversión de dos transformadores de señal en un sólo,
+   cuya salida es una tupla con la salida de cada transformador, y la entrada
+   se dirige a los dos transformadores de entrada
+-}
 makeSpPairConvert :: (SignalProcessorState spa, SignalProcessorState spb, SignalProcessorState spc) => (SignalProcessorState spa, SignalProcessorState spb, SignalProcessorState spc) => ( Word64 -> (Word64 -> spc) -> spa -> spb -> spc ) -> spa -> spb -> spc
 makeSpPairConvert generateBalancedUnit spStateA spStateB =
    let spAChunkLength = spChunkLength spStateA
