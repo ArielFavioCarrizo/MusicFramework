@@ -35,23 +35,15 @@ instance SignalProcessorState (TransformerState isd osd) where
    osd: Output Signal Data
 -}
 (>>>) :: ProducerState isd -> TransformerState isd osd -> ProducerState osd
-(>>>) producerState transformerState =
-   let ipsChunkLength = spChunkLength producerState
-       itsChunkLength = spChunkLength transformerState
-       ipsReduceChunkLength = spReduceChunkLength producerState
-       itsReduceChunkLength = spReduceChunkLength transformerState
-   in case ( compare ipsChunkLength itsChunkLength ) of
-      GT -> ( ipsReduceChunkLength itsChunkLength ) >>> transformerState
-      LT -> producerState >>> ( itsReduceChunkLength ipsChunkLength )
-      EQ -> let chunkLength = ipsChunkLength
-            in ProducerState {
-                 psChunkLength = chunkLength
-               , psReduceChunkLength = \requestedChunkLength -> ( ipsReduceChunkLength requestedChunkLength ) >>> ( itsReduceChunkLength requestedChunkLength )
-               , psPopChunk = 
-                    let (inputChunk, nextInputProducerState) = psPopChunk producerState
-                        (outputChunk, nextTransformerState) = tsTransform transformerState inputChunk
-                    in (outputChunk, nextInputProducerState >>> nextTransformerState)
-               }
+(>>>) = makeSpPairConvert (\chunkLength reduceChunkLength producerState transformerState ->
+   ProducerState {
+        psChunkLength = chunkLength
+      , psReduceChunkLength = reduceChunkLength
+      , psPopChunk = 
+        let (inputChunk, nextInputProducerState) = psPopChunk producerState
+            (outputChunk, nextTransformerState) = tsTransform transformerState inputChunk
+        in (outputChunk, nextInputProducerState >>> nextTransformerState)
+      } )
 
 {- 
    Dado dos transformadores genera un transformador que toma la entrada y la divide entre los
@@ -65,24 +57,16 @@ instance SignalProcessorState (TransformerState isd osd) where
    rosd: Right Output Signal Data
 -}
 (&&&) :: TransformerState isd losd -> TransformerState isd rosd -> TransformerState isd (losd, rosd)
-(&&&) leftTransformerState rightTransformerState =
-   let litChunkLength = spChunkLength leftTransformerState
-       ritChunkLength = spChunkLength rightTransformerState
-       litReduceChunkLength = spReduceChunkLength leftTransformerState
-       ritReduceChunkLength = spReduceChunkLength rightTransformerState
-   in case ( compare litChunkLength ritChunkLength ) of
-      GT -> ( litReduceChunkLength ritChunkLength ) &&& rightTransformerState
-      LT -> leftTransformerState &&& ( ritReduceChunkLength litChunkLength )
-      EQ -> let chunkLength = litChunkLength
-            in TransformerState {
-                 tsChunkLength = chunkLength
-               , tsReduceChunkLength = \requestedChunkLength -> ( litReduceChunkLength requestedChunkLength ) &&& ( ritReduceChunkLength requestedChunkLength )
-               , tsTransform = \inputChunk ->
-                    let (leftOutputChunk, nextLeftTransformerState) = tsTransform leftTransformerState inputChunk
-                        (rightOutputChunk, nextRightTransformerState) = tsTransform rightTransformerState inputChunk
-                        combinedOutputSignalChunk = SignalChunk {
-                             scLength = scLength inputChunk
-                           , scData = ( scData leftOutputChunk, scData rightOutputChunk )
-                           }
-                    in ( combinedOutputSignalChunk, nextLeftTransformerState &&& nextRightTransformerState )
-               }
+(&&&) = makeSpPairConvert (\chunkLength reduceChunkLength leftTransformerState rightTransformerState ->
+   TransformerState {
+        tsChunkLength = chunkLength
+      , tsReduceChunkLength = reduceChunkLength
+      , tsTransform = \inputChunk ->
+           let (leftOutputChunk, nextLeftTransformerState) = tsTransform leftTransformerState inputChunk
+               (rightOutputChunk, nextRightTransformerState) = tsTransform rightTransformerState inputChunk
+               combinedOutputSignalChunk = SignalChunk {
+                    scLength = scLength inputChunk
+                  , scData = ( scData leftOutputChunk, scData rightOutputChunk )
+                  }
+           in ( combinedOutputSignalChunk, nextLeftTransformerState &&& nextRightTransformerState )
+      } )

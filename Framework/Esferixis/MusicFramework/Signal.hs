@@ -1,5 +1,5 @@
 module Esferixis.MusicFramework.Signal
-   ( SignalChunk(SignalChunk, scLength, scData), SignalProcessorState(spChunkLength, spReduceChunkLength) ) where
+   ( SignalChunk(SignalChunk, scLength, scData), SignalProcessorState(spChunkLength, spReduceChunkLength), makeSpPairConvert) where
 
 import Data.Word
 import Data.Maybe
@@ -24,7 +24,16 @@ class SignalProcessorState a where
    spChunkLength :: a -> Word64 -- Longitud de datos a procesar. Cuando es cero significa que terminó el stream.
    spReduceChunkLength :: a -> Word64 -> a -- Reduce la longitud de datos a procesar
 
-{-
-spPairConvert :: ( Word64 -> (Word64 -> SignalProcessorState c) -> SignalProcessorState a -> SignalProcessorState b -> (r, SignalProcessorState c) ) -> SignalProcessorState a -> SignalProcessorState b -> SignalProcessorState c
-spPairConvert generateBalancedUnit spStateA spStateB
--}
+makeSpPairConvert :: (SignalProcessorState spa, SignalProcessorState spb, SignalProcessorState spc) => (SignalProcessorState spa, SignalProcessorState spb, SignalProcessorState spc) => ( Word64 -> (Word64 -> spc) -> spa -> spb -> spc ) -> spa -> spb -> spc
+makeSpPairConvert generateBalancedUnit spStateA spStateB =
+   let spAChunkLength = spChunkLength spStateA
+       spBChunkLength = spChunkLength spStateB
+       spAReduceChunkLength = spReduceChunkLength spStateA
+       spBReduceChunkLength = spReduceChunkLength spStateB
+       spPairConvert = makeSpPairConvert generateBalancedUnit
+   in case ( compare spAChunkLength spBChunkLength ) of
+      GT -> spPairConvert ( spAReduceChunkLength spBChunkLength ) spStateB
+      LT -> spPairConvert spStateA ( spBReduceChunkLength spAChunkLength )
+      EQ -> let chunkLength = spAChunkLength
+                reduceChunkLength = \requestedChunkLength -> spPairConvert ( spAReduceChunkLength requestedChunkLength ) ( spBReduceChunkLength requestedChunkLength )
+            in generateBalancedUnit chunkLength reduceChunkLength spStateA spStateB
