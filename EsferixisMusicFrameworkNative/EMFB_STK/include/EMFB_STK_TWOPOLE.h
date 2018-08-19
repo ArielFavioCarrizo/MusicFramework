@@ -23,3 +23,7 @@ EMFB_STK_API void emfb_stk_twopole_setResonance(void *self, double frequency, do
 EMFB_STK_API void emfb_stk_twopole_tickInplace(void *self, void *frames, unsigned int channel);
 
 EMFB_STK_API void emfb_stk_twopole_tick(void *self, void *iFrames, void *oFrames, unsigned int iChannel, unsigned int oChannel);
+
+EMFB_STK_API void emfb_stk_twopole_tickSubInplace(void *self, void *frames, unsigned int offset, unsigned int length, unsigned int channel);
+
+EMFB_STK_API void emfb_stk_twopole_tickSub(void *self, void *iFrames, void *oFrames, unsigned int iOffset, unsigned int oOffset, unsigned int length, unsigned int iChannel, unsigned int oChannel);

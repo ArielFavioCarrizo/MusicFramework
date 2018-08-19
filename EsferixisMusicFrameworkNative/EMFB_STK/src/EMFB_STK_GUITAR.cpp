@@ -38,8 +38,16 @@ void emfb_stk_guitar_noteOff(void *guitar, double amplitude, unsigned int string
 	static_cast<stk::Guitar *>(guitar)->noteOff(amplitude, string);
 }
 
+void emfb_stk_guitar_tickInplace(void *self, void *frames, unsigned int channel) {
+	emfb_stk_tickInplace<stk::Guitar>(self, frames, channel);
+}
+
 void emfb_stk_guitar_tick(void *self, void *iFrames, void *oFrames, unsigned int iChannel, unsigned int oChannel) {
 	emfb_stk_tick<stk::Guitar>(self, iFrames, oFrames, iChannel, oChannel);
+}
+
+void emfb_stk_guitar_tickSubInplace(void *self, void *frames, unsigned int offset, unsigned int length, unsigned int channel) {
+	emfb_stk_tickSubInplace<stk::Guitar>(self, frames, offset, length, channel);
 }
 
 void emfb_stk_guitar_tickSub(void *self, void *iFrames, void *oFrames, unsigned int iOffset, unsigned int oOffset, unsigned int length, unsigned int iChannel, unsigned int oChannel) {

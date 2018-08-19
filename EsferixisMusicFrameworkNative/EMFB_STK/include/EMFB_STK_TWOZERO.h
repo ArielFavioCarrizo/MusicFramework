@@ -23,3 +23,7 @@ EMFB_STK_API void emfb_stk_twozero_setNotch(void *self, double frequency, double
 EMFB_STK_API void emfb_stk_twozero_tickInplace(void *self, void *frames, unsigned int channel);
 
 EMFB_STK_API void emfb_stk_twozero_tick(void *self, void *iFrames, void *oFrames, unsigned int iChannel, unsigned int oChannel);
+
+EMFB_STK_API void emfb_stk_twozero_tickSubInplace(void *self, void *frames, unsigned int offset, unsigned int length, unsigned int channel);
+
+EMFB_STK_API void emfb_stk_twozero_tickSub(void *self, void *iFrames, void *oFrames, unsigned int iOffset, unsigned int oOffset, unsigned int length, unsigned int iChannel, unsigned int oChannel);

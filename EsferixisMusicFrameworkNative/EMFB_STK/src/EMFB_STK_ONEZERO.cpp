@@ -42,3 +42,11 @@ void emfb_stk_onezero_tickInplace(void *self, void *frames, unsigned int channel
 void emfb_stk_onezero_tick(void *self, void *iFrames, void *oFrames, unsigned int iChannel, unsigned int oChannel) {
 	emfb_stk_tick<stk::OneZero>(self, iFrames, oFrames, iChannel, oChannel);
 }
+
+void emfb_stk_onezero_tickSubInplace(void *self, void *frames, unsigned int offset, unsigned int length, unsigned int channel) {
+	emfb_stk_tickSubInplace<stk::OneZero>(self, frames, offset, length, channel);
+}
+
+void emfb_stk_onezero_tickSub(void *self, void *iFrames, void *oFrames, unsigned int iOffset, unsigned int oOffset, unsigned int length, unsigned int iChannel, unsigned int oChannel) {
+	emfb_stk_tickSub<stk::OneZero>(self, iFrames, oFrames, iOffset, oOffset, length, iChannel, oChannel);
+}

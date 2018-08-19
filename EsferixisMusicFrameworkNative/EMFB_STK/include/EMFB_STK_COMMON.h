@@ -23,6 +23,9 @@ EMFB_STK_API unsigned long emfb_stk_sint16();
 EMFB_STK_API double emfb_stk_sampleRate();
 EMFB_STK_API void emfb_stk_setSampleRate(double rate);
 
+#ifdef __cplusplus
+
+
 template<typename StkUnitType>
 void emfb_stk_tickInplace(void *self, void *frames, unsigned int channel) {
 	static_cast<StkUnitType *>(self)->tick(*static_cast<stk::StkFrames *>(frames), channel);
@@ -35,12 +38,12 @@ void emfb_stk_tick(void *self, void *iFrames, void *oFrames, unsigned int iChann
 
 template<typename StkUnitType>
 void emfb_stk_tickSubInplace(void *self, void *frames, unsigned int offset, unsigned int length, unsigned int channel) {
-	StkUnitType& self_casted = static_cast<StkUnitType *>(self);
+	StkUnitType& self_casted = *static_cast<StkUnitType *>(self);
 	stk::StkFrames& frames_casted = *static_cast<stk::StkFrames *>(frames);
 
 	size_t hop = (size_t)frames_casted.channels();
 
-	stk::StkFloat *data = &frames_casted[hop * (size_t) offset + (size_t) channel];
+	stk::StkFloat *data = &frames_casted[hop * (size_t)offset + (size_t)channel];
 
 	for (size_t i = 0; i<length; i++) {
 		*data = self_casted.tick(*data);
@@ -51,7 +54,7 @@ void emfb_stk_tickSubInplace(void *self, void *frames, unsigned int offset, unsi
 template<typename StkUnitType>
 void emfb_stk_tickSub(void *self, void *iFrames, void *oFrames, unsigned int iOffset, unsigned int oOffset, unsigned int length, unsigned int iChannel, unsigned int oChannel) {
 	StkUnitType& self_casted = *static_cast<StkUnitType *>(self);
-	stk::StkFrames& iFrames_casted= *static_cast<stk::StkFrames *>(iFrames);
+	stk::StkFrames& iFrames_casted = *static_cast<stk::StkFrames *>(iFrames);
 	stk::StkFrames& oFrames_casted = *static_cast<stk::StkFrames *>(oFrames);
 
 	size_t iHop = (size_t)iFrames_casted.channels();
@@ -71,8 +74,6 @@ template<typename StkUnitType>
 void emfb_stk_setGain(void *self, double gain) {
 	static_cast<StkUnitType *>(self)->setGain(gain);
 }
-
-#ifdef __cplusplus
 
 char * emfb_stk_cppStrToCStr(const std::string cppstr);
 

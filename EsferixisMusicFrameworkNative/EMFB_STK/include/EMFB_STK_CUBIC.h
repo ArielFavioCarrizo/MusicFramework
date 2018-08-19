@@ -18,4 +18,8 @@ EMFB_STK_API void emfb_stk_cubic_tickInplace(void *self, void *frames, unsigned 
 
 EMFB_STK_API void emfb_stk_cubic_tick(void *self, void *iFrames, void *oFrames, unsigned int iChannel, unsigned int oChannel);
 
+EMFB_STK_API void emfb_stk_cubic_tickSubInplace(void *self, void *frames, unsigned int offset, unsigned int length, unsigned int channel);
+
+EMFB_STK_API void emfb_stk_cubic_tickSub(void *self, void *iFrames, void *oFrames, unsigned int iOffset, unsigned int oOffset, unsigned int length, unsigned int iChannel, unsigned int oChannel);
+
 EMFB_STK_API void emfb_stk_cubic_delete(void *cubic);

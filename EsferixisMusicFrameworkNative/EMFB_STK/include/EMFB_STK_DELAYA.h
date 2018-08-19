@@ -21,3 +21,7 @@ EMFB_STK_API double emfb_stk_delaya_getDelay(void *self);
 EMFB_STK_API void emfb_stk_delaya_tickInplace(void *self, void *frames, unsigned int channel);
 
 EMFB_STK_API void emfb_stk_delaya_tick(void *self, void *iFrames, void *oFrames, unsigned int iChannel, unsigned int oChannel);
+
+EMFB_STK_API void emfb_stk_delaya_tickSubInplace(void *self, void *frames, unsigned int offset, unsigned int length, unsigned int channel);
+
+EMFB_STK_API void emfb_stk_delaya_tickSub(void *self, void *iFrames, void *oFrames, unsigned int iOffset, unsigned int oOffset, unsigned int length, unsigned int iChannel, unsigned int oChannel);
