@@ -10,7 +10,9 @@ module Esferixis.MusicFramework.Bindings.STK.Guitar
    , guitarSetFrequency
    , guitarNoteOn
    , guitarNoteOff
-   , guitarTick ) where
+   , guitarTick
+   , guitarTickSubInplace
+   , guitarTickSub ) where
 
 import Data.Word
 import Data.Int

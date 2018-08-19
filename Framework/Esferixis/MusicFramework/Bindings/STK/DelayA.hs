@@ -9,7 +9,9 @@ module Esferixis.MusicFramework.Bindings.STK.DelayA
    , delayASetMaximumDelay
    , delayASetDelay
    , delayATickInplace
-   , delayATick ) where
+   , delayATick
+   , delayATickSubInplace
+   , delayATickSub ) where
 
 import Data.Word
 import Data.Int
@@ -49,6 +51,8 @@ foreign import ccall unsafe "emfb_stk_delaya_setMaximumDelay" c_emfb_stk_delaya_
 foreign import ccall unsafe "emfb_stk_delaya_setDelay" c_emfb_stk_delaya_setDelay :: Ptr ExceptDescPtr -> DelayAPtr -> CDouble -> IO ()
 foreign import ccall "emfb_stk_delaya_tickInplace" c_emfb_stk_delaya_tickInplace :: DelayAPtr -> StkFramesPtr -> CUInt -> IO ()
 foreign import ccall "emfb_stk_delaya_tick" c_emfb_stk_delaya_tick :: DelayAPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> IO ()
+foreign import ccall "emfb_stk_delaya_tickSubInplace" c_emfb_stk_delaya_tickSubInplace :: DelayAPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> IO ()
+foreign import ccall "emfb_stk_delaya_tickSub" c_emfb_stk_delaya_tickSub :: DelayAPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> CUInt -> CUInt -> IO ()
 
 newDelayA :: Double -> Word32 -> IO DelayA
 newDelayA delay maxDelay = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> DelayA foreignPtr) c_emfb_stk_delaya_delete_ptr c_emfb_stk_delaya_new (\fun -> fun (CDouble delay) (CULong maxDelay) )
@@ -73,3 +77,9 @@ delayATickInplace = createStkFramesTickInplaceFun exceptionSafeSelfAction c_emfb
 
 delayATick :: DelayA -> StkFrames -> StkFrames -> Word32 -> Word32 -> IO ()
 delayATick = createStkFramesTickFun exceptionSafeSelfAction c_emfb_stk_delaya_tick
+
+delayATickSubInplace :: DelayA -> StkFrames -> Word32 -> Word32 -> Word32 -> IO ()
+delayATickSubInplace = createStkFramesTickSubInplaceFun exceptionSafeSelfAction c_emfb_stk_delaya_tickSubInplace
+
+delayATickSub :: DelayA -> StkFrames -> StkFrames -> Word32 -> Word32 -> Word32 -> Word32 -> Word32 -> IO ()
+delayATickSub = createStkFramesTickSubFun exceptionSafeSelfAction c_emfb_stk_delaya_tickSub

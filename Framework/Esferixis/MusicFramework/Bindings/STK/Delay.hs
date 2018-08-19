@@ -47,6 +47,8 @@ foreign import ccall unsafe "emfb_stk_delay_setMaximumDelay" c_emfb_stk_delay_se
 foreign import ccall unsafe "emfb_stk_delay_setDelay" c_emfb_stk_delay_setDelay :: Ptr ExceptDescPtr -> DelayPtr -> CULong -> IO ()
 foreign import ccall "emfb_stk_delay_tickInplace" c_emfb_stk_delay_tickInplace :: DelayPtr -> StkFramesPtr -> CUInt -> IO ()
 foreign import ccall "emfb_stk_delay_tick" c_emfb_stk_delay_tick :: DelayPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> IO ()
+foreign import ccall "emfb_stk_delay_tickSubInplace" c_emfb_stk_delay_tickSubInplace :: DelayPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> IO ()
+foreign import ccall "emfb_stk_delay_tickSub" c_emfb_stk_delay_tickSub :: DelayPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> CUInt -> CUInt -> IO ()
 
 newDelay :: Double -> Word32 -> IO Delay
 newDelay delay maxDelay = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> Delay foreignPtr) c_emfb_stk_delay_delete_ptr c_emfb_stk_delay_new (\fun -> fun (CDouble delay) (CULong maxDelay) )
@@ -68,3 +70,9 @@ delayTickInplace = createStkFramesTickInplaceFun exceptionSafeSelfAction c_emfb_
 
 delayTick :: Delay -> StkFrames -> StkFrames -> Word32 -> Word32 -> IO ()
 delayTick = createStkFramesTickFun exceptionSafeSelfAction c_emfb_stk_delay_tick
+
+delayTickSubInplace :: Delay -> StkFrames -> Word32 -> Word32 -> Word32 -> IO ()
+delayTickSubInplace = createStkFramesTickSubInplaceFun exceptionSafeSelfAction c_emfb_stk_delay_tickSubInplace
+
+delayTickSub :: Delay -> StkFrames -> StkFrames -> Word32 -> Word32 -> Word32 -> Word32 -> Word32 -> IO ()
+delayTickSub = createStkFramesTickSubFun exceptionSafeSelfAction c_emfb_stk_delay_tickSub

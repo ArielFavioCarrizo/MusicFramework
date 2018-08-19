@@ -10,7 +10,9 @@ module Esferixis.MusicFramework.Bindings.STK.Cubic
    , cubicSetGain
    , cubicSetThreshold
    , cubicTickInplace
-   , cubicTick ) where
+   , cubicTick
+   , cubicTickSubInplace
+   , cubicTickSub ) where
 
 import Data.Word
 import Data.Int
@@ -33,7 +35,7 @@ type CubicPtr = Ptr NativeCubic
 data Cubic = Cubic (ForeignPtr NativeCubic)
 cubicForeignPtr (Cubic a) = a
 
-unhandledCubicAction cubic nativeFun actionFun = withForeignPtr ( cubicForeignPtr cubic ) (\c_cubicPtr -> actionFun ( nativeFun c_cubicPtr ) )
+exceptionSafeSelfAction cubic nativeFun actionFun = withForeignPtr ( cubicForeignPtr cubic ) (\c_cubicPtr -> actionFun ( nativeFun c_cubicPtr ) )
 
 foreign import ccall "emfb_stk_cubic_new" c_emfb_stk_cubic_new :: Ptr ExceptDescPtr -> IO CubicPtr
 foreign import ccall "&emfb_stk_cubic_delete" c_emfb_stk_cubic_delete_ptr :: FunPtr ( CubicPtr -> IO () )
@@ -44,6 +46,8 @@ foreign import ccall unsafe "emfb_stk_cubic_setGain" c_emfb_stk_cubic_setGain ::
 foreign import ccall unsafe "emfb_stk_cubic_setThreshold" c_emfb_stk_cubic_setThreshold :: CubicPtr -> CDouble -> IO ()
 foreign import ccall "emfb_stk_cubic_tickInplace" c_emfb_stk_cubic_tickInplace :: CubicPtr -> StkFramesPtr -> CUInt -> IO ()
 foreign import ccall "emfb_stk_cubic_tick" c_emfb_stk_cubic_tick :: CubicPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> IO ()
+foreign import ccall "emfb_stk_cubic_tickSubInplace" c_emfb_stk_cubic_tickSubInplace :: CubicPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> IO ()
+foreign import ccall "emfb_stk_cubic_tickSub" c_emfb_stk_cubic_tickSub :: CubicPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> CUInt -> CUInt -> IO ()
 
 newCubic :: IO Cubic
 newCubic = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> Cubic foreignPtr) c_emfb_stk_cubic_delete_ptr c_emfb_stk_cubic_new (\fun -> fun)
@@ -52,7 +56,7 @@ deleteCubic :: Cubic -> IO ()
 deleteCubic = deleteStkObject cubicForeignPtr
 
 createSetCubicValue :: ( CubicPtr -> CDouble -> IO () ) -> ( Cubic -> Double -> IO () )
-createSetCubicValue = setter unhandledCubicAction
+createSetCubicValue = setter exceptionSafeSelfAction
 
 cubicSetA1 = createSetCubicValue c_emfb_stk_cubic_setA1
 cubicSetA2 = createSetCubicValue c_emfb_stk_cubic_setA2
@@ -61,7 +65,13 @@ cubicSetGain = createSetCubicValue c_emfb_stk_cubic_setGain
 cubicSetThreshold = createSetCubicValue c_emfb_stk_cubic_setThreshold
 
 cubicTickInplace :: Cubic -> StkFrames -> Word32 -> IO ()
-cubicTickInplace = createStkFramesTickInplaceFun unhandledCubicAction c_emfb_stk_cubic_tickInplace
+cubicTickInplace = createStkFramesTickInplaceFun exceptionSafeSelfAction c_emfb_stk_cubic_tickInplace
 
 cubicTick :: Cubic -> StkFrames -> StkFrames -> Word32 -> Word32 -> IO ()
-cubicTick = createStkFramesTickFun unhandledCubicAction c_emfb_stk_cubic_tick
+cubicTick = createStkFramesTickFun exceptionSafeSelfAction c_emfb_stk_cubic_tick
+
+cubicTickSubInplace :: Cubic -> StkFrames -> Word32 -> Word32 -> Word32 -> IO ()
+cubicTickSubInplace = createStkFramesTickSubInplaceFun exceptionSafeSelfAction c_emfb_stk_cubic_tickSubInplace
+
+cubicTickSub :: Cubic -> StkFrames -> StkFrames -> Word32 -> Word32 -> Word32 -> Word32 -> Word32 -> IO ()
+cubicTickSub = createStkFramesTickSubFun exceptionSafeSelfAction c_emfb_stk_cubic_tickSub
