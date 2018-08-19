@@ -8,6 +8,8 @@ module Esferixis.MusicFramework.Bindings.STK.Frames
    , stkFramesCheckSameShape
    , createStkFramesTickFun
    , createStkFramesTickInplaceFun
+   , createStkFramesTickSubInplaceFun
+   , createStkFramesTickSubFun
    , newZeroedStkFrames
    , newValuedStkFrames
    , withStkFramesPtr
@@ -78,6 +80,13 @@ stkFramesCheckSameChannels stkFrames1 stkFrames2 = do
    else
       throwIO ( StkException "Channels mismatch" )
 
+stkFramesCheckValidInterval :: StkFrames -> Word32 -> Word32 -> IO ()
+stkFramesCheckValidInterval stkFrames offset length = do
+   if ( ( offset + length ) <= ( stkFramesLength stkFrames ) )
+      then return ()
+   else
+      throwIO ( StkException "Invalid interval" )
+
 stkFramesCheckSameShape :: StkFrames -> StkFrames -> IO ()
 stkFramesCheckSameShape stkFrames1 stkFrames2 = do
    stkFramesCheckSameLength stkFrames1 stkFrames2
@@ -92,6 +101,18 @@ createStkFramesTickFun doUnhandledObjectAction nativeFun = \object iframes ofram
    stkFramesCheckChannelExists iframes ichannel
    stkFramesCheckChannelExists oframes ochannel
    withStkFramesPtr iframes (\c_iframes -> withStkFramesPtr oframes (\c_oframes -> doUnhandledObjectAction object nativeFun (\fun -> fun c_iframes c_oframes (CUInt ichannel) (CUInt ochannel) ) ) )
+
+createStkFramesTickSubInplaceFun doUnhandledObjectAction nativeFun = \object frames offset length channel -> do
+   stkFramesCheckChannelExists frames channel
+   stkFramesCheckValidInterval frames offset length
+   withStkFramesPtr frames (\c_frames -> doUnhandledObjectAction object nativeFun (\fun -> fun c_frames (CUInt offset) (CUInt length) (CUInt channel) ) )
+
+createStkFramesTickSubFun doUnhandledObjectAction nativeFun = \object iFrames oFrames iOffset oOffset length iChannel oChannel -> do
+   stkFramesCheckChannelExists iFrames iChannel
+   stkFramesCheckChannelExists oFrames oChannel
+   stkFramesCheckValidInterval iFrames iOffset length
+   stkFramesCheckValidInterval oFrames oOffset length
+   withStkFramesPtr iFrames (\c_iframes -> withStkFramesPtr oFrames (\c_oframes -> doUnhandledObjectAction object nativeFun (\fun -> fun c_iframes c_oframes (CUInt iOffset) (CUInt oOffset) (CUInt length) (CUInt iChannel) (CUInt oChannel) ) ) )
 
 newStkFramesFromSourceAndForeignPtr sourceStkFrames newStkFramesForeignPtr = StkFrames newStkFramesForeignPtr ( stkFramesLength sourceStkFrames ) ( stkFramesChannels sourceStkFrames )
 
