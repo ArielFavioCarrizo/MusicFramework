@@ -1,3 +1,5 @@
+{-# LANGUAGE Rank2Types #-}
+
 module Esferixis.MusicFramework.Signal.Producer
    ( ProducerState(ProducerState, psChunkLength, psReduceChunkLength, psPopChunk) ) where
 
@@ -12,13 +14,13 @@ import Esferixis.MusicFramework.Signal
 
    Tipos
 
-   sd: Signal Data
+   sc: Signal Chunk
 -}
-data ProducerState sd = ProducerState { psChunkLength :: Word64 -- Longitud de datos a extraer. Cuando es cero significa que terminó el stream.
-                                      , psReduceChunkLength :: Word64 -> ProducerState sd -- Reduce la longitud de datos a extraer
-                                      , psPopChunk :: (sd, ProducerState sd) -- Devuelve un 'chunk' de señal y la sección siguiente (Si no termina el stream). Cuando termina el stream devuelve un chunk de señal de longitud cero, indicando que termina el stream.
+data ProducerState sc = ProducerState { psChunkLength :: Word64 -- Longitud de datos a extraer. Cuando es cero significa que terminó el stream.
+                                      , psReduceChunkLength :: Word64 -> ProducerState sc -- Reduce la longitud de datos a extraer
+                                      , psPopChunk :: (SignalChunk sc) => (sc, ProducerState sc) -- Devuelve un 'chunk' de señal y la sección siguiente (Si no termina el stream). Cuando termina el stream devuelve un chunk de señal de longitud cero, indicando que termina el stream.
                                       }
 
-instance SignalProcessorState (ProducerState sd) where
+instance SignalProcessorState (ProducerState sc) where
    spChunkLength = psChunkLength
    spReduceChunkLength = psReduceChunkLength

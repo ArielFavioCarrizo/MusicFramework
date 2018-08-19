@@ -1,5 +1,7 @@
+{-# LANGUAGE Rank2Types #-}
+
 module Esferixis.MusicFramework.Signal
-   ( SignalChunk(SignalChunk, scLength, scData), SignalProcessorState(spChunkLength, spReduceChunkLength), makeSpPairConvert) where
+   ( SignalChunk(scLength), SignalProcessorState(spChunkLength, spReduceChunkLength), makeSpPairConvert) where
 
 import Data.Word
 import Data.Maybe
@@ -15,9 +17,9 @@ import Data.Maybe
 
    Un chunk de señal de longitud cero se interpreta como el fin del stream
 -}
-data SignalChunk signalData = SignalChunk { scLength :: Word64 -- Longitud del chunk
-                                          , scData :: signalData -- Datos del chunk
-                                          }
+class SignalChunk sc where
+   scLength :: sc -> Word64 -- Longitud del chunk
+   scSection :: sc -> Word64 -> Word64 -> sc -- Devuelve la sección con el offset y la longitud especificados
 
 -- Estado de unidad de procesamiento de señal
 class SignalProcessorState a where

@@ -1,3 +1,5 @@
+{-# LANGUAGE Rank2Types #-}
+
 module Esferixis.MusicFramework.Signal.Transformer
    ( TransformerState(TransformerState, tsChunkLength, tsReduceChunkLength, tsTransform) ) where
 
@@ -13,35 +15,16 @@ import Esferixis.MusicFramework.Signal.Producer
 
    Tipos
 
-   isd: Input Signal Data
-   osd: Output Signal Data
+   isc: Input Signal Chunk
+   osc: Output Signal Chunk
 -}
-data TransformerState isd osd = TransformerState {
+data TransformerState isc osc = TransformerState {
      tsChunkLength :: Word64 -- Longitud de datos a transformar
-   , tsReduceChunkLength :: Word64 -> TransformerState isd osd -- Reduce la longitud de datos a transformar al valor especificado, devolviendo un nuevo estado del transformador
-   , tsTransform :: isd -> (osd, TransformerState isd osd) -- Recibe el chunk de señal de entrada, devuelve el chunk de salida y el siguiente estado del transformador. Cuando recibe un chunk de señal de longitud cero, significa que se termina el stream de entrada.
+   , tsReduceChunkLength :: Word64 -> TransformerState isc osc -- Reduce la longitud de datos a transformar al valor especificado, devolviendo un nuevo estado del transformador
+   , tsTransform :: (SignalChunk isc, SignalChunk osc) => isc -> (osc, TransformerState isc osc) -- Recibe el chunk de señal de entrada, devuelve el chunk de salida y el siguiente estado del transformador. Cuando recibe un chunk de señal de longitud cero, significa que se termina el stream de entrada.
    }
 
-{- 
-   Representación abstracta de lo que es un transformador con buffer intermedio.
-   Representa un estado del transformador que se obtendrá efectivamente
-   en un tiempo indeterminado en el futuro.
-
-   Tipos
-
-   isd: Input Signal Data
-   osd: Output Signal Data
--}
-{-
-data BufferedTransformerState isd osd = BufferedTransformerState {
-     btsPopChunkLength :: Word64
-   , btsReducePopChunkLength :: Word64 -> BufferedTransformerState isd osd
-   , btsPopChunk :: (osd, BufferedTransformerState isd osd)
-   , btsPushChunk :: isd -> BufferedTransformerState isd osd
-   }
--}
-
-instance SignalProcessorState (TransformerState isd osd) where
+instance SignalProcessorState (TransformerState isc osc) where
    spChunkLength = tsChunkLength
    spReduceChunkLength = tsReduceChunkLength
 
@@ -51,10 +34,10 @@ instance SignalProcessorState (TransformerState isd osd) where
 
    Tipos
 
-   isd: Input Signal Data
-   osd: Output Signal Data
+   isc: Input Signal Chunk
+   osc: Output Signal Chunk
 -}
-(>>>) :: ProducerState isd -> TransformerState isd osd -> ProducerState osd
+(>>>) :: (SignalChunk isc, SignalChunk osc) => ProducerState isc -> TransformerState isc osc -> ProducerState osc
 (>>>) = makeSpPairConvert (\chunkLength reduceChunkLength producerState transformerState ->
    ProducerState {
         psChunkLength = chunkLength
@@ -72,11 +55,11 @@ instance SignalProcessorState (TransformerState isd osd) where
 
    Tipos:
 
-   isd: Input Signal data
-   losd: Left Output Signal Data
-   rosd: Right Output Signal Data
+   isc: Input Signal Chunk
+   losc: Left Output Signal Chunk
+   rosc: Right Output Signal Chunk
 -}
-(&&&) :: TransformerState isd losd -> TransformerState isd rosd -> TransformerState isd (losd, rosd)
+(&&&) :: (SignalChunk isc, SignalChunk losc, SignalChunk rosc) => TransformerState isc losc -> TransformerState isc rosc -> TransformerState isc (losc, rosc)
 (&&&) = makeSpPairConvert (\chunkLength reduceChunkLength leftTransformerState rightTransformerState ->
    TransformerState {
         tsChunkLength = chunkLength
@@ -88,6 +71,9 @@ instance SignalProcessorState (TransformerState isd osd) where
            in ( combinedOutputSignalChunk, nextLeftTransformerState &&& nextRightTransformerState )
       } )
 
---loop :: TransformerState (isd, rosd) losd -> BufferedTransformerState ( losd, rosd ) -> TransformerState isd losd
---loop leftTransformerState rightTransformerState 
-   
+{-
+loop :: TransformerState (lisc, rosc) losc -> BufferedTransformerState (losc, rosc) -> TransformerState lisc losc
+loop leftTransformerState rightTransformerState = 
+   TransformerState {
+      , tsChunkLength = 
+-}
