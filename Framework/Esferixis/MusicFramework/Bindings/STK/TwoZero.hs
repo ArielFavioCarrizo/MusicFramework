@@ -12,7 +12,9 @@ module Esferixis.MusicFramework.Bindings.STK.TwoZero
    , twoZeroSetCoefficients
    , twoZeroSetNotch
    , twoZeroTickInplace
-   , twoZeroTick ) where
+   , twoZeroTick
+   , twozeroTickSubInplace
+   , twozeroTickSub ) where
 
 import Data.Word
 import Data.Int
@@ -36,7 +38,7 @@ type TwoZeroPtr = Ptr NativeTwoZero
 data TwoZero = TwoZero (ForeignPtr NativeTwoZero)
 twoZeroForeignPtr (TwoZero a) = a
 
-unhandledTwoZeroAction twoZero nativeFun actionFun = withForeignPtr ( twoZeroForeignPtr twoZero ) (\c_twoZeroPtr -> actionFun ( nativeFun c_twoZeroPtr ) )
+exceptionSafeSelfAction twoZero nativeFun actionFun = withForeignPtr ( twoZeroForeignPtr twoZero ) (\c_twoZeroPtr -> actionFun ( nativeFun c_twoZeroPtr ) )
 
 foreign import ccall "emfb_stk_twozero_new" c_emfb_stk_twozero_new :: Ptr ExceptDescPtr -> CDouble -> IO TwoZeroPtr
 foreign import ccall "&emfb_stk_twozero_delete" c_emfb_stk_twozero_delete_ptr :: FunPtr ( TwoZeroPtr -> IO () )
@@ -49,6 +51,8 @@ foreign import ccall unsafe "emfb_stk_twozero_setCoefficients" c_emfb_stk_twozer
 foreign import ccall unsafe "emfb_stk_twozero_setResonance" c_emfb_stk_twozero_setNotch :: TwoZeroPtr -> CDouble -> CDouble -> IO ()
 foreign import ccall "emfb_stk_twozero_tickInplace" c_emfb_stk_twozero_tickInplace :: TwoZeroPtr -> StkFramesPtr -> CUInt -> IO ()
 foreign import ccall "emfb_stk_twozero_tick" c_emfb_stk_twozero_tick :: TwoZeroPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> IO ()
+foreign import ccall "emfb_stk_twozero_tickSubInplace" c_emfb_stk_twozero_tickSubInplace :: TwoZeroPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> IO ()
+foreign import ccall "emfb_stk_twozero_tickSub" c_emfb_stk_twozero_tickSub :: TwoZeroPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> CUInt -> CUInt -> IO ()
 
 newTwoZero :: Double -> IO TwoZero
 newTwoZero thePole = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> TwoZero foreignPtr) c_emfb_stk_twozero_delete_ptr c_emfb_stk_twozero_new (\fun -> fun (CDouble thePole) )
@@ -57,25 +61,31 @@ deleteTwoZero :: TwoZero -> IO ()
 deleteTwoZero = deleteStkObject twoZeroForeignPtr
 
 createSetValue :: ( TwoZeroPtr -> CDouble -> IO () ) -> ( TwoZero -> Double -> IO () )
-createSetValue = setter unhandledTwoZeroAction
+createSetValue = setter exceptionSafeSelfAction
 
 twoZeroSetGain = createSetValue c_emfb_stk_twozero_setGain
 
 twoZeroIgnoreSampleRateChange :: TwoZero -> Bool -> IO ()
-twoZeroIgnoreSampleRateChange twoZero ignore = unhandledTwoZeroAction twoZero c_emfb_stk_twozero_ignoreSampleRateChange (\fun -> fun ( hsctypeconvert ignore ) )
+twoZeroIgnoreSampleRateChange twoZero ignore = exceptionSafeSelfAction twoZero c_emfb_stk_twozero_ignoreSampleRateChange (\fun -> fun ( hsctypeconvert ignore ) )
 
 twoZeroSetB0 = createSetValue c_emfb_stk_twozero_setB0
 twoZeroSetB1 = createSetValue c_emfb_stk_twozero_setB1
 twoZeroSetB2 = createSetValue c_emfb_stk_twozero_setB2
 
 twoZeroSetCoefficients :: TwoZero -> Double -> Double -> Double -> Bool -> IO ()
-twoZeroSetCoefficients twoZero b0 b1 b2 clearState = unhandledTwoZeroAction twoZero c_emfb_stk_twozero_setCoefficients (\fun -> fun ( CDouble b0 ) ( CDouble b1 ) ( CDouble b2 ) ( hsctypeconvert clearState ) )
+twoZeroSetCoefficients twoZero b0 b1 b2 clearState = exceptionSafeSelfAction twoZero c_emfb_stk_twozero_setCoefficients (\fun -> fun ( CDouble b0 ) ( CDouble b1 ) ( CDouble b2 ) ( hsctypeconvert clearState ) )
 
 twoZeroSetNotch :: TwoZero -> Double -> Double -> IO ()
-twoZeroSetNotch twoZero frequency radius = unhandledTwoZeroAction twoZero c_emfb_stk_twozero_setNotch (\fun -> fun ( CDouble frequency ) ( CDouble radius ) )
+twoZeroSetNotch twoZero frequency radius = exceptionSafeSelfAction twoZero c_emfb_stk_twozero_setNotch (\fun -> fun ( CDouble frequency ) ( CDouble radius ) )
 
 twoZeroTickInplace :: TwoZero -> StkFrames -> Word32 -> IO ()
-twoZeroTickInplace = createStkFramesTickInplaceFun unhandledTwoZeroAction c_emfb_stk_twozero_tickInplace
+twoZeroTickInplace = createStkFramesTickInplaceFun exceptionSafeSelfAction c_emfb_stk_twozero_tickInplace
 
 twoZeroTick :: TwoZero -> StkFrames -> StkFrames -> Word32 -> Word32 -> IO ()
-twoZeroTick = createStkFramesTickFun unhandledTwoZeroAction c_emfb_stk_twozero_tick
+twoZeroTick = createStkFramesTickFun exceptionSafeSelfAction c_emfb_stk_twozero_tick
+
+twozeroTickSubInplace :: TwoZero -> StkFrames -> Word32 -> Word32 -> Word32 -> IO ()
+twozeroTickSubInplace = createStkFramesTickSubInplaceFun exceptionSafeSelfAction c_emfb_stk_twozero_tickSubInplace
+
+twozeroTickSub :: TwoZero -> StkFrames -> StkFrames -> Word32 -> Word32 -> Word32 -> Word32 -> Word32 -> IO ()
+twozeroTickSub = createStkFramesTickSubFun exceptionSafeSelfAction c_emfb_stk_twozero_tickSub
