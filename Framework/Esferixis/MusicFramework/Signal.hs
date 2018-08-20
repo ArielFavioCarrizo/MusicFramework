@@ -20,6 +20,8 @@ import Data.Maybe
 class SignalChunk sc where
    scLength :: sc -> Word64 -- Longitud del chunk
    scSection :: sc -> Word64 -> Word64 -> sc -- Devuelve la sección con el offset y la longitud especificados
+   scAppend :: sc -> sc -> sc -- Toma dos chunks y genera un chunk nuevo uniendo el primer chunk con el segundo
+   scZero :: Word64 -> sc -- Genera un chunk silencioso con la longitud especificada
 
 -- Estado de unidad de procesamiento de señal
 class SignalProcessorState a where
