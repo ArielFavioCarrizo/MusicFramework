@@ -1,7 +1,7 @@
 {-# LANGUAGE Rank2Types #-}
 
 module Esferixis.MusicFramework.Signal.BufferedTransformer
-   ( BufferedTransformerOutputState(btsMaxPopChunkLength, btsPopChunk), BufferedTransformerInputState(btsPushChunkLength, btsReducePushChunkLength, btsPushChunk),  BufferedTransformerState(btsOutput, btsInput) ) where
+   ( BufferedTransformerOutputState(btsMaxPopChunkLength, btsPopChunk), BufferedTransformerInputState(btsPushChunkLength, btsReducePushChunkLength, btsPushChunk), BufferedTransformerState(btsOutput, btsInput) ) where
 
 import Data.Word
 import Data.Maybe
