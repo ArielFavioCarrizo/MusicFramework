@@ -24,3 +24,19 @@ data ProducerState sc = ProducerState { psChunkLength :: Word64 -- Longitud de d
 instance SignalProcessorState (ProducerState sc) where
    spChunkLength = psChunkLength
    spReduceChunkLength = psReduceChunkLength
+
+{-
+   Dado dos estados de productores devuelve un productor que devuelve los
+   resultados de los productores de entrada en una tupla.
+   Combina dos productores.
+-}
+psCombine :: (SignalChunk sca, SignalChunk scb) => ProducerState sca -> ProducerState scb -> ProducerState (sca, scb)
+psCombine = makeSpPairConvert (\chunkLength reduceChunkLength leftProducerState rightProducerState ->
+   ProducerState {
+        psChunkLength = chunkLength
+      , psReduceChunkLength = reduceChunkLength
+      , psPopChunk = 
+        let (leftChunk, nextLeftProducerState) = psPopChunk leftProducerState
+            (rightChunk, nextRightProducerState) = psPopChunk rightProducerState
+        in ( (leftChunk, rightChunk), psCombine nextLeftProducerState nextRightProducerState)
+      } )
