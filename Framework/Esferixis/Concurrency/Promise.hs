@@ -1,12 +1,10 @@
-{-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
-module Esferixis.Mutable.Promise(Promise, Future, newPromise, newCompletedPromise, newFuture, pSet, future, fGet, fWait) where
+module Esferixis.Concurrency.Promise(Promise, Future, newPromise, newCompletedPromise, newFuture, pSet, future, fGet, fWait) where
 
-import Data.Word
 import Data.Maybe
-import Control.Concurrent.Lock
 import Data.Mutable
-import Data.IORef
 import Control.Exception
 import Control.Concurrent.MVar
 
@@ -37,9 +35,9 @@ newFuture action = do
    promise <- newPromise
    return ( future promise )
 
-pSet :: Promise a -> IO a -> IO ()
+pSet :: forall a. (Promise a -> IO a -> IO ())
 pSet (Promise stateMVar) ioaction = do
-   result <- (try ioaction) :: IO (Either SomeException _)
+   result <- (try ioaction) :: IO (Either SomeException a)
    let getAction = 
           case result of
              Left e -> throwIO e
