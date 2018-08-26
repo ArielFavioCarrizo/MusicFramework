@@ -1,6 +1,6 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 
-module Esferixis.Mutable.Promise(Promise, Future, newPromise, pSet, future, fGet) where
+module Esferixis.Mutable.Promise(Promise, Future, newPromise, newCompletedPromise, newFuture, pSet, future, fGet, fWait) where
 
 import Data.Word
 import Data.Maybe
@@ -8,58 +8,72 @@ import Control.Concurrent.Lock
 import Data.Mutable
 import Data.IORef
 import Control.Exception
+import Control.Concurrent.MVar
 
-data Promise a =
-   Promise {
-        pNotifyActions :: BDeque RealWorld (IO a -> IO())
-      , pValue :: IORef (Maybe (IO a))
-      , pLock :: Lock
-      }
+{-
+   En estado sin inicializar contiene una cola de funciones
+   de notificación.
+   Caso contrario contiene una función para obtener el valor
+-}
+data PromiseState a = UnitializedPromiseState (BDeque RealWorld (IO a -> IO())) | InitializedPromiseState (IO a)
 
-data Future a = Future (Promise a)
+data Promise a = Promise (MVar (PromiseState a))
+
+data Future a = Future (MVar (PromiseState a))
 
 newPromise :: IO (Promise a)
 newPromise = do
    notifyActions <- newColl
-   valueRef <- newIORef Nothing
-   lock <- new
-   return ( Promise {
-        pNotifyActions = notifyActions
-      , pValue = valueRef
-      , pLock = lock
-      } )
+   stateRef <- newMVar (UnitializedPromiseState notifyActions)
+   return ( Promise stateRef )
+
+newCompletedPromise :: a -> IO (Promise a)
+newCompletedPromise value = do
+   stateRef <- newMVar (InitializedPromiseState (return value))
+   return ( Promise stateRef )
+
+newFuture :: (Promise a -> IO ()) -> IO (Future a)
+newFuture action = do
+   promise <- newPromise
+   return ( future promise )
 
 pSet :: Promise a -> IO a -> IO ()
-pSet promise ioaction = do
+pSet (Promise stateMVar) ioaction = do
    result <- (try ioaction) :: IO (Either SomeException _)
    let getAction = 
           case result of
              Left e -> throwIO e
              Right value -> return value
 
-   with (pLock promise) $ do
-      let valueRef = pValue promise
-      value <- readIORef valueRef
-      case value of
-         Nothing -> writeIORef valueRef (Just getAction)
-         Just oldValue -> fail "Cannot set value when it has been set"
+   notifyActions <- modifyMVar stateMVar $ \state ->
+      case state of
+         UnitializedPromiseState notifyActions -> return (InitializedPromiseState getAction, notifyActions)
+         InitializedPromiseState value -> fail "Cannot set value when it has been set"
 
-   pNotifyValue (pNotifyActions promise) getAction
+   pNotifyValue notifyActions getAction
 
 future :: Promise a -> Future a
-future promise = Future promise
+future (Promise stateMVar) = Future stateMVar
 
+-- Agrega un callback que es invocado cuando el futuro se complete
 fGet :: Future a -> (IO a -> IO()) -> IO ()
-fGet (Future promise) callback = do
-   nextAction <- with (pLock promise) $ do
-      value_opt <- readIORef (pValue promise)
-      case value_opt of
-         Just value -> return (callback value)
-         Nothing -> do
-            pushFront (pNotifyActions promise) callback
+fGet (Future stateMVar) callback = do
+   nextAction <- withMVar stateMVar $ \state ->
+      case state of
+         UnitializedPromiseState notifyActions -> do
+            pushFront notifyActions callback
             return (return ())
+         InitializedPromiseState value -> return (callback value)
 
    nextAction
+
+-- Bloquea el thread hasta que el futuro se complete
+fWait :: Future a -> IO a
+fWait future = do
+   getActionMVar <- newEmptyMVar
+   fGet future $ \action -> putMVar getActionMVar action
+   getAction <- takeMVar getActionMVar
+   getAction
 
 pNotifyValue :: BDeque RealWorld (IO a -> IO()) -> IO a -> IO ()
 pNotifyValue deque getValue = do
