@@ -2,15 +2,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE InstanceSigs #-}
 
-module Esferixis.Concurrency.Promise(Promise, Future, newPromise, newCompletedFuture, newFuture, pSet, pFuture, fGet, fWait, FutureIO, runFutureIO, await) where
+module Esferixis.Control.Concurrency.Promise(Promise, Future, newPromise, newCompletedFuture, newFuture, pSet, pSetFromFuture, pFuture, fGet, fWait) where
 
 import Data.Maybe
 import Data.Mutable
 import Control.Exception
 import Control.Concurrent.MVar
-import Control.Applicative
-import Control.Monad
-import Control.Monad.IO.Class
+import Esferixis.Control.IO
 
 {-
    En estado sin inicializar contiene una cola de funciones
@@ -32,7 +30,7 @@ newPromise = do
 -- Crea un futuro completado con la acción especificada
 newCompletedFuture :: IO a -> IO (Future a)
 newCompletedFuture action = do
-   getValue <- wrapResult action
+   getValue <- wrapIOResult action
    return (CompletedFuture getValue)
 
 -- Crea un futuro con la acción que completa una promesa
@@ -45,7 +43,7 @@ newFuture action = do
 -- Completa la promesa con la acción especificada
 pSet :: Promise a -> IO a -> IO ()
 pSet (Promise stateMVar) ioaction = do
-   getAction <- wrapResult ioaction
+   getAction <- wrapIOResult ioaction
 
    notifyActions <- modifyMVar stateMVar $ \state ->
       case state of
@@ -93,64 +91,3 @@ pNotifyValue deque getValue = do
          notifyAction getValue
          pNotifyValue deque getValue
       Nothing -> return ()
-
--- Enwrappea la acción, y sólo almacena el resultado
-wrapResult :: forall a. (IO a -> IO (IO a))
-wrapResult action = do
-   result <- (try action) :: IO (Either SomeException a)
-   let getAction = 
-          case result of
-             Left e -> throwIO e
-             Right value -> return value
-   
-   return getAction
-
-{-
-   Mónada para los futuros, implementada sobre la mónada IO.
-   Sirve para simplificar la programación con promesas, evitando
-   así el 'callback hell'.
-   Se asemeja a un encadenamiento con instrucciones 'await'
-   de lenguajes imperativos como C# y javascript.
--}
-data FutureIO a = FutureIO ( IO (Future a) )
-
-{-
-   Dada la mónada FutureIO, devuelve
-   la mónada IO que la ejecuta
--}
-runFutureIO :: FutureIO a -> IO (Future a)
-runFutureIO (FutureIO ioAction) = ioAction
-
-{-
-   Dado el futuro especificado crea
-   la mónada de FutureIO que espera
-   que el futuro se complete
--}
-await :: Future a -> FutureIO a
-await future = FutureIO ( return future )
-
-instance Monad FutureIO where
-   (>>=) :: forall a b. FutureIO a -> (a -> FutureIO b) -> FutureIO b
-   FutureIO getOldFuture >>= k = FutureIO $ do
-      newFuture $ \nextPromise -> do
-         oldFuture <- getOldFuture
-   
-         fGet oldFuture $ \getOldValue -> do
-             oldValueResult <- try getOldValue :: IO (Either SomeException a)
-             case oldValueResult of
-                Left e -> pSet nextPromise ( throwIO e )
-                Right oldValue -> do
-                   nextFuture <- runFutureIO (k oldValue)
-                   pSetFromFuture nextPromise nextFuture
-
-   return value = FutureIO ( newCompletedFuture ( return value ) )
-
-instance Applicative FutureIO where
-   pure = return
-   (<*>) = ap
-
-instance Functor FutureIO where
-   fmap = liftM
-
-instance MonadIO FutureIO where
-   liftIO action = FutureIO ( newCompletedFuture action )

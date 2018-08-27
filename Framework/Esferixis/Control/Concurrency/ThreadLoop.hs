@@ -1,7 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Esferixis.Concurrency.ThreadLoop(ThreadLoop, newThreadLoop, newBoundedThreadLoop, tlRun, tlClose) where
+module Esferixis.Control.Concurrency.ThreadLoop(ThreadLoop, newThreadLoop, newBoundedThreadLoop, tlRun, tlClose) where
 
 import Esferixis.Concurrency.Promise
 import Control.Concurrent
