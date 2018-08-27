@@ -49,7 +49,7 @@ newThreadLoopGen chosenFork = do
    Devuelve el resultado en un futuro.
 -}
 tlRun :: ThreadLoop -> IO a -> IO (Future a)
-tlRun (ThreadLoop tlStateMVar) action = do
+tlRun (ThreadLoop tlStateMVar) action =
    withMVar tlStateMVar $ \state -> do
       resultPromise <- newPromise
 
