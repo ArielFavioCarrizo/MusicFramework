@@ -1,7 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Esferixis.Concurrency.Promise(Promise, Future, newPromise, newCompletedPromise, newFuture, pSet, future, fGet, fWait) where
+module Esferixis.Concurrency.Promise(Promise, Future, newPromise, newCompletedFuture, newFuture, pSet, pFuture, fGet, fWait) where
 
 import Data.Maybe
 import Data.Mutable
@@ -11,7 +11,7 @@ import Control.Concurrent.MVar
 {-
    En estado sin inicializar contiene una cola de funciones
    de notificación.
-   Caso contrario contiene una función para obtener el valor
+   Caso contrario contiene una función para obtener el valor.
 -}
 data PromiseState a = UnitializedPromiseState (BDeque RealWorld (IO a -> IO())) | InitializedPromiseState (IO a)
 
@@ -25,16 +25,19 @@ newPromise = do
    stateRef <- newMVar (UnitializedPromiseState notifyActions)
    return ( Promise stateRef )
 
-newCompletedPromise :: a -> IO (Promise a)
-newCompletedPromise value = do
-   stateRef <- newMVar (InitializedPromiseState (return value))
-   return ( Promise stateRef )
+-- Crea un futuro completado con la acción especificada
+newCompletedFuture :: IO a -> IO (Future a)
+newCompletedFuture value = do
+   stateRef <- newMVar (InitializedPromiseState value)
+   return ( pFuture ( Promise stateRef ) )
 
+-- Crea un futuro con la acción que completa una promesa
 newFuture :: (Promise a -> IO ()) -> IO (Future a)
 newFuture action = do
    promise <- newPromise
-   return ( future promise )
+   return ( pFuture promise )
 
+-- Completa la promesa con la acción especificada
 pSet :: forall a. (Promise a -> IO a -> IO ())
 pSet (Promise stateMVar) ioaction = do
    result <- (try ioaction) :: IO (Either SomeException a)
@@ -50,8 +53,14 @@ pSet (Promise stateMVar) ioaction = do
 
    pNotifyValue notifyActions getAction
 
-future :: Promise a -> Future a
-future (Promise stateMVar) = Future stateMVar
+-- Completa la promesa con el valor del futuro al completarse éste
+pSetFromFuture :: Promise a -> Future a -> IO ()
+pSetFromFuture promise future =
+   fGet future ( \value -> pSet promise value ) 
+
+-- Devuelve el futuro de la promesa
+pFuture :: Promise a -> Future a
+pFuture (Promise stateMVar) = Future stateMVar
 
 -- Agrega un callback que es invocado cuando el futuro se complete
 fGet :: Future a -> (IO a -> IO()) -> IO ()
@@ -73,6 +82,7 @@ fWait future = do
    getAction <- takeMVar getActionMVar
    getAction
 
+-- Notifica el valor en los callbacks
 pNotifyValue :: BDeque RealWorld (IO a -> IO()) -> IO a -> IO ()
 pNotifyValue deque getValue = do
    notifyAction_opt <- popBack deque
