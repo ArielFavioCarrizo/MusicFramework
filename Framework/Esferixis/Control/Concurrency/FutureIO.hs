@@ -40,17 +40,10 @@ await future = FutureIO ( return future )
 
 instance Monad FutureIO where
    (>>=) :: forall a b. FutureIO a -> (a -> FutureIO b) -> FutureIO b
-   FutureIO getOldFuture >>= k = FutureIO $ do
-      newFuture $ \nextPromise -> do
-         oldFuture <- getOldFuture
-   
-         fGet oldFuture $ \getOldValue -> do
-             oldValueResult <- try getOldValue :: IO (Either SomeException a)
-             case oldValueResult of
-                Left e -> pSet nextPromise ( throwIO e )
-                Right oldValue -> do
-                   nextFuture <- runFutureIO (k oldValue)
-                   pSetFromFuture nextPromise nextFuture
+   FutureIO getSrcFuture >>= k = FutureIO $ do
+       srcFuture <- getSrcFuture
+
+       fApplyIOFuture srcFuture $ \srcValue -> runFutureIO (k srcValue)
 
    return value = FutureIO ( newCompletedFuture ( return value ) )
 

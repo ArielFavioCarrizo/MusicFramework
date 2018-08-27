@@ -2,7 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE InstanceSigs #-}
 
-module Esferixis.Control.Concurrency.Promise(Promise, Future, newPromise, newCompletedFuture, newFuture, pSet, pSetFromFuture, pFuture, fGet, fWait) where
+module Esferixis.Control.Concurrency.Promise(Promise, Future, newPromise, newCompletedFuture, newFuture, pSet, pSetFromFuture, pFuture, fGet, fWait, fApplyIO, fUnwrap, fApplyIOFuture) where
 
 import Data.Maybe
 import Data.Mutable
@@ -73,6 +73,52 @@ fGet (VariableFuture stateMVar) callback = do
 
    nextAction
 fGet (CompletedFuture value) callback = callback value
+
+{- Dado un futuro y una función monádica en IO devuelve otro
+   otro futuro resultado de la aplicación del
+   valor del futuro anterior
+-}
+fApplyIO :: Future a -> ( a -> IO b ) -> IO (Future b)
+fApplyIO ( VariableFuture stateMVar ) fun =
+   let srcFuture = VariableFuture stateMVar
+   in newFuture $ \dstPromise -> do
+         fGet srcFuture $ \getSrcValue -> do
+             pSet dstPromise ( getSrcValue >>= fun )
+
+fApplyIO ( CompletedFuture getValue ) fun =
+   newCompletedFuture $ do
+      value <- getValue
+      fun value
+
+{- Dado un futuro de futuro lo reduce
+   a un futuro de valor literal
+-}
+fUnwrap :: forall a. (Future (Future a) -> IO (Future a))
+fUnwrap ( VariableFuture stateMVar ) =
+   let srcFutureOfFuture = VariableFuture stateMVar
+   in newFuture $ \dstPromise -> do
+         fGet srcFutureOfFuture $ \getSrcFutureOfFuture -> do
+             eitherFuture <- (try getSrcFutureOfFuture) :: IO (Either SomeException (Future a))
+             case eitherFuture of
+                Left e -> pSet dstPromise (throwIO e)
+                Right future -> pSetFromFuture dstPromise future
+
+fUnwrap ( CompletedFuture getFutureOfFuture ) = do
+   eitherFuture <- (try getFutureOfFuture) :: IO (Either SomeException (Future a))
+   case eitherFuture of
+      Left e -> newCompletedFuture (throwIO e)
+      Right future -> return (future)
+
+{- Dado un futuro y una función monádica que devuelve
+   un futuro devuelve otro futuro resultado
+   de la aplicación del valor del futuro anterior
+-}
+fApplyIOFuture :: Future a -> ( a -> IO (Future b) ) -> IO (Future b)
+fApplyIOFuture srcFuture fun = do
+   futureOfFuture <- fApplyIO srcFuture fun
+   future <- fUnwrap futureOfFuture
+
+   return future
 
 -- Bloquea el thread hasta que el futuro se complete
 fWait :: Future a -> IO a
