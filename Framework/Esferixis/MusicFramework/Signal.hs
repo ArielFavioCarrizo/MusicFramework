@@ -1,7 +1,7 @@
 {-# LANGUAGE Rank2Types #-}
 
 module Esferixis.MusicFramework.Signal
-   ( SignalChunk(scLength, scSection, scAppend, scZero), scEmpty, scIsEmpty, scFromMaybe, scToMaybe, SignalProcessorState(spChunkLength, spReduceChunkLength), makeSpPairConvert) where
+   ( SignalChunk(scLength, scSection, scAppend, scNewRef, scZero), scEmpty, scIsEmpty, SignalProcessorState(spChunkLength, spReduceChunkLength), makeSpPairConvert) where
 
 import Data.Word
 import Data.Maybe
@@ -21,6 +21,7 @@ class SignalChunk sc where
    scLength :: sc -> Word64 -- Longitud del chunk
    scSection :: sc -> Word64 -> Word64 -> sc -- Devuelve la sección con el offset y la longitud especificados
    scAppend :: sc -> sc -> sc -- Toma dos chunks y genera un chunk nuevo uniendo el primer chunk con el segundo
+   scNewRef :: sc -> sc -- Crea una nueva referencia al chunk
    scZero :: Word64 -> sc -- Genera un chunk silencioso con la longitud especificada
 
 scEmpty :: (SignalChunk sc) => sc
@@ -28,16 +29,6 @@ scEmpty = scZero 0
 
 scIsEmpty :: (SignalChunk sc) => sc -> Bool
 scIsEmpty signalChunk = ( scLength signalChunk ) == 0
-
-scFromMaybe :: (SignalChunk sc) => Maybe sc -> sc
-scFromMaybe ( Just sc ) = sc
-scFromMaybe Nothing = scEmpty
-
-scToMaybe :: (SignalChunk sc) => sc -> Maybe sc
-scToMaybe signalChunk =
-   if ( scLength signalChunk == 0 )
-      then Nothing
-      else Just signalChunk
 
 scCheckSameLength :: (SignalChunk sc) => sc -> Word64 -> sc
 scCheckSameLength signalChunk expectedLength =

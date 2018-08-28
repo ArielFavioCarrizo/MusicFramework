@@ -87,7 +87,7 @@ instance SignalProcessorState (TransformerState isc osc) where
       , tsReduceChunkLength = reduceChunkLength
       , tsTransform = \inputChunk ->
            let (leftOutputChunk, nextLeftTransformerState) = tsTransform leftTransformerState inputChunk
-               (rightOutputChunk, nextRightTransformerState) = tsTransform rightTransformerState inputChunk
+               (rightOutputChunk, nextRightTransformerState) = tsTransform rightTransformerState (scNewRef inputChunk)
                combinedOutputSignalChunk = (leftOutputChunk, rightOutputChunk)
            in ( combinedOutputSignalChunk, nextLeftTransformerState &&& nextRightTransformerState )
       } )
