@@ -38,7 +38,7 @@ instance SignalProcessorState (TransformerState isc osc) where
    osc: Output Signal Chunk
 -}
 (|>>) :: (SignalChunk isc, SignalChunk osc) => ProducerState isc -> TransformerState isc osc -> ProducerState osc
-(|>>) = makeSpPairConvert (\chunkLength reduceChunkLength producerState transformerState ->
+(|>>) = makeSpPairConvert $ \chunkLength reduceChunkLength producerState transformerState ->
    ProducerState {
         psChunkLength = chunkLength
       , psReduceChunkLength = reduceChunkLength
@@ -46,7 +46,7 @@ instance SignalProcessorState (TransformerState isc osc) where
         let (inputChunk, nextInputProducerState) = psPopChunk producerState
             (outputChunk, nextTransformerState) = tsTransform transformerState inputChunk
         in (outputChunk, nextInputProducerState |>> nextTransformerState)
-      } )
+      }
 
 {-
    Dado el estado del transformador primero y el estado de transformador
@@ -59,7 +59,7 @@ instance SignalProcessorState (TransformerState isc osc) where
    osc: Output Signal Chunk
 -}
 (>>>) :: (SignalChunk isc, SignalChunk msc, SignalChunk osc) => TransformerState isc msc -> TransformerState msc osc -> TransformerState isc osc
-(>>>) = makeSpPairConvert (\chunkLength reduceChunkLength leftTransformerState rightTransformerState ->
+(>>>) = makeSpPairConvert $ \chunkLength reduceChunkLength leftTransformerState rightTransformerState ->
    TransformerState {
         tsChunkLength = chunkLength
       , tsReduceChunkLength = reduceChunkLength
@@ -67,7 +67,7 @@ instance SignalProcessorState (TransformerState isc osc) where
            let (intermediateChunk, nextLeftTransformerState) = tsTransform leftTransformerState inputChunk
                (outputChunk, nextRightTransformerState) = tsTransform rightTransformerState intermediateChunk
            in ( outputChunk, nextLeftTransformerState >>> nextRightTransformerState )
-      } )
+      }
 
 {- 
    Dado dos transformadores genera un transformador que toma la entrada y la divide entre los
@@ -81,13 +81,14 @@ instance SignalProcessorState (TransformerState isc osc) where
    rosc: Right Output Signal Chunk
 -}
 (&&&) :: (SignalChunk isc, SignalChunk losc, SignalChunk rosc) => TransformerState isc losc -> TransformerState isc rosc -> TransformerState isc (losc, rosc)
-(&&&) = makeSpPairConvert (\chunkLength reduceChunkLength leftTransformerState rightTransformerState ->
+(&&&) = makeSpPairConvert $ \chunkLength reduceChunkLength leftTransformerState rightTransformerState ->
    TransformerState {
         tsChunkLength = chunkLength
       , tsReduceChunkLength = reduceChunkLength
       , tsTransform = \inputChunk ->
-           let (leftOutputChunk, nextLeftTransformerState) = tsTransform leftTransformerState inputChunk
-               (rightOutputChunk, nextRightTransformerState) = tsTransform rightTransformerState (scNewRef inputChunk)
+           let (leftInputChunk, rightInputChunk) = scSplitRef inputChunk
+               (leftOutputChunk, nextLeftTransformerState) = tsTransform leftTransformerState leftInputChunk
+               (rightOutputChunk, nextRightTransformerState) = tsTransform rightTransformerState rightInputChunk
                combinedOutputSignalChunk = (leftOutputChunk, rightOutputChunk)
            in ( combinedOutputSignalChunk, nextLeftTransformerState &&& nextRightTransformerState )
-      } )
+      }

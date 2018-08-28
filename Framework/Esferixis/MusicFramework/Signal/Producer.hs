@@ -31,12 +31,12 @@ instance SignalProcessorState (ProducerState sc) where
    Combina dos productores.
 -}
 psCombine :: (SignalChunk sca, SignalChunk scb) => ProducerState sca -> ProducerState scb -> ProducerState (sca, scb)
-psCombine = makeSpPairConvert (\chunkLength reduceChunkLength leftProducerState rightProducerState ->
+psCombine = makeSpPairConvert $ \chunkLength reduceChunkLength leftProducerState rightProducerState ->
    ProducerState {
         psChunkLength = chunkLength
       , psReduceChunkLength = reduceChunkLength
       , psPopChunk = 
-        let (leftChunk, nextLeftProducerState) = psPopChunk leftProducerState
-            (rightChunk, nextRightProducerState) = psPopChunk rightProducerState
-        in ( (leftChunk, rightChunk), psCombine nextLeftProducerState nextRightProducerState)
-      } )
+           let (leftChunk, nextLeftProducerState) = psPopChunk leftProducerState
+               (rightChunk, nextRightProducerState) = psPopChunk rightProducerState
+           in ( (leftChunk, rightChunk), psCombine nextLeftProducerState nextRightProducerState)
+      }

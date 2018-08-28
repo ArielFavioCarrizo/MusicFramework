@@ -1,7 +1,7 @@
 {-# LANGUAGE Rank2Types #-}
 
 module Esferixis.MusicFramework.Signal
-   ( SignalChunk(scLength, scSection, scAppend, scNewRef, scZero), scEmpty, scIsEmpty, SignalProcessorState(spChunkLength, spReduceChunkLength), makeSpPairConvert) where
+   ( SignalChunk(scLength, scSection, scAppend, scSplitRef, scZero), scEmpty, scIsEmpty, SignalProcessorState(spChunkLength, spReduceChunkLength), makeSpPairConvert) where
 
 import Data.Word
 import Data.Maybe
@@ -21,7 +21,7 @@ class SignalChunk sc where
    scLength :: sc -> Word64 -- Longitud del chunk
    scSection :: sc -> Word64 -> Word64 -> sc -- Devuelve la sección con el offset y la longitud especificados
    scAppend :: sc -> sc -> sc -- Toma dos chunks y genera un chunk nuevo uniendo el primer chunk con el segundo
-   scNewRef :: sc -> sc -- Crea una nueva referencia al chunk
+   scSplitRef :: sc -> (sc, sc) -- Divide la referencia del chunk en dos referencias
    scZero :: Word64 -> sc -- Genera un chunk silencioso con la longitud especificada
 
 scEmpty :: (SignalChunk sc) => sc
@@ -42,9 +42,8 @@ class SignalProcessorState a where
    spReduceChunkLength :: a -> Word64 -> a -- Reduce la longitud de datos a procesar
 
 {-
-   Genera una función de conversión de dos transformadores de señal en un sólo,
-   cuya salida es una tupla con la salida de cada transformador, y la entrada
-   se dirige a los dos transformadores de entrada
+   Genera una función de conversión de dos unidades de procesamiento de señal en una sola,
+   cuya salida es una tupla con la salida de cada unidad de procesamiento
 -}
 makeSpPairConvert :: (SignalProcessorState spa, SignalProcessorState spb, SignalProcessorState spc) => (SignalProcessorState spa, SignalProcessorState spb, SignalProcessorState spc) => ( Word64 -> (Word64 -> spc) -> spa -> spb -> spc ) -> spa -> spb -> spc
 makeSpPairConvert generateBalancedUnit spStateA spStateB =
