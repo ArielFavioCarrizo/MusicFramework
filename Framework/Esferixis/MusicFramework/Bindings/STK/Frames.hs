@@ -12,6 +12,7 @@ module Esferixis.MusicFramework.Bindings.STK.Frames
    , createStkFramesTickSubFun
    , newZeroedStkFrames
    , newValuedStkFrames
+   , deleteStkFrames
    , withStkFramesPtr
    , stkFramesChannels
    , stkFramesLength
@@ -94,25 +95,25 @@ stkFramesCheckSameShape stkFrames1 stkFrames2 = do
 
 createStkFramesTickInplaceFun doUnhandledObjectAction nativeFun = \object frames channel -> do
    stkFramesCheckChannelExists frames channel
-   withStkFramesPtr frames (\c_frames -> doUnhandledObjectAction object nativeFun (\fun -> fun c_frames (CUInt channel) ) )
+   withStkFramesPtr frames $ \c_frames -> doUnhandledObjectAction object nativeFun $ \fun -> fun c_frames (CUInt channel)
 
 createStkFramesTickFun doUnhandledObjectAction nativeFun = \object iframes oframes ichannel ochannel -> do
    stkFramesCheckSameLength iframes oframes
    stkFramesCheckChannelExists iframes ichannel
    stkFramesCheckChannelExists oframes ochannel
-   withStkFramesPtr iframes (\c_iframes -> withStkFramesPtr oframes (\c_oframes -> doUnhandledObjectAction object nativeFun (\fun -> fun c_iframes c_oframes (CUInt ichannel) (CUInt ochannel) ) ) )
+   withStkFramesPtr iframes $ \c_iframes -> withStkFramesPtr oframes $ \c_oframes -> doUnhandledObjectAction object nativeFun $ \fun -> fun c_iframes c_oframes (CUInt ichannel) (CUInt ochannel)
 
 createStkFramesTickSubInplaceFun doUnhandledObjectAction nativeFun = \object frames offset length channel -> do
    stkFramesCheckChannelExists frames channel
    stkFramesCheckValidInterval frames offset length
-   withStkFramesPtr frames (\c_frames -> doUnhandledObjectAction object nativeFun (\fun -> fun c_frames (CUInt offset) (CUInt length) (CUInt channel) ) )
+   withStkFramesPtr frames $ \c_frames -> doUnhandledObjectAction object nativeFun $ \fun -> fun c_frames (CUInt offset) (CUInt length) (CUInt channel)
 
 createStkFramesTickSubFun doUnhandledObjectAction nativeFun = \object iFrames oFrames iOffset oOffset length iChannel oChannel -> do
    stkFramesCheckChannelExists iFrames iChannel
    stkFramesCheckChannelExists oFrames oChannel
    stkFramesCheckValidInterval iFrames iOffset length
    stkFramesCheckValidInterval oFrames oOffset length
-   withStkFramesPtr iFrames (\c_iframes -> withStkFramesPtr oFrames (\c_oframes -> doUnhandledObjectAction object nativeFun (\fun -> fun c_iframes c_oframes (CUInt iOffset) (CUInt oOffset) (CUInt length) (CUInt iChannel) (CUInt oChannel) ) ) )
+   withStkFramesPtr iFrames $ \c_iframes -> withStkFramesPtr oFrames $ \c_oframes -> doUnhandledObjectAction object nativeFun $ \fun -> fun c_iframes c_oframes (CUInt iOffset) (CUInt oOffset) (CUInt length) (CUInt iChannel) (CUInt oChannel)
 
 newStkFramesFromSourceAndForeignPtr sourceStkFrames newStkFramesForeignPtr = StkFrames newStkFramesForeignPtr ( stkFramesLength sourceStkFrames ) ( stkFramesChannels sourceStkFrames )
 
@@ -125,22 +126,25 @@ exceptHandledFramesAction frames nativeFun actionFun = exceptionUnsafeStkObjectA
 
 stkFramesPureBinaryOp nativeFun stkFrames1 stkFrames2 = do
    stkFramesCheckSameShape stkFrames1 stkFrames2
-   withStkFramesPtr stkFrames1 (\c_stkFrames1Ptr -> withStkFramesPtr stkFrames2 (\c_stkFrames2Ptr -> newStkFramesFromExisting stkFrames2 nativeFun (\fun -> fun c_stkFrames1Ptr c_stkFrames2Ptr ) ) )
+   withStkFramesPtr stkFrames1 $ \c_stkFrames1Ptr -> withStkFramesPtr stkFrames2 $ \c_stkFrames2Ptr -> newStkFramesFromExisting stkFrames2 nativeFun $ \fun -> fun c_stkFrames1Ptr c_stkFrames2Ptr
 
 stkFramesImplaceBinaryOp nativeFun stkFrames1 stkFrames2 = do
    stkFramesCheckSameShape stkFrames1 stkFrames2
-   withStkFramesPtr stkFrames1 (\c_stkFrames1 -> withStkFramesPtr stkFrames2 (\c_stkFrames2 -> nativeFun c_stkFrames1 c_stkFrames2 ) )
+   withStkFramesPtr stkFrames1 $ \c_stkFrames1 -> withStkFramesPtr stkFrames2 $ \c_stkFrames2 -> nativeFun c_stkFrames1 c_stkFrames2
 
 newZeroedStkFrames :: Word32 -> Word32 -> IO StkFrames
-newZeroedStkFrames nFrames nChannels = newStkFramesOriginal nFrames nChannels c_emfb_stk_frames_new_zero (\fun -> fun ( CUInt nFrames ) ( CUInt nChannels ) )
+newZeroedStkFrames nFrames nChannels = newStkFramesOriginal nFrames nChannels c_emfb_stk_frames_new_zero $ \fun -> fun ( CUInt nFrames ) ( CUInt nChannels )
 
 newValuedStkFrames :: Double -> Word32 -> Word32 -> IO StkFrames
-newValuedStkFrames value nFrames nChannels = newStkFramesOriginal nFrames nChannels c_emfb_stk_frames_new_valued (\fun -> fun (CDouble value) ( CUInt nFrames) (CUInt nChannels ) )
+newValuedStkFrames value nFrames nChannels = newStkFramesOriginal nFrames nChannels c_emfb_stk_frames_new_valued $ \fun -> fun (CDouble value) ( CUInt nFrames) (CUInt nChannels )
+
+deleteStkFrames :: StkFrames -> IO ()
+deleteStkFrames = deleteStkObject framesForeignPtr
 
 withStkFramesPtr = withStkObjectPtr framesForeignPtr
 
 stkFramesClone :: StkFrames -> IO StkFrames
-stkFramesClone stkFrames = withStkFramesPtr stkFrames (\c_stkFramesPtr -> newStkFramesFromExisting stkFrames c_emfb_stk_stkframes_clone (\fun -> fun c_stkFramesPtr ) )
+stkFramesClone stkFrames = withStkFramesPtr stkFrames $ \c_stkFramesPtr -> newStkFramesFromExisting stkFrames c_emfb_stk_stkframes_clone $ \fun -> fun c_stkFramesPtr
 
 stkFramesAdd :: StkFrames -> StkFrames -> IO StkFrames
 stkFramesAdd = stkFramesPureBinaryOp c_emfb_stk_stkframes_add
@@ -155,7 +159,7 @@ stkFramesMulHomologsInplace :: StkFrames -> StkFrames -> IO ()
 stkFramesMulHomologsInplace = stkFramesImplaceBinaryOp c_emfb_stk_stkframes_mulHomologsInplace
 
 stkFramesScale :: StkFrames -> Double -> IO StkFrames
-stkFramesScale stkFrames scalar = withStkFramesPtr stkFrames (\c_stkFramesPtr -> newStkFramesFromExisting stkFrames c_emfb_stk_stkframes_scale (\fun -> fun c_stkFramesPtr ( CDouble scalar ) ) )
+stkFramesScale stkFrames scalar = withStkFramesPtr stkFrames $ \c_stkFramesPtr -> newStkFramesFromExisting stkFrames c_emfb_stk_stkframes_scale $ \fun -> fun c_stkFramesPtr ( CDouble scalar )
 
 stkFramesScaleInplace :: StkFrames -> Double -> IO ()
-stkFramesScaleInplace stkFrames scalar = withStkFramesPtr stkFrames (\c_stkFramesPtr -> c_emfb_stk_stkframes_scaleInplace c_stkFramesPtr ( CDouble scalar ) )
+stkFramesScaleInplace stkFrames scalar = withStkFramesPtr stkFrames $ \c_stkFramesPtr -> c_emfb_stk_stkframes_scaleInplace c_stkFramesPtr ( CDouble scalar )

@@ -51,7 +51,7 @@ foreign import ccall "emfb_stk_onezero_tickSubInplace" c_emfb_stk_onezero_tickSu
 foreign import ccall "emfb_stk_onezero_tickSub" c_emfb_stk_onezero_tickSub :: OneZeroPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> CUInt -> CUInt -> IO ()
 
 newOneZero :: Double -> IO OneZero
-newOneZero thePole = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> OneZero foreignPtr) c_emfb_stk_onezero_delete_ptr c_emfb_stk_onezero_new (\fun -> fun (CDouble thePole) )
+newOneZero thePole = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> OneZero foreignPtr) c_emfb_stk_onezero_delete_ptr c_emfb_stk_onezero_new $ \fun -> fun (CDouble thePole)
 
 deleteOneZero :: OneZero -> IO ()
 deleteOneZero = deleteStkObject oneZeroForeignPtr
@@ -64,7 +64,7 @@ oneZeroSetB0 = createSetValue c_emfb_stk_onezero_setB0
 oneZeroSetB1 = createSetValue c_emfb_stk_onezero_setB1
 
 oneZeroSetCoefficients :: OneZero -> Double -> Double -> Bool -> IO ()
-oneZeroSetCoefficients oneZero b0 b1 clearState = exceptionSafeSelfAction oneZero c_emfb_stk_onezero_setCoefficients (\fun -> fun ( CDouble b0 ) ( CDouble b1 ) ( hsctypeconvert clearState ) )
+oneZeroSetCoefficients oneZero b0 b1 clearState = exceptionSafeSelfAction oneZero c_emfb_stk_onezero_setCoefficients $ \fun -> fun ( CDouble b0 ) ( CDouble b1 ) ( hsctypeconvert clearState )
 
 oneZeroSetZero = createSetValue c_emfb_stk_onezero_setZero
 

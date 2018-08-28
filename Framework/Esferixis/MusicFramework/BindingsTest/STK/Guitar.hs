@@ -33,9 +33,6 @@ doSimpleGuitarTest = do
 
    -- Setear su estado inicial
    guitarClear guitar
-
-   -- Setear el loop gain para todas las cuerdas
-   guitarSetLoopGain guitar 0.99 (-1)
    
    -- Setear el pluck position para todas las cuerdas
    guitarSetPluckPosition guitar 0.3 (-1)
@@ -43,6 +40,9 @@ doSimpleGuitarTest = do
    -- Tocar notas de prueba
    guitarNoteOn guitar ( pitchToFrequency 30.0 ) 1.0 0
    guitarNoteOn guitar ( pitchToFrequency ( 30.0 + 7.0 ) ) 1.0 1
+
+   -- Setear el loop gain para todas las cuerdas
+   guitarSetLoopGain guitar 0.995 (-1)
 
    -- Sintetizar
    guitarTick guitar inputFrames outputFrames 0 0

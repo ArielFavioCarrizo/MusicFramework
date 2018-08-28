@@ -50,28 +50,28 @@ foreign import ccall "emfb_stk_guitar_tickSubInplace" c_emfb_stk_guitar_tickSubI
 foreign import ccall "emfb_stk_guitar_tickSub" c_emfb_stk_guitar_tickSub :: GuitarPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> CUInt -> CUInt -> IO ()
 
 newGuitar :: Word32 -> String -> IO Guitar
-newGuitar nStrings bodyFile = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> Guitar foreignPtr) c_emfb_stk_guitar_delete_ptr c_emfb_stk_guitar_new (\fun -> withCString bodyFile (\c_bodyFile -> fun (CUInt nStrings) c_bodyFile ) ) 
+newGuitar nStrings bodyFile = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> Guitar foreignPtr) c_emfb_stk_guitar_delete_ptr c_emfb_stk_guitar_new $ \fun -> withCString bodyFile $ \c_bodyFile -> fun (CUInt nStrings) c_bodyFile
 
 deleteGuitar :: Guitar -> IO ()
 deleteGuitar = deleteStkObject guitarForeignPtr
 
 guitarClear :: Guitar -> IO ()
-guitarClear guitar = exceptionSafeSelfAction guitar c_emfb_stk_guitar_clear (\fun -> fun)
+guitarClear guitar = exceptionSafeSelfAction guitar c_emfb_stk_guitar_clear id
 
 guitarSetLoopGain :: Guitar -> Double -> Int32 -> IO ()
-guitarSetLoopGain guitar gain string = exceptionSafeSelfAction guitar c_emfb_stk_guitar_setLoopGain (\fun -> fun ( CDouble gain )  ( CInt string ) )
+guitarSetLoopGain guitar gain string = exceptionSafeSelfAction guitar c_emfb_stk_guitar_setLoopGain $ \fun -> fun ( CDouble gain ) ( CInt string )
 
 guitarSetPluckPosition :: Guitar -> Double -> Int32 -> IO ()
-guitarSetPluckPosition guitar position string = exceptionSafeSelfAction guitar c_emfb_stk_guitar_setPluckPosition (\fun -> fun ( CDouble position ) ( CInt string ) )
+guitarSetPluckPosition guitar position string = exceptionSafeSelfAction guitar c_emfb_stk_guitar_setPluckPosition $ \fun -> fun ( CDouble position ) ( CInt string )
 
 guitarSetFrequency :: Guitar -> Double -> Word32 -> IO ()
-guitarSetFrequency guitar frequency string = exceptionSafeSelfAction guitar c_emfb_stk_guitar_setFrequency (\fun -> fun ( CDouble frequency ) ( CUInt string ) )
+guitarSetFrequency guitar frequency string = exceptionSafeSelfAction guitar c_emfb_stk_guitar_setFrequency $ \fun -> fun ( CDouble frequency ) ( CUInt string )
 
 guitarNoteOn :: Guitar -> Double -> Double -> Word32 -> IO ()
-guitarNoteOn guitar frequency amplitude string = exceptionSafeSelfAction guitar c_emfb_stk_guitar_noteOn (\fun -> fun ( CDouble frequency ) ( CDouble amplitude ) ( CUInt string ) )
+guitarNoteOn guitar frequency amplitude string = exceptionSafeSelfAction guitar c_emfb_stk_guitar_noteOn $ \fun -> fun ( CDouble frequency ) ( CDouble amplitude ) ( CUInt string )
 
 guitarNoteOff :: Guitar -> Double -> Word32 -> IO ()
-guitarNoteOff guitar amplitude string = exceptionSafeSelfAction guitar c_emfb_stk_guitar_noteOff (\fun -> fun ( CDouble amplitude ) ( CUInt string ) )
+guitarNoteOff guitar amplitude string = exceptionSafeSelfAction guitar c_emfb_stk_guitar_noteOff $ \fun -> fun ( CDouble amplitude ) ( CUInt string )
 
 guitarTickInplace :: Guitar -> StkFrames -> Word32 -> IO ()
 guitarTickInplace = createStkFramesTickInplaceFun exceptionSafeSelfAction c_emfb_stk_guitar_tickInplace

@@ -36,7 +36,7 @@ type OnePolePtr = Ptr NativeOnePole
 data OnePole = OnePole (ForeignPtr NativeOnePole)
 onePoleForeignPtr (OnePole a) = a
 
-exceptionSafeSelfAction onePole nativeFun actionFun = withForeignPtr ( onePoleForeignPtr onePole ) (\c_onePolePtr -> actionFun ( nativeFun c_onePolePtr ) )
+exceptionSafeSelfAction onePole nativeFun actionFun = withForeignPtr ( onePoleForeignPtr onePole ) $ \c_onePolePtr -> actionFun ( nativeFun c_onePolePtr )
 
 foreign import ccall "emfb_stk_onepole_new" c_emfb_stk_onepole_new :: Ptr ExceptDescPtr -> CDouble -> IO OnePolePtr
 foreign import ccall "&emfb_stk_onepole_delete" c_emfb_stk_onepole_delete_ptr :: FunPtr ( OnePolePtr -> IO () )
@@ -51,7 +51,7 @@ foreign import ccall "emfb_stk_onepole_tickSubInplace" c_emfb_stk_onepole_tickSu
 foreign import ccall "emfb_stk_onepole_tickSub" c_emfb_stk_onepole_tickSub :: OnePolePtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> CUInt -> CUInt -> IO ()
 
 newOnePole :: Double -> IO OnePole
-newOnePole thePole = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> OnePole foreignPtr) c_emfb_stk_onepole_delete_ptr c_emfb_stk_onepole_new (\fun -> fun (CDouble thePole) )
+newOnePole thePole = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> OnePole foreignPtr) c_emfb_stk_onepole_delete_ptr c_emfb_stk_onepole_new $ \fun -> fun (CDouble thePole)
 
 deleteOnePole :: OnePole -> IO ()
 deleteOnePole = deleteStkObject onePoleForeignPtr
@@ -64,7 +64,7 @@ onePoleSetB0 = createSetValue c_emfb_stk_onepole_setB0
 onePoleSetA1 = createSetValue c_emfb_stk_onepole_setA1
 
 onePoleSetCoefficients :: OnePole -> Double -> Double -> Bool -> IO ()
-onePoleSetCoefficients onePole b0 a1 clearState = exceptionSafeSelfAction onePole c_emfb_stk_onepole_setCoefficients (\fun -> fun ( CDouble b0 ) ( CDouble a1 ) ( hsctypeconvert clearState ) )
+onePoleSetCoefficients onePole b0 a1 clearState = exceptionSafeSelfAction onePole c_emfb_stk_onepole_setCoefficients $ \fun -> fun ( CDouble b0 ) ( CDouble a1 ) ( hsctypeconvert clearState )
 
 onePoleSetPole = createSetValue c_emfb_stk_onepole_setPole
 

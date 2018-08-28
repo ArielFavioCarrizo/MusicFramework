@@ -35,7 +35,7 @@ type CubicPtr = Ptr NativeCubic
 data Cubic = Cubic (ForeignPtr NativeCubic)
 cubicForeignPtr (Cubic a) = a
 
-exceptionSafeSelfAction cubic nativeFun actionFun = withForeignPtr ( cubicForeignPtr cubic ) (\c_cubicPtr -> actionFun ( nativeFun c_cubicPtr ) )
+exceptionSafeSelfAction = exceptionSafeStkObjectAction cubicForeignPtr
 
 foreign import ccall "emfb_stk_cubic_new" c_emfb_stk_cubic_new :: Ptr ExceptDescPtr -> IO CubicPtr
 foreign import ccall "&emfb_stk_cubic_delete" c_emfb_stk_cubic_delete_ptr :: FunPtr ( CubicPtr -> IO () )
@@ -50,7 +50,7 @@ foreign import ccall "emfb_stk_cubic_tickSubInplace" c_emfb_stk_cubic_tickSubInp
 foreign import ccall "emfb_stk_cubic_tickSub" c_emfb_stk_cubic_tickSub :: CubicPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> CUInt -> CUInt -> IO ()
 
 newCubic :: IO Cubic
-newCubic = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> Cubic foreignPtr) c_emfb_stk_cubic_delete_ptr c_emfb_stk_cubic_new (\fun -> fun)
+newCubic = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> Cubic foreignPtr) c_emfb_stk_cubic_delete_ptr c_emfb_stk_cubic_new id
 
 deleteCubic :: Cubic -> IO ()
 deleteCubic = deleteStkObject cubicForeignPtr

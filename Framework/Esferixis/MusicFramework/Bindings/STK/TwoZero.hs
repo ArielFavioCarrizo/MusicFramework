@@ -55,7 +55,7 @@ foreign import ccall "emfb_stk_twozero_tickSubInplace" c_emfb_stk_twozero_tickSu
 foreign import ccall "emfb_stk_twozero_tickSub" c_emfb_stk_twozero_tickSub :: TwoZeroPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> CUInt -> CUInt -> IO ()
 
 newTwoZero :: Double -> IO TwoZero
-newTwoZero thePole = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> TwoZero foreignPtr) c_emfb_stk_twozero_delete_ptr c_emfb_stk_twozero_new (\fun -> fun (CDouble thePole) )
+newTwoZero thePole = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> TwoZero foreignPtr) c_emfb_stk_twozero_delete_ptr c_emfb_stk_twozero_new $ \fun -> fun (CDouble thePole)
 
 deleteTwoZero :: TwoZero -> IO ()
 deleteTwoZero = deleteStkObject twoZeroForeignPtr
@@ -66,17 +66,17 @@ createSetValue = setter exceptionSafeSelfAction
 twoZeroSetGain = createSetValue c_emfb_stk_twozero_setGain
 
 twoZeroIgnoreSampleRateChange :: TwoZero -> Bool -> IO ()
-twoZeroIgnoreSampleRateChange twoZero ignore = exceptionSafeSelfAction twoZero c_emfb_stk_twozero_ignoreSampleRateChange (\fun -> fun ( hsctypeconvert ignore ) )
+twoZeroIgnoreSampleRateChange twoZero ignore = exceptionSafeSelfAction twoZero c_emfb_stk_twozero_ignoreSampleRateChange $ \fun -> fun ( hsctypeconvert ignore )
 
 twoZeroSetB0 = createSetValue c_emfb_stk_twozero_setB0
 twoZeroSetB1 = createSetValue c_emfb_stk_twozero_setB1
 twoZeroSetB2 = createSetValue c_emfb_stk_twozero_setB2
 
 twoZeroSetCoefficients :: TwoZero -> Double -> Double -> Double -> Bool -> IO ()
-twoZeroSetCoefficients twoZero b0 b1 b2 clearState = exceptionSafeSelfAction twoZero c_emfb_stk_twozero_setCoefficients (\fun -> fun ( CDouble b0 ) ( CDouble b1 ) ( CDouble b2 ) ( hsctypeconvert clearState ) )
+twoZeroSetCoefficients twoZero b0 b1 b2 clearState = exceptionSafeSelfAction twoZero c_emfb_stk_twozero_setCoefficients $ \fun -> fun ( CDouble b0 ) ( CDouble b1 ) ( CDouble b2 ) ( hsctypeconvert clearState )
 
 twoZeroSetNotch :: TwoZero -> Double -> Double -> IO ()
-twoZeroSetNotch twoZero frequency radius = exceptionSafeSelfAction twoZero c_emfb_stk_twozero_setNotch (\fun -> fun ( CDouble frequency ) ( CDouble radius ) )
+twoZeroSetNotch twoZero frequency radius = exceptionSafeSelfAction twoZero c_emfb_stk_twozero_setNotch $ \fun -> fun ( CDouble frequency ) ( CDouble radius )
 
 twoZeroTickInplace :: TwoZero -> StkFrames -> Word32 -> IO ()
 twoZeroTickInplace = createStkFramesTickInplaceFun exceptionSafeSelfAction c_emfb_stk_twozero_tickInplace

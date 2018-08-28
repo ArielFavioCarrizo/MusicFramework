@@ -55,7 +55,7 @@ foreign import ccall "emfb_stk_delaya_tickSubInplace" c_emfb_stk_delaya_tickSubI
 foreign import ccall "emfb_stk_delaya_tickSub" c_emfb_stk_delaya_tickSub :: DelayAPtr -> StkFramesPtr -> StkFramesPtr -> CUInt -> CUInt -> CUInt -> CUInt -> CUInt -> IO ()
 
 newDelayA :: Double -> Word32 -> IO DelayA
-newDelayA delay maxDelay = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> DelayA foreignPtr) c_emfb_stk_delaya_delete_ptr c_emfb_stk_delaya_new (\fun -> fun (CDouble delay) (CULong maxDelay) )
+newDelayA delay maxDelay = withCurriedStkExceptHandlingNewObject_partial (\foreignPtr -> DelayA foreignPtr) c_emfb_stk_delaya_delete_ptr c_emfb_stk_delaya_new $ \fun -> fun (CDouble delay) (CULong maxDelay)
 
 deleteDelayA :: DelayA -> IO ()
 deleteDelayA = deleteStkObject delayAForeignPtr

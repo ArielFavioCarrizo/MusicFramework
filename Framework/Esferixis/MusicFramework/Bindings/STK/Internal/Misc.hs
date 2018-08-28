@@ -38,12 +38,12 @@ withCurriedStkExceptHandling nativeFun actionFun = handleStkExcept (\c_exceptDes
 
 withCurriedStkExceptHandlingNewObject_partial wrappedObjectFromForeignPtr nativeDeletePtr nativeNew actionFun = do
    object_rawptr <- withCurriedStkExceptHandling nativeNew ( \fun -> actionFun fun )
-   object_foreignptr <- ( newForeignPtr nativeDeletePtr object_rawptr )
+   object_foreignptr <- newForeignPtr nativeDeletePtr object_rawptr
    return ( wrappedObjectFromForeignPtr object_foreignptr )
 
-exceptionUnsafeStkObjectAction foreignPtrFromWrappedObject wrappedObject nativeFun actionFun = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) (\c_objectPtr -> ( withCurriedStkExceptHandling nativeFun ) (\fun -> actionFun ( fun c_objectPtr ) ) )
+exceptionUnsafeStkObjectAction foreignPtrFromWrappedObject wrappedObject nativeFun actionFun = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) $ \c_objectPtr -> ( withCurriedStkExceptHandling nativeFun ) $ \fun -> actionFun ( fun c_objectPtr )
 
-exceptionSafeStkObjectAction foreignPtrFromWrappedObject wrappedObject nativeFun actionFun = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) (\c_objectPtr -> actionFun ( nativeFun c_objectPtr ) )
+exceptionSafeStkObjectAction foreignPtrFromWrappedObject wrappedObject nativeFun actionFun = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) $ \c_objectPtr -> actionFun ( nativeFun c_objectPtr )
 
 withStkObjectPtr foreignPtrFromWrappedObject wrappedObject = withForeignPtr ( foreignPtrFromWrappedObject wrappedObject ) 
 

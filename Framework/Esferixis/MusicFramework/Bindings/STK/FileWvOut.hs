@@ -39,18 +39,18 @@ fileWvOutForeignPtr (FileWvOut a) = a
 
 newFileWvOut :: String -> Word32 -> FileType -> StkFormat -> Word32 -> IO FileWvOut
 newFileWvOut fileName nChannels fileType format bufferFrames = do
-   fileWvOutPtr_raw <- withCString fileName (\c_fileName -> handleStkExcept (\exceptDescCStrPtr -> c_emfb_stk_filewvout_create exceptDescCStrPtr c_fileName (CUInt nChannels) ( cvalue fileType ) ( cvalue format ) ( CUInt bufferFrames ) ) )
+   fileWvOutPtr_raw <- withCString fileName $ \c_fileName -> handleStkExcept $ \exceptDescCStrPtr -> c_emfb_stk_filewvout_create exceptDescCStrPtr c_fileName (CUInt nChannels) ( cvalue fileType ) ( cvalue format ) ( CUInt bufferFrames )
    fileWvOutPtr <- Foreign.Concurrent.newForeignPtr fileWvOutPtr_raw ( deleteFileWvOut_raw fileWvOutPtr_raw )
    return ( FileWvOut fileWvOutPtr )
 
 fileWvOutTick :: FileWvOut -> StkFrames -> IO ()
-fileWvOutTick fileWvOut frames = do
-   withStkFramesPtr frames (\c_framesPtr -> withForeignPtr ( fileWvOutForeignPtr fileWvOut ) (\c_fileWvOutPtr -> handleStkExcept (\c_exceptDescPtr -> c_emfb_stk_filewvout_tick c_exceptDescPtr c_fileWvOutPtr c_framesPtr ) ) )
+fileWvOutTick fileWvOut frames = 
+   withStkFramesPtr frames $ \c_framesPtr -> withForeignPtr ( fileWvOutForeignPtr fileWvOut ) $ \c_fileWvOutPtr -> handleStkExcept $ \c_exceptDescPtr -> c_emfb_stk_filewvout_tick c_exceptDescPtr c_fileWvOutPtr c_framesPtr
 
 closeFileWvOut :: FileWvOut -> IO ()
 closeFileWvOut fileWvOut = finalizeForeignPtr ( fileWvOutForeignPtr fileWvOut )
 
 deleteFileWvOut_raw :: Ptr NativeFileWvOut -> IO ()
-deleteFileWvOut_raw fileWvOutPtr = do
-   handleStkExcept (\c_exceptDescPtr -> c_emfb_stk_filewvout_delete c_exceptDescPtr fileWvOutPtr )
+deleteFileWvOut_raw fileWvOutPtr =
+   handleStkExcept $ \c_exceptDescPtr -> c_emfb_stk_filewvout_delete c_exceptDescPtr fileWvOutPtr
 
