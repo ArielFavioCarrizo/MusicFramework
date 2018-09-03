@@ -16,5 +16,5 @@ import Esferixis.MusicFramework.Signal
 
    sc: Signal Chunk
 -}
-data ConsumerState sc = ConsumerState { csPushChunk :: (SignalChunk sc) => sc -> ConsumerState sc -- Empuja un 'chunk' de señal. Un chunk de longitud cero marca el fin del stream.
+data ConsumerState m sc = ConsumerState { csPushChunk :: (Monad m, SignalChunk m sc) => sc -> m (ConsumerState m sc) -- Empuja un 'chunk' de señal. Un chunk de longitud cero marca el fin del stream.
                                       }

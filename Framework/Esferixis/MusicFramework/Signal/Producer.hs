@@ -16,12 +16,12 @@ import Esferixis.MusicFramework.Signal
 
    sc: Signal Chunk
 -}
-data ProducerState sc = ProducerState { psChunkLength :: Word64 -- Longitud de datos a extraer. Cuando es cero significa que terminó el stream.
-                                      , psReduceChunkLength :: Word64 -> ProducerState sc -- Reduce la longitud de datos a extraer
-                                      , psPopChunk :: (SignalChunk sc) => (sc, ProducerState sc) -- Devuelve un 'chunk' de señal y la sección siguiente (Si no termina el stream). Cuando termina el stream devuelve un chunk de señal de longitud cero, indicando que termina el stream.
+data ProducerState m sc = ProducerState { psChunkLength :: Word64 -- Longitud de datos a extraer. Cuando es cero significa que terminó el stream.
+                                      , psReduceChunkLength :: Word64 -> ProducerState m sc -- Reduce la longitud de datos a extraer
+                                      , psPopChunk :: (Monad m, SignalChunk m sc) => m (sc, ProducerState m sc) -- Devuelve un 'chunk' de señal y la sección siguiente (Si no termina el stream). Cuando termina el stream devuelve un chunk de señal de longitud cero, indicando que termina el stream.
                                       }
 
-instance SignalProcessorState (ProducerState sc) where
+instance SignalProcessorState (ProducerState m sc) where
    spChunkLength = psChunkLength
    spReduceChunkLength = psReduceChunkLength
 
@@ -30,13 +30,13 @@ instance SignalProcessorState (ProducerState sc) where
    resultados de los productores de entrada en una tupla.
    Combina dos productores.
 -}
-psCombine :: (SignalChunk sca, SignalChunk scb) => ProducerState sca -> ProducerState scb -> ProducerState (sca, scb)
+psCombine :: (Monad m, SignalChunk m sca, SignalChunk m scb) => ProducerState m sca -> ProducerState m scb -> ProducerState m (sca, scb)
 psCombine = makeSpPairConvert $ \chunkLength reduceChunkLength leftProducerState rightProducerState ->
    ProducerState {
         psChunkLength = chunkLength
       , psReduceChunkLength = reduceChunkLength
-      , psPopChunk = 
-           let (leftChunk, nextLeftProducerState) = psPopChunk leftProducerState
-               (rightChunk, nextRightProducerState) = psPopChunk rightProducerState
-           in ( (leftChunk, rightChunk), psCombine nextLeftProducerState nextRightProducerState)
+      , psPopChunk = do
+           (leftChunk, nextLeftProducerState) <- psPopChunk leftProducerState
+           (rightChunk, nextRightProducerState) <- psPopChunk rightProducerState
+           return ( (leftChunk, rightChunk), psCombine nextLeftProducerState nextRightProducerState)
       }

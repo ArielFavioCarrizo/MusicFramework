@@ -1,4 +1,6 @@
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Esferixis.MusicFramework.Signal
    ( SignalChunk(scLength, scSection, scAppend, scSplitRef, scZero), scEmpty, scIsEmpty, SignalProcessorState(spChunkLength, spReduceChunkLength), makeSpPairConvert) where
@@ -17,23 +19,26 @@ import Data.Maybe
 
    Un chunk de señal de longitud cero se interpreta como el fin del stream
 -}
-class SignalChunk sc where
-   scLength :: sc -> Word64 -- Longitud del chunk
-   scSection :: sc -> Word64 -> Word64 -> sc -- Devuelve la sección con el offset y la longitud especificados
-   scAppend :: sc -> sc -> sc -- Toma dos chunks y genera un chunk nuevo uniendo el primer chunk con el segundo
-   scSplitRef :: sc -> (sc, sc) -- Divide la referencia del chunk en dos referencias
-   scZero :: Word64 -> sc -- Genera un chunk silencioso con la longitud especificada
+class (Monad m) => SignalChunk m sc where
+   scLength :: sc -> m Word64 -- Longitud del chunk
+   scSection :: sc -> Word64 -> Word64 -> m sc -- Devuelve la sección con el offset y la longitud especificados
+   scAppend :: sc -> sc -> m sc -- Toma dos chunks y genera un chunk nuevo uniendo el primer chunk con el segundo
+   scSplitRef :: sc -> m (sc, sc) -- Divide la referencia del chunk en dos referencias
+   scZero :: Word64 -> m sc -- Genera un chunk silencioso con la longitud especificada
 
-scEmpty :: (SignalChunk sc) => sc
+scEmpty :: (SignalChunk m sc) => m sc
 scEmpty = scZero 0
 
-scIsEmpty :: (SignalChunk sc) => sc -> Bool
-scIsEmpty signalChunk = ( scLength signalChunk ) == 0
+scIsEmpty :: (SignalChunk m sc) => sc -> m Bool
+scIsEmpty signalChunk = do
+   length <- scLength signalChunk
+   return ( length == 0 )
 
-scCheckSameLength :: (SignalChunk sc) => sc -> Word64 -> sc
-scCheckSameLength signalChunk expectedLength =
-   if ( (scLength signalChunk) == expectedLength )
-      then signalChunk
+scCheckSameLength :: (SignalChunk m sc) => sc -> Word64 -> m sc
+scCheckSameLength signalChunk expectedLength = do
+   length <- scLength signalChunk
+   if ( length == expectedLength )
+      then return signalChunk
       else error "Unexpected signal chunk length"
 
 -- Estado de unidad de procesamiento de señal

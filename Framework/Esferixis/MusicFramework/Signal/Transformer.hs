@@ -18,13 +18,13 @@ import Esferixis.MusicFramework.Signal.Producer
    isc: Input Signal Chunk
    osc: Output Signal Chunk
 -}
-data TransformerState isc osc = TransformerState {
+data TransformerState m isc osc = TransformerState {
      tsChunkLength :: Word64 -- Longitud de datos a transformar
-   , tsReduceChunkLength :: Word64 -> TransformerState isc osc -- Reduce la longitud de datos a transformar al valor especificado, devolviendo un nuevo estado del transformador
-   , tsTransform :: (SignalChunk isc, SignalChunk osc) => isc -> (osc, TransformerState isc osc) -- Recibe el chunk de señal de entrada, devuelve el chunk de salida y el siguiente estado del transformador. Cuando recibe un chunk de señal de longitud cero, significa que se termina el stream de entrada.
+   , tsReduceChunkLength :: Word64 -> TransformerState m isc osc -- Reduce la longitud de datos a transformar al valor especificado, devolviendo un nuevo estado del transformador
+   , tsTransform :: (Monad m, SignalChunk m isc, SignalChunk m osc) => isc -> m (osc, TransformerState m isc osc) -- Recibe el chunk de señal de entrada, devuelve el chunk de salida y el siguiente estado del transformador. Cuando recibe un chunk de señal de longitud cero, significa que se termina el stream de entrada.
    }
 
-instance SignalProcessorState (TransformerState isc osc) where
+instance SignalProcessorState (TransformerState m isc osc) where
    spChunkLength = tsChunkLength
    spReduceChunkLength = tsReduceChunkLength
 
@@ -37,15 +37,15 @@ instance SignalProcessorState (TransformerState isc osc) where
    isc: Input Signal Chunk
    osc: Output Signal Chunk
 -}
-(|>>) :: (SignalChunk isc, SignalChunk osc) => ProducerState isc -> TransformerState isc osc -> ProducerState osc
+(|>>) :: (Monad m, SignalChunk m isc, SignalChunk m osc) => ProducerState m isc -> TransformerState m isc osc -> ProducerState m osc
 (|>>) = makeSpPairConvert $ \chunkLength reduceChunkLength producerState transformerState ->
    ProducerState {
         psChunkLength = chunkLength
       , psReduceChunkLength = reduceChunkLength
-      , psPopChunk = 
-        let (inputChunk, nextInputProducerState) = psPopChunk producerState
-            (outputChunk, nextTransformerState) = tsTransform transformerState inputChunk
-        in (outputChunk, nextInputProducerState |>> nextTransformerState)
+      , psPopChunk = do
+           (inputChunk, nextInputProducerState) <- psPopChunk producerState
+           (outputChunk, nextTransformerState) <- tsTransform transformerState inputChunk
+           return (outputChunk, nextInputProducerState |>> nextTransformerState)
       }
 
 {-
@@ -58,15 +58,15 @@ instance SignalProcessorState (TransformerState isc osc) where
    msc: Medium Signal Chunk
    osc: Output Signal Chunk
 -}
-(>>>) :: (SignalChunk isc, SignalChunk msc, SignalChunk osc) => TransformerState isc msc -> TransformerState msc osc -> TransformerState isc osc
+(>>>) :: (Monad m, SignalChunk m isc, SignalChunk m msc, SignalChunk m osc) => TransformerState m isc msc -> TransformerState m msc osc -> TransformerState m isc osc
 (>>>) = makeSpPairConvert $ \chunkLength reduceChunkLength leftTransformerState rightTransformerState ->
    TransformerState {
         tsChunkLength = chunkLength
       , tsReduceChunkLength = reduceChunkLength
-      , tsTransform = \inputChunk ->
-           let (intermediateChunk, nextLeftTransformerState) = tsTransform leftTransformerState inputChunk
-               (outputChunk, nextRightTransformerState) = tsTransform rightTransformerState intermediateChunk
-           in ( outputChunk, nextLeftTransformerState >>> nextRightTransformerState )
+      , tsTransform = \inputChunk -> do
+           (intermediateChunk, nextLeftTransformerState) <- tsTransform leftTransformerState inputChunk
+           (outputChunk, nextRightTransformerState) <- tsTransform rightTransformerState intermediateChunk
+           return ( outputChunk, nextLeftTransformerState >>> nextRightTransformerState )
       }
 
 {- 
@@ -80,15 +80,14 @@ instance SignalProcessorState (TransformerState isc osc) where
    losc: Left Output Signal Chunk
    rosc: Right Output Signal Chunk
 -}
-(&&&) :: (SignalChunk isc, SignalChunk losc, SignalChunk rosc) => TransformerState isc losc -> TransformerState isc rosc -> TransformerState isc (losc, rosc)
+(&&&) :: (Monad m, SignalChunk m isc, SignalChunk m losc, SignalChunk m rosc) => TransformerState m isc losc -> TransformerState m isc rosc -> TransformerState m isc (losc, rosc)
 (&&&) = makeSpPairConvert $ \chunkLength reduceChunkLength leftTransformerState rightTransformerState ->
    TransformerState {
         tsChunkLength = chunkLength
       , tsReduceChunkLength = reduceChunkLength
-      , tsTransform = \inputChunk ->
-           let (leftInputChunk, rightInputChunk) = scSplitRef inputChunk
-               (leftOutputChunk, nextLeftTransformerState) = tsTransform leftTransformerState leftInputChunk
-               (rightOutputChunk, nextRightTransformerState) = tsTransform rightTransformerState rightInputChunk
-               combinedOutputSignalChunk = (leftOutputChunk, rightOutputChunk)
-           in ( combinedOutputSignalChunk, nextLeftTransformerState &&& nextRightTransformerState )
+      , tsTransform = \inputChunk -> do
+           (leftInputChunk, rightInputChunk) <- scSplitRef inputChunk
+           (leftOutputChunk, nextLeftTransformerState) <- tsTransform leftTransformerState leftInputChunk
+           (rightOutputChunk, nextRightTransformerState) <- tsTransform rightTransformerState rightInputChunk
+           return ( (leftOutputChunk, rightOutputChunk), nextLeftTransformerState &&& nextRightTransformerState )
       }
