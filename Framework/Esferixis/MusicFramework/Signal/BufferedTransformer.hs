@@ -26,7 +26,7 @@ data BufferedTransformerOutputState m isc osc = BufferedTransformerOutputState {
 
 data BufferedTransformerInputState m isc osc = BufferedTransformerInputState {
      btsPushChunkLength :: Word64
-   , btsReducePushChunkLength :: Word64 -> m ( BufferedTransformerState m isc osc )
+   , btsReducePushChunkLength :: Word64 -> BufferedTransformerState m isc osc
    , btsPushChunk :: (Monad m, SignalChunk m isc, SignalChunk m isc) => isc -> m (BufferedTransformerState m isc osc) -- Recibe el chunk de señal de entrada. Si recibe un chunk de señal de longitud cero, significa que se terminó el stream de entrada.
    }
 
@@ -38,40 +38,39 @@ data BufferedTransformerState m isc osc = BufferedTransformerState {
 newBufferedTransformer :: (Monad m, SignalChunk m isc, SignalChunk m osc) => TransformerState m isc osc -> m (BufferedTransformerState m isc osc)
 newBufferedTransformer transformerState = do
    initialAccumulatedBuffer <- scEmpty
-   makeBufferedTransformerState False initialAccumulatedBuffer transformerState
+   return (makeBufferedTransformerState False initialAccumulatedBuffer transformerState)
 
-makeBufferedTransformerState :: (Monad m, SignalChunk m isc, SignalChunk m osc) => Bool -> osc -> TransformerState m isc osc -> m ( BufferedTransformerState m isc osc)
-makeBufferedTransformerState isTerminated accumulatedSignalChunk transformerState = do
+makeBufferedTransformerState :: (Monad m, SignalChunk m isc, SignalChunk m osc) => Bool -> osc -> TransformerState m isc osc ->  BufferedTransformerState m isc osc
+makeBufferedTransformerState isTerminated accumulatedSignalChunk transformerState =
    let pushChunkLength = tsChunkLength transformerState
-   accumulatedSignalChunkIsEmpty <- scIsEmpty accumulatedSignalChunk
-   maxPopChunkLength <- scLength accumulatedSignalChunk
-   return $ BufferedTransformerState {
-         btsOutput =
-            if ( (not isTerminated ) && accumulatedSignalChunkIsEmpty )
-               then Nothing
-               else
-                  Just ( BufferedTransformerOutputState {
-                       btsMaxPopChunkLength = maxPopChunkLength
-                     , btsPopChunk = \requestedLength -> do
-                          nextAccumulatedChunk <-
-                             if ( requestedLength <= maxPopChunkLength )
-                                then scSection accumulatedSignalChunk (requestedLength+1) (maxPopChunkLength-requestedLength)
-                                else error "Invalid chunk size"
-                          nextState <- makeBufferedTransformerState isTerminated nextAccumulatedChunk transformerState
-                          resultSection <- scSection accumulatedSignalChunk 0 requestedLength
-                          return (resultSection, nextState)
-                     } )
-       , btsInput =
-            if ( isTerminated )
-               then Nothing
-               else
-                  Just BufferedTransformerInputState {  
-                       btsPushChunkLength = pushChunkLength
-                     , btsReducePushChunkLength = \requestedLength -> makeBufferedTransformerState isTerminated accumulatedSignalChunk (tsReduceChunkLength transformerState requestedLength)
-                     , btsPushChunk = \inputChunk -> do
-                          (transformedInputChunk, nextTransformerState) <- tsTransform transformerState inputChunk
-                          nextAccumulatedChunk <- scAppend accumulatedSignalChunk transformedInputChunk
-                          nextIsTerminated <- scIsEmpty inputChunk
-                          makeBufferedTransformerState nextIsTerminated nextAccumulatedChunk nextTransformerState
-                     }
-       }
+       maxPopChunkLength = scLength accumulatedSignalChunk
+   in BufferedTransformerState {
+           btsOutput =
+              if ( (not isTerminated ) && (scIsEmpty accumulatedSignalChunk) )
+                 then Nothing
+                 else
+                    Just ( BufferedTransformerOutputState {
+                         btsMaxPopChunkLength = maxPopChunkLength
+                       , btsPopChunk = \requestedLength -> do
+                            nextAccumulatedChunk <-
+                               if ( requestedLength <= maxPopChunkLength )
+                                  then scSection accumulatedSignalChunk (requestedLength+1) (maxPopChunkLength-requestedLength)
+                                  else error "Invalid chunk size"
+                            let nextState = makeBufferedTransformerState isTerminated nextAccumulatedChunk transformerState
+                            resultSection <- scSection accumulatedSignalChunk 0 requestedLength
+                            return (resultSection, nextState)
+                       } )
+         , btsInput =
+              if ( isTerminated )
+                 then Nothing
+                 else
+                    Just BufferedTransformerInputState {  
+                         btsPushChunkLength = pushChunkLength
+                       , btsReducePushChunkLength = \requestedLength -> makeBufferedTransformerState isTerminated accumulatedSignalChunk (tsReduceChunkLength transformerState requestedLength)
+                       , btsPushChunk = \inputChunk -> do
+                            (transformedInputChunk, nextTransformerState) <- tsTransform transformerState inputChunk
+                            nextAccumulatedChunk <- scAppend accumulatedSignalChunk transformedInputChunk
+                            let nextIsTerminated = scIsEmpty inputChunk
+                            return (makeBufferedTransformerState nextIsTerminated nextAccumulatedChunk nextTransformerState)
+                       }
+         }

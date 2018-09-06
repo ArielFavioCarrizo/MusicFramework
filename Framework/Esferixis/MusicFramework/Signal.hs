@@ -1,6 +1,7 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
 module Esferixis.MusicFramework.Signal
    ( SignalChunk(scLength, scSection, scAppend, scSplitRef, scZero), scEmpty, scIsEmpty, SignalProcessorState(spChunkLength, spReduceChunkLength), makeSpPairConvert) where
@@ -19,8 +20,8 @@ import Data.Maybe
 
    Un chunk de señal de longitud cero se interpreta como el fin del stream
 -}
-class (Monad m) => SignalChunk m sc where
-   scLength :: sc -> m Word64 -- Longitud del chunk
+class (Monad m) => SignalChunk m sc | sc -> m where
+   scLength :: sc -> Word64 -- Longitud del chunk
    scSection :: sc -> Word64 -> Word64 -> m sc -- Devuelve la sección con el offset y la longitud especificados
    scAppend :: sc -> sc -> m sc -- Toma dos chunks y genera un chunk nuevo uniendo el primer chunk con el segundo
    scSplitRef :: sc -> m (sc, sc) -- Divide la referencia del chunk en dos referencias
@@ -29,16 +30,13 @@ class (Monad m) => SignalChunk m sc where
 scEmpty :: (SignalChunk m sc) => m sc
 scEmpty = scZero 0
 
-scIsEmpty :: (SignalChunk m sc) => sc -> m Bool
-scIsEmpty signalChunk = do
-   length <- scLength signalChunk
-   return ( length == 0 )
+scIsEmpty :: (SignalChunk m sc) => sc -> Bool
+scIsEmpty signalChunk = (scLength signalChunk == 0 )
 
-scCheckSameLength :: (SignalChunk m sc) => sc -> Word64 -> m sc
+scCheckSameLength :: (SignalChunk m sc) => sc -> Word64 -> sc
 scCheckSameLength signalChunk expectedLength = do
-   length <- scLength signalChunk
-   if ( length == expectedLength )
-      then return signalChunk
+   if ( scLength signalChunk == expectedLength )
+      then signalChunk
       else error "Unexpected signal chunk length"
 
 -- Estado de unidad de procesamiento de señal
