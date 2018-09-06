@@ -68,6 +68,7 @@ makeBufferedTransformerState isTerminated accumulatedSignalChunk transformerStat
                          btsPushChunkLength = pushChunkLength
                        , btsReducePushChunkLength = \requestedLength -> makeBufferedTransformerState isTerminated accumulatedSignalChunk (tsReduceChunkLength transformerState requestedLength)
                        , btsPushChunk = \inputChunk -> do
+                            scCheckSameLength inputChunk pushChunkLength
                             (transformedInputChunk, nextTransformerState) <- tsTransform transformerState inputChunk
                             nextAccumulatedChunk <- scAppend accumulatedSignalChunk transformedInputChunk
                             let nextIsTerminated = scIsEmpty inputChunk

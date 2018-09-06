@@ -64,6 +64,7 @@ instance SignalProcessorState (TransformerState m isc osc) where
         tsChunkLength = chunkLength
       , tsReduceChunkLength = reduceChunkLength
       , tsTransform = \inputChunk -> do
+           scCheckSameLength inputChunk chunkLength
            (intermediateChunk, nextLeftTransformerState) <- tsTransform leftTransformerState inputChunk
            (outputChunk, nextRightTransformerState) <- tsTransform rightTransformerState intermediateChunk
            return ( outputChunk, nextLeftTransformerState >>> nextRightTransformerState )
@@ -86,6 +87,7 @@ instance SignalProcessorState (TransformerState m isc osc) where
         tsChunkLength = chunkLength
       , tsReduceChunkLength = reduceChunkLength
       , tsTransform = \inputChunk -> do
+           scCheckSameLength inputChunk chunkLength
            (leftInputChunk, rightInputChunk) <- scSplitRef inputChunk
            (leftOutputChunk, nextLeftTransformerState) <- tsTransform leftTransformerState leftInputChunk
            (rightOutputChunk, nextRightTransformerState) <- tsTransform rightTransformerState rightInputChunk

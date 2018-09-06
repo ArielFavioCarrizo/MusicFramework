@@ -4,7 +4,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 
 module Esferixis.MusicFramework.Signal
-   ( SignalChunk(scLength, scSection, scAppend, scSplitRef, scZero), scEmpty, scIsEmpty, SignalProcessorState(spChunkLength, spReduceChunkLength), makeSpPairConvert) where
+   ( SignalChunk(scLength, scSection, scAppend, scSplitRef, scZero), scEmpty, scIsEmpty, scCheckSameLength, SignalProcessorState(spChunkLength, spReduceChunkLength), makeSpPairConvert) where
 
 import Data.Word
 import Data.Maybe
@@ -33,11 +33,11 @@ scEmpty = scZero 0
 scIsEmpty :: (SignalChunk m sc) => sc -> Bool
 scIsEmpty signalChunk = (scLength signalChunk == 0 )
 
-scCheckSameLength :: (SignalChunk m sc) => sc -> Word64 -> sc
+scCheckSameLength :: (SignalChunk m sc) => sc -> Word64 -> m ()
 scCheckSameLength signalChunk expectedLength = do
    if ( scLength signalChunk == expectedLength )
-      then signalChunk
-      else error "Unexpected signal chunk length"
+      then return ()
+      else fail "Unexpected signal chunk length"
 
 -- Estado de unidad de procesamiento de señal
 class SignalProcessorState a where
