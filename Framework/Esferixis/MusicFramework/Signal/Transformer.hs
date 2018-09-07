@@ -12,9 +12,9 @@ import Esferixis.MusicFramework.Signal.Producer
    Representación abstracta de lo que es un transformador.
    Representa un estado del transformador que se obtendrá efectivamente
    en un tiempo indeterminado en el futuro.
-
+   
    Tipos
-
+   
    isc: Input Signal Chunk
    osc: Output Signal Chunk
 -}
