@@ -93,3 +93,26 @@ instance SignalProcessorState (TransformerState m isc osc) where
            (rightOutputChunk, nextRightTransformerState) <- tsTransform rightTransformerState rightInputChunk
            return ( (leftOutputChunk, rightOutputChunk), nextLeftTransformerState &&& nextRightTransformerState )
       }
+
+{-
+   Dado un transformador limita el tamaño que puede procesar
+
+   Tipos:
+  
+   isc: Input Signal Chunk
+   osc: Output Signal Chunk
+-}
+tsLimitChunkSize :: (Monad m, SignalChunk m isc, SignalChunk m osc) => TransformerState m isc osc -> Word64 -> TransformerState m isc osc
+tsLimitChunkSize transformerState maxChunkSize =
+   let self tsState = tsLimitChunkSize tsState maxChunkSize
+   in
+      if ( ( tsChunkLength transformerState ) > maxChunkSize )
+         then self ( tsReduceChunkLength transformerState maxChunkSize )
+         else
+            TransformerState {
+                 tsChunkLength = tsChunkLength transformerState
+               , tsReduceChunkLength = \requestedSize -> self ( tsReduceChunkLength transformerState requestedSize )
+               , tsTransform = \inputChunk -> do
+                    (outputChunk, nextState) <- tsTransform transformerState inputChunk
+                    return ( outputChunk, self nextState )
+               }
