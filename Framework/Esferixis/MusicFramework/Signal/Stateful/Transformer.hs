@@ -29,7 +29,7 @@ data STTransformerMutationAction m sc = STTransformerMutationAction {
    Si la cantidad de frames para mutar es cero, tiene que realizarse el tick
    y después realizar la mutación
 -}
-data SFTransformerSt m sc = UnmanagedProducerSt {
+data SFTransformerSt m sc = SFTransformerSt {
      sftMutationAction :: Maybe ( STTransformerMutationAction m sc ) -- Si el transformador muta, es la acción de mutación
    , sftTick :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> SignalChunkSection sc -> m () -- Realiza un 'tick' con la sección de chunk de entrada especificada, produciendo una sección de señal en la sección de chunk destino especificada
    , sftTickInplace :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> m () -- Realiza un 'tick', produce una sección de señal en la sección chunk especificada, tomándola como entrada y la sobreescribe con la salida
