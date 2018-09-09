@@ -4,7 +4,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 
 module Esferixis.MusicFramework.Signal.Stateful.Producer
-   ( SFProducerSt() ) where
+   ( SFProducerSt(sfpRemainingFrames, sfpTick, sfpDelete) ) where
 
 import Data.Word
 import Data.Maybe

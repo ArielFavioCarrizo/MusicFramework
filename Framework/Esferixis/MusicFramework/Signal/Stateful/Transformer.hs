@@ -3,8 +3,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module Esferixis.MusicFramework.Signal.Stateful.Transformer
-   ( SFTransformerSt() ) where
+module Esferixis.MusicFramework.Signal.Stateful.Transformer(
+     STTransformerMutationAction(sftRemainingFramesToMutate, sftDoMutationAction)
+   , SFTransformerSt(sftMutationAction, sftTick, sftTickInplace, sftDelete)
+   ) where
 
 import Data.Word
 import Data.Maybe
@@ -30,7 +32,8 @@ data STTransformerMutationAction m sc = STTransformerMutationAction {
    y después realizar la mutación
 -}
 data SFTransformerSt m sc = SFTransformerSt {
-     sftMutationAction :: Maybe ( STTransformerMutationAction m sc ) -- Si el transformador muta, es la acción de mutación
+     sftRemainingFrames :: Maybe Word64 -- Devuelve la cantidad de frames que quedan sin transformar, si es infinito devuelve Nothing
+   , sftMutationAction :: Maybe ( STTransformerMutationAction m sc ) -- Si el transformador muta, es la acción de mutación
    , sftTick :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> SignalChunkSection sc -> m () -- Realiza un 'tick' con la sección de chunk de entrada especificada, produciendo una sección de señal en la sección de chunk destino especificada
    , sftTickInplace :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> m () -- Realiza un 'tick', produce una sección de señal en la sección chunk especificada, tomándola como entrada y la sobreescribe con la salida
    , sftDelete :: (Monad m) => m () -- Destruye el transformador
