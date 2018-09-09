@@ -16,7 +16,7 @@ import Esferixis.MusicFramework.Signal.Stateful.SignalChunk
 -}
 data STTransformerMutationAction m sc = STTransformerMutationAction {
      sftRemainingFramesToMutate :: Word64 -- Cantidad de frames para mutar
-   , sftDoMutationAction :: (Monad m, SFSignalChunk m sc ) => m ( SFTransformerSt m sc ) -- Operación de mutación al terminar de transformar la cantidad de frames especificada anteriormente
+   , sftDoMutationAction :: (Monad m, SFSignalChunk m sc ) => Maybe (m ( SFTransformerSt m sc )) -- Operación de mutación al terminar de transformar la cantidad de frames especificada anteriormente. Si no hay más frames para transformar la acción de mutación es Nothing, indicando que debe ser destruido
    }
 
 {-
