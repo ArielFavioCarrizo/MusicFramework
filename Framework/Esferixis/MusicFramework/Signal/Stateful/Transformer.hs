@@ -32,6 +32,6 @@ data STTransformerMutationAction m sc = STTransformerMutationAction {
 data SFTransformerSt m sc = UnmanagedProducerSt {
      sftMutationAction :: Maybe ( STTransformerMutationAction m sc ) -- Si el transformador muta, es la acción de mutación
    , sftTick :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> SignalChunkSection sc -> m () -- Realiza un 'tick' con la sección de chunk de entrada especificada, produciendo una sección de señal en la sección de chunk destino especificada
-   , sftTickInplace :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> m ( SFTransformerSt m sc ) -- Realiza un 'tick', produce una sección de señal en la sección chunk especificada, tomándola como entrada y la sobreescribe con la salida
+   , sftTickInplace :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> m () -- Realiza un 'tick', produce una sección de señal en la sección chunk especificada, tomándola como entrada y la sobreescribe con la salida
    , sftDelete :: (Monad m) => m () -- Destruye el transformador
    }
