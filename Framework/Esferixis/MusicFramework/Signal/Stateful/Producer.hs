@@ -23,9 +23,9 @@ import Esferixis.MusicFramework.Signal.Stateful.SignalChunk
 
              Caso contrario se producirá comportamiento indefinido.
 -}
-data SFProducerSt m sc = SFProducerSt {
+data SFProducerSt m sc opIn = SFProducerSt {
      sfpMaxChunkSecLength :: Word64 -- Máximo tamaño de chunk que puede recibir
      -- Crea una acción de procesado de chunk con el tamaño especificado y pasa al siguiente estado
-   , sfpTickOp :: (Monad m, SFSignalChunk m sc) => Word64 -> ( ( SignalChunkSection sc -> m () ), SFProducerSt m sc )
+   , sfpTickOp :: (Monad m, SFSignalChunk m sc) => Word64 -> ( ( opIn -> SignalChunkSection sc -> m opIn ), SFProducerSt m sc opIn )
    , sfpDelete :: (Monad m) => m () -- Destruye el productor
    }
