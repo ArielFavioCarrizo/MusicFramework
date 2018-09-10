@@ -14,6 +14,7 @@ module Esferixis.MusicFramework.Signal.Stateful.Transformer(
         , sftStatefulTickInplace
         , sftStatefulDelete
         )
+   , newTimevariantImpTransformer
    ) where
 
 import Data.Word
@@ -36,11 +37,11 @@ data STTransformerMutationAction m sc = STTransformerMutationAction {
 -}
 data STTransformerImpOperations m sc = STTransformerImpOperations {
      -- Realiza un 'tick' con la sección de chunk de entrada especificada, produciendo una sección de señal en la sección de chunk destino especificada
-     sftStatelessTick :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> SignalChunkSection sc -> m ()
+     sftTick :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> SignalChunkSection sc -> m ()
      -- Realiza un 'tick', produce una sección de señal en la sección chunk especificada, tomándola como entrada y la sobreescribe con la salida
-   , sftStatelessTickInplace :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> m ()
+   , sftTickInplace :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> m ()
      -- Destruye el transformador
-   , sftStatelessDelete :: (Monad m) => m ()
+   , sftDelete :: (Monad m) => m ()
    }
 
 {-
@@ -57,20 +58,50 @@ data SFTransformerSt m sc =
    -}
    SFTransformerStatelessSt {
         -- Si el transformador muta, es la acción de mutación
-        sftStatelessMutationAction :: Maybe ( STTransformerMutationAction m sc )
-      , sftStatelessOperations :: STTransformerImpOperations m sc
+        sftStatelessMutationAction :: (Monad m, SFSignalChunk m sc) => Maybe ( STTransformerMutationAction m sc )
+      , sftStatelessOperations :: (Monad m, SFSignalChunk m sc) => STTransformerImpOperations m sc
       } |
    SFTransformerStatefulSt {
+        -- Máximo tamaño de sección de chunk tolerado
+        sftStatefulMaxChunkSecSize :: Word64
         {-
            Realiza un 'tick' con la sección de chunk de entrada especificada, produciendo una sección de señal en la sección de chunk destino especificada
            devolviendo un nuevo estado
         -}
-        sftStatefulTick :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> SignalChunkSection sc -> m ( SFTransformerSt m sc )
+      , sftStatefulTick :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> SignalChunkSection sc -> m ( Maybe (SFTransformerSt m sc) )
         {-
            Realiza un 'tick', produce una sección de señal en la sección chunk especificada, tomándola como entrada y la sobreescribe con la salida
            devolviendo un nuevo estado
         -}
-      , sftStatefulTickInplace :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> m ( SFTransformerSt m sc )
+      , sftStatefulTickInplace :: (Monad m, SFSignalChunk m sc) => SignalChunkSection sc -> m ( Maybe (SFTransformerSt m sc) )
         -- Destruye el transformador
       , sftStatefulDelete :: (Monad m) => m ()
       }
+
+{-
+   Crea un transformador imperativo variante en el tiempo
+   con las operaciones externas, y la lista de acciones de mutación.
+   Donde cada elemento de la lista es una tupla que lleva la
+   acción, y la duración de la vigencia del estado impuesto
+   por la acción
+-}
+newTimevariantImpTransformer :: (Monad m, SFSignalChunk m sc) => STTransformerImpOperations m sc -> [(m (), Word64)] -> Maybe (SFTransformerSt m sc)
+newTimevariantImpTransformer impOperations ((mAction, mActionDuration):remainingActions) =
+   let selfNext = newTimevariantImpTransformer impOperations
+       nextState chunkLength =
+          if ( chunkLength < mActionDuration )
+             then return (selfNext ( (mAction, mActionDuration - chunkLength):remainingActions) )
+             else do
+                mAction
+                return (selfNext remainingActions)
+
+   in Just $ SFTransformerStatefulSt {
+           sftStatefulMaxChunkSecSize = mActionDuration
+         , sftStatefulTick = \srcChunkSec dstChunkSec -> do
+              sftTick impOperations srcChunkSec dstChunkSec
+              nextState ( scsLength srcChunkSec )
+         , sftStatefulTickInplace = \chunkSec -> do
+              sftTickInplace impOperations chunkSec
+              nextState ( scsLength chunkSec )
+         , sftStatefulDelete = sftDelete impOperations
+         }

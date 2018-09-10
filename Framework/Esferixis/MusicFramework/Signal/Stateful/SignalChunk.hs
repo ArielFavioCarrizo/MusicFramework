@@ -24,5 +24,6 @@ class (Monad m) => SFSignalChunk m sc | sc -> m where
 data SignalChunkSection sc = SignalChunkSection {
      scsSrc :: sc
    , scsOffset :: Word64
+   , scsChannel :: Word32
    , scsLength :: Word64
    }
