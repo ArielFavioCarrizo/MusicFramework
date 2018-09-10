@@ -105,3 +105,5 @@ newTimevariantImpTransformer impOperations ((mAction, mActionDuration):remaining
               nextState ( scsLength chunkSec )
          , sftStatefulDelete = sftDelete impOperations
          }
+
+newTimevariantImpTransformer impOperations [] = Nothing
