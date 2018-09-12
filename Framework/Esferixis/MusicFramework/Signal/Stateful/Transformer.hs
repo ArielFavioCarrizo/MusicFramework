@@ -103,7 +103,7 @@ data SFTransformerSt m sc opIn =
         -- Acción de transformado de chunk
       , sftStatelessTickOp :: SFTransformerTickOp m sc ()
         -- Destruye el transformador. No tiene que haber pendiente ninguna acción de transformado de chunk.
-      , sftStatelessDelete :: m ()
+      , sftStatelessDelete :: (Monad m) => opIn -> m ()
       } |
    {-
       Estado de transformador stateful
@@ -120,7 +120,7 @@ data SFTransformerSt m sc opIn =
         -}
       , sftStatefulTickOp :: Word64 -> ( SFTransformerTickOp m sc opIn, Maybe (SFTransformerSt m sc opIn) )
         -- Destruye el transformador.
-      , sftStatefulDelete :: (Monad m) => m ()
+      , sftStatefulDelete :: (Monad m) => opIn -> m ()
       }
 
 {-
@@ -162,7 +162,7 @@ newTimevariantImpTransformer impOperations ((mAction, mActionDuration):remaining
 
                        in ( chunkOp, nextState )
                     GT -> error "Chunk length is greater than expected"
-         , sftStatefulDelete = deleteOp
+         , sftStatefulDelete = \opIn -> deleteOp
          }
 
 newTimevariantImpTransformer impOperations [] = Nothing
