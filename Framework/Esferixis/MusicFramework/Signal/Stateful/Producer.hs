@@ -1,15 +1,11 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
 
 module Esferixis.MusicFramework.Signal.Stateful.Producer
    ( SFProducerSt(sfpMaxChunkSecLength, sfpTickOp, sfpDelete) ) where
 
 import Data.Word
 import Data.Maybe
-
-import Esferixis.MusicFramework.Signal.Stateful.SignalChunk
 
 {- 
    Representación abstracta de un productor stateful
@@ -26,6 +22,6 @@ import Esferixis.MusicFramework.Signal.Stateful.SignalChunk
 data SFProducerSt m sc opIn = SFProducerSt {
      sfpMaxChunkSecLength :: Word64 -- Máximo tamaño de chunk que puede recibir
      -- Crea una acción de procesado de chunk con el tamaño especificado y pasa al siguiente estado
-   , sfpTickOp :: (Monad m, SFSignalChunk m sc) => Word64 -> ( ( opIn -> SignalChunkSection sc -> m opIn ), SFProducerSt m sc opIn )
+   , sfpTickOp :: (Monad m) => Word64 -> ( ( opIn -> sc -> m opIn ), SFProducerSt m sc opIn )
    , sfpDelete :: (Monad m) => m () -- Destruye el productor
    }
