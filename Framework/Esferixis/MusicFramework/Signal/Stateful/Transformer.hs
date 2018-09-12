@@ -161,7 +161,7 @@ newTimevariantImpTransformer impOperations ((mAction, mActionDuration):remaining
                                     return opIn
 
                        in ( chunkOp, nextState )
-                    GT -> error "Chunk section length is greater than expected"
+                    GT -> error "Chunk length is greater than expected"
          , sftStatefulDelete = deleteOp
          }
 
