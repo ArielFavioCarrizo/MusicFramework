@@ -4,7 +4,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 
 module Esferixis.MusicFramework.Notation(
-   IEvent(IEvent)
+     IEvent(IEvent)
    ) where
 
 import Data.Word
