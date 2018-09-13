@@ -3,7 +3,7 @@
 
 module Esferixis.MusicFramework.Signal.Stateful.Producer
    (
-     SFProducer(SFProducer, sfpFirstState, sfpNewInstance)
+     SFProducer(SFProducer, sfpNewInstance)
    , SFProducerSt(SFProducerSt, sfpMaxChunkSecLength, sfpTickOp, sfpDelete)
    ) where
 
@@ -11,30 +11,19 @@ import Data.Word
 import Data.Maybe
 
 {-
-   Representación de productor stateful
+   Representación de productor stateful no manejado
 -}
-data SFProducer m sc opIn = SFProducer {
-     -- Primer estado del productor
-     sfpFirstState :: SFProducer m sc opIn
-     -- Crea una instancia del productor, devolviendo la entrada para la primera operación
-   , sfpNewInstance :: m opIn
+data SFProducer m sc = SFProducer {
+     sfpNewInstance :: SFProducer m sc -> m ( SFProducer m sc )
    }
 
 {- 
    Representación abstracta de estado de productor stateful
    no manejado
-   
-   ATENCIÓN: Toda operación debe ser realizada en el orden
-             especificado.
-
-             Toda operación de estado posterior, tiene que ser posterior
-             al estado anterior.
-
-             Caso contrario se producirá comportamiento indefinido.
 -}
-data SFProducerSt m sc opIn = SFProducerSt {
+data SFProducerSt m sc = SFProducerSt {
      sfpMaxChunkSecLength :: Word64 -- Máximo tamaño de chunk que puede recibir
-     -- Crea una acción de procesado de chunk con el tamaño especificado y pasa al siguiente estado
-   , sfpTickOp :: (Monad m) => Word64 -> ( ( opIn -> sc -> m opIn ), SFProducerSt m sc opIn )
+     -- Escribe en el chunk especificado y pasa al siguiente estado
+   , sfpTickOp :: (Monad m) => m ( sc, SFProducerSt m sc )
    , sfpDelete :: (Monad m) => m () -- Destruye el productor
    }
