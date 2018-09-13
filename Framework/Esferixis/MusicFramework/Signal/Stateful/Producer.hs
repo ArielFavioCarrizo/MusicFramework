@@ -14,7 +14,8 @@ import Data.Maybe
    Representación de productor stateful no manejado
 -}
 data SFProducer m sc = SFProducer {
-     sfpNewInstance :: SFProducer m sc -> m ( SFProducer m sc )
+     -- Crea una instancia del productor. Si el stream es vacío el productor no sea crea.
+     sfpNewInstance :: SFProducer m sc -> m ( Maybe ( SFProducer m sc ) )
    }
 
 {- 
@@ -23,7 +24,11 @@ data SFProducer m sc = SFProducer {
 -}
 data SFProducerSt m sc = SFProducerSt {
      sfpMaxChunkSecLength :: Word64 -- Máximo tamaño de chunk que puede recibir
-     -- Escribe en el chunk especificado y pasa al siguiente estado
-   , sfpTickOp :: (Monad m) => m ( sc, SFProducerSt m sc )
-   , sfpDelete :: (Monad m) => m () -- Destruye el productor
+     {-
+        Escribe en el chunk especificado y pasa al siguiente estado
+        Si el stream de entrada se termina devuelve Nothing y se destruye
+        el productor
+     -}
+   , sfpTickOp :: (Monad m) => m ( sc, Maybe ( SFProducerSt m sc ) )
+   , sfpDelete :: (Monad m) => m () -- Destruye el productor.
    }
