@@ -2,8 +2,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Esferixis.MusicFramework.Signal.Stateful.Transformer(
-     STTransformerMutationAction(sftRemainingFramesToMutate, sftDoMutationAction)
-   , SFTransformerTickOp(sftTick, sftTickInplace)
+     SFTransformer(SFTransformer, sftFirstState, sftNewInstance)
+   , SFTransformerMutationAction(SFTransformerMutationAction, sftRemainingFramesToMutate, sftDoMutationAction)
+   , SFTransformerTickOp(SFTransformerTickOp, sftTick, sftTickInplace)
    , SFTransformerSt(
           SFTransformerStatelessSt
         , sftStatelessMutationAction
@@ -14,16 +15,26 @@ module Esferixis.MusicFramework.Signal.Stateful.Transformer(
         , sftStatefulTickOp
         , sftStatefulDelete
         )
-   , newTimevariantImpTransformer
+   , newTimevariantImpTransformerSt
    ) where
 
 import Data.Word
 import Data.Maybe
 
 {-
+   Representación de transformador stateful
+-}
+data SFTransformer m sc opIn = SFTransformer {
+     -- Primer estado del transformador
+     sftFirstState :: SFTransformerSt m sc opIn
+     -- Crea una instancia del transformador, devolviendo la entrada para la primera operación
+   , sftNewInstance :: m opIn
+   }
+
+{-
    Operación de mutación del transformador
 -}
-data STTransformerMutationAction m sc opIn = STTransformerMutationAction {
+data SFTransformerMutationAction m sc opIn = SFTransformerMutationAction {
      -- Cantidad de frames para mutar
      sftRemainingFramesToMutate :: Word64
      -- Realiza la acción de mutación que corresponde después de procesar las secciones de chunk correspondientes
@@ -79,7 +90,7 @@ sftTickOpLift srcTickOp = SFTransformerTickOp {
    }
 
 {-
-   Representación abstracta de un transformador stateful
+   Representación abstracta de un estado de transformador stateful
    no manejado
    
    ATENCIÓN: Toda operación debe ser realizada en el orden
@@ -99,7 +110,7 @@ data SFTransformerSt m sc opIn =
    -}
    SFTransformerStatelessSt {
         -- Si el transformador muta, es la acción de mutación
-        sftStatelessMutationAction :: (Monad m) => Maybe ( STTransformerMutationAction m sc opIn )
+        sftStatelessMutationAction :: (Monad m) => Maybe ( SFTransformerMutationAction m sc opIn )
         -- Acción de transformado de chunk
       , sftStatelessTickOp :: SFTransformerTickOp m sc ()
         -- Destruye el transformador. No tiene que haber pendiente ninguna acción de transformado de chunk.
@@ -137,8 +148,8 @@ data ImpTransformerExtOp m sc = ImpTransformerExtOp {
    , impTransformerDelete :: m ()
    }
 
-newTimevariantImpTransformer :: (Monad m) => ImpTransformerExtOp m sc -> [(opIn -> m opIn, Word64)] -> Maybe (SFTransformerSt m sc opIn)
-newTimevariantImpTransformer impOperations ((mAction, mActionDuration):remainingActions) =
+newTimevariantImpTransformerSt :: (Monad m) => ImpTransformerExtOp m sc -> [(opIn -> m opIn, Word64)] -> Maybe (SFTransformerSt m sc opIn)
+newTimevariantImpTransformerSt impOperations ((mAction, mActionDuration):remainingActions) =
    let selfNext = newTimevariantImpTransformer impOperations
        deleteOp = impTransformerDelete impOperations
    in Just $ SFTransformerStatefulSt {
@@ -153,14 +164,14 @@ newTimevariantImpTransformer impOperations ((mAction, mActionDuration):remaining
                        in ( tickOp, nextState )
                     EQ ->
                        let nextState = selfNext remainingActions
-                           chunkOp = mAction `sftTickOpPre` lonelyTickOp `sftTickOpPost` do
+                           tickOp = mAction `sftTickOpPre` lonelyTickOp `sftTickOpPost` do
                               case nextState of
                                  Just a -> return
                                  Nothing -> \opIn -> do
                                     deleteOp
                                     return opIn
 
-                       in ( chunkOp, nextState )
+                       in ( tickOp, nextState )
                     GT -> error "Chunk length is greater than expected"
          , sftStatefulDelete = \opIn -> deleteOp
          }

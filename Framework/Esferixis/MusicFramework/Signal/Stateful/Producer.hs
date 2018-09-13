@@ -2,13 +2,26 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Esferixis.MusicFramework.Signal.Stateful.Producer
-   ( SFProducerSt(sfpMaxChunkSecLength, sfpTickOp, sfpDelete) ) where
+   (
+     SFProducer(SFProducer, sfpFirstState, sfpNewInstance)
+   , SFProducerSt(SFProducerSt, sfpMaxChunkSecLength, sfpTickOp, sfpDelete)
+   ) where
 
 import Data.Word
 import Data.Maybe
 
+{-
+   Representación de productor stateful
+-}
+data SFProducer m sc opIn = SFProducer {
+     -- Primer estado del productor
+     sfpFirstState :: SFProducer m sc opIn
+     -- Crea una instancia del productor, devolviendo la entrada para la primera operación
+   , sfpNewInstance :: m opIn
+   }
+
 {- 
-   Representación abstracta de un productor stateful
+   Representación abstracta de estado de productor stateful
    no manejado
    
    ATENCIÓN: Toda operación debe ser realizada en el orden
