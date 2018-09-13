@@ -47,7 +47,7 @@ data SFTransformerMutationAction m sc opIn = SFTransformerMutationAction {
    Operación de transformación de sección de chunk
 -}
 data SFTransformerTickOp m sc opIn = SFTransformerTickOp {
-     -- Realiza un 'tick' con el chunk de entrada especificado, produciendo una sección de señal en el chunk destino especificado
+     -- Realiza un 'tick' con el chunk de entrada especificado, produciendo una sección de señal en el chunk destino especificado con la entrada de operación.
      sftTick :: (Monad m) => sc -> sc -> opIn -> m opIn
      -- Realiza un 'tick', produce una sección de señal en el chunk especificado, tomándolo como entrada y lo muta destructivamente con la salida
    , sftTickInplace :: (Monad m) => sc -> opIn -> m opIn

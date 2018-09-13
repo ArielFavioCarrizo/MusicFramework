@@ -29,6 +29,6 @@ data SFProducerSt m sc = SFProducerSt {
         Si el stream de entrada se termina devuelve Nothing y se destruye
         el productor
      -}
-   , sfpTickOp :: (Monad m) => m ( sc, Maybe ( SFProducerSt m sc ) )
+   , sfpTickOp :: (Monad m) => sc -> m ( Maybe ( SFProducerSt m sc ) )
    , sfpDelete :: (Monad m) => m () -- Destruye el productor.
    }
