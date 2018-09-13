@@ -10,11 +10,9 @@ module Esferixis.MusicFramework.Instrument.PluckedStrings(
 import Data.Word
 import Data.Maybe
 
-import Esferixis.MusicFramework.Notation
+import Esferixis.MusicFramework.Instrument
 
 data PluckedStrCmd a h =
    StrPick Double a | -- Tocado de la cuerda, con la posición y la amplitud especificados
    StrDamp Double | -- Damping de la cuerda
    StrPitch h -- Longitud efectiva de la cuerda (Altura)
-
-data PluckedStrPlaying t a h = PluckedStrPlaying [[IEvent t (PluckedStrCmd a h)]] -- Tocado de instrumento de cuerda
