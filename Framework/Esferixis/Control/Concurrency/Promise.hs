@@ -1,6 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE GADTs #-}
 
 module Esferixis.Control.Concurrency.Promise(Promise, Future, newPromise, newCompletedFuture, newFuture, pSet, pSetFromFuture, pFuture, fGet, fWait, fApplyIO, fUnwrap, fApplyIOFuture) where
 
@@ -19,7 +20,10 @@ data PromiseState a = UnitializedPromiseState (BDeque RealWorld (IO a -> IO())) 
 
 data Promise a = Promise (MVar (PromiseState a))
 
-data Future a = VariableFuture (MVar (PromiseState a)) | CompletedFuture (IO a)
+data Future a where
+   VariableFuture :: MVar (PromiseState a) -> Future a
+   CompletedFuture :: IO a -> Future a
+   HybridFuture :: Future b -> (IO b -> IO a) -> Future a
 
 newPromise :: IO (Promise a)
 newPromise = do
@@ -72,6 +76,10 @@ fGet (VariableFuture stateMVar) callback = do
          InitializedPromiseState value -> return (callback value)
 
    nextAction
+fGet (HybridFuture previousFuture fun) callback =
+   fGet previousFuture $ \oldValue ->
+       callback ( fun oldValue )
+
 fGet (CompletedFuture value) callback = callback value
 
 {- Dado un futuro y una función monádica en IO devuelve otro
@@ -81,9 +89,12 @@ fGet (CompletedFuture value) callback = callback value
 fApplyIO :: Future a -> ( a -> IO b ) -> IO (Future b)
 fApplyIO ( VariableFuture stateMVar ) fun =
    let srcFuture = VariableFuture stateMVar
-   in newFuture $ \dstPromise -> do
-         fGet srcFuture $ \getSrcValue -> do
-             pSet dstPromise ( getSrcValue >>= fun )
+   in return $ HybridFuture srcFuture $ \previousIO ->
+         previousIO >>= fun
+
+fApplyIO ( HybridFuture previousFuture postFun ) fun =
+   return $ HybridFuture previousFuture $ \previousIO ->
+      (postFun previousIO) >>= fun
 
 fApplyIO ( CompletedFuture getValue ) fun =
    newCompletedFuture $ do
@@ -102,6 +113,9 @@ fUnwrap ( VariableFuture stateMVar ) =
              case eitherFuture of
                 Left e -> pSet dstPromise (throwIO e)
                 Right future -> pSetFromFuture dstPromise future
+
+--fUnwrap ( HybridFuture previousFuture postFun ) =
+   
 
 fUnwrap ( CompletedFuture getFutureOfFuture ) = do
    eitherFuture <- (try getFutureOfFuture) :: IO (Either SomeException (Future a))
