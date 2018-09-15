@@ -1,6 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE GADTs #-}
 
 module Esferixis.Control.Concurrency.AsyncIO(AsyncIO, runAsyncIO, await) where
 
@@ -18,7 +19,10 @@ import Esferixis.Control.Concurrency.Promise
    Se asemeja a las funciones asincrónicas con 'async' y 'await'
    de lenguajes imperativos como C# y javascript.
 -}
-data AsyncIO a = AsyncIO ( IO (Future a) )
+data AsyncIO a where
+   AwaitAsyncIO :: Future a -> AsyncIO a
+   SyncAsyncIO :: IO a -> AsyncIO a
+   HybridAsyncIO :: Future b -> (IO b -> IO a) -> AsyncIO a
 
 {-
    Dada la mónada AsyncIO, devuelve
@@ -27,7 +31,12 @@ data AsyncIO a = AsyncIO ( IO (Future a) )
    por la ejecución de la mónada de entrada.
 -}
 runAsyncIO :: AsyncIO a -> IO (Future a)
-runAsyncIO (AsyncIO ioAction) = ioAction
+runAsyncIO (AwaitAsyncIO future) = return future
+runAsyncIO (SyncAsyncIO action) = newCompletedFuture action
+runAsyncIO (HybridAsyncIO previousFuture postFun) =
+   newFuture $ \promise ->
+      fGet previousFuture $ \oldValue ->
+          pSet promise ( postFun oldValue )
 
 {-
    Dado el futuro especificado crea
@@ -35,11 +44,11 @@ runAsyncIO (AsyncIO ioAction) = ioAction
    que el futuro se complete
 -}
 await :: Future a -> AsyncIO a
-await future = AsyncIO ( return future )
+await future = AwaitAsyncIO future
 
 instance Monad AsyncIO where
    (>>=) :: forall a b. AsyncIO a -> (a -> AsyncIO b) -> AsyncIO b
-   AsyncIO getSrcFuture >>= k = AsyncIO $ do
+   AwaitAsyncIO getSrcFuture >>= k = AsyncIO $ do
        srcFuture <- getSrcFuture
 
        fApplyIOFuture srcFuture $ \srcValue -> runAsyncIO (k srcValue)
