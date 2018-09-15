@@ -35,8 +35,8 @@ runAsyncIO (AwaitAsyncIO future) = return future
 runAsyncIO (SyncAsyncIO action) = newCompletedFuture action
 runAsyncIO (HybridAsyncIO previousFuture postFun) =
    newFuture $ \promise ->
-      fGet previousFuture $ \oldValue ->
-          pSet promise ( postFun oldValue )
+      fGet previousFuture $ \previousAction ->
+          pSet promise ( postFun previousAction )
 
 {-
    Dado el futuro especificado crea
@@ -48,10 +48,10 @@ await future = AwaitAsyncIO future
 
 instance Monad AsyncIO where
    (>>=) :: forall a b. AsyncIO a -> (a -> AsyncIO b) -> AsyncIO b
-   AwaitAsyncIO getSrcFuture >>= k = AsyncIO $ do
-       srcFuture <- getSrcFuture
-
-       fApplyIOFuture srcFuture $ \srcValue -> runAsyncIO (k srcValue)
+   AwaitAsyncIO future >>= k = SyncAsyncIO $ do
+       fApplyIOFuture future $ \srcValue -> runAsyncIO (k srcValue)
+   SyncAsyncIO action >>= k = SyncAsyncIO (action >>= k)
+   HybridAsyncIO future fun >>= k = HybridAsyncIO future $ \previousAction -> postFun previousAction
 
    return value = AsyncIO ( newCompletedFuture ( return value ) )
 
