@@ -1,9 +1,21 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE GADTs #-}
 
-module Esferixis.Control.Concurrency.Promise(Promise, Future, newPromise, newCompletedFuture, newFuture, pSet, pSetFromFuture, pFuture, fGet, fWait, fApplyIO, fUnwrap, fApplyIOFuture) where
+module Esferixis.Control.Concurrency.Promise(
+     Promise
+   , Future
+   , newPromise
+   , newFuture
+   , pSet
+   , pSetFromFuture
+   , pFuture
+   , fGet
+   , fWait
+   , fApplyIO
+   , fUnwrap
+   , fApplyIOFuture
+   ) where
 
 import Data.Maybe
 import Data.Mutable
@@ -20,22 +32,13 @@ data PromiseState a = UnitializedPromiseState (BDeque RealWorld (IO a -> IO())) 
 
 data Promise a = Promise (MVar (PromiseState a))
 
-data Future a where
-   VariableFuture :: MVar (PromiseState a) -> Future a
-   CompletedFuture :: IO a -> Future a
-   HybridFuture :: Future b -> (IO b -> IO a) -> Future a
+data Future a = Future ( MVar (PromiseState a) )
 
 newPromise :: IO (Promise a)
 newPromise = do
    notifyActions <- newColl
    stateRef <- newMVar (UnitializedPromiseState notifyActions)
    return ( Promise stateRef )
-
--- Crea un futuro completado con la acción especificada
-newCompletedFuture :: IO a -> IO (Future a)
-newCompletedFuture action = do
-   getValue <- wrapIOResult action
-   return (CompletedFuture getValue)
 
 -- Crea un futuro con la acción que completa una promesa
 newFuture :: (Promise a -> IO ()) -> IO (Future a)
@@ -63,11 +66,11 @@ pSetFromFuture promise future =
 
 -- Devuelve el futuro de la promesa
 pFuture :: Promise a -> Future a
-pFuture (Promise stateMVar) = VariableFuture stateMVar
+pFuture (Promise stateMVar) = Future stateMVar
 
 -- Agrega un callback que es invocado cuando el futuro se completa
 fGet :: Future a -> (IO a -> IO()) -> IO ()
-fGet (VariableFuture stateMVar) callback = do
+fGet (Future stateMVar) callback = do
    nextAction <- withMVar stateMVar $ \state ->
       case state of
          UnitializedPromiseState notifyActions -> do
@@ -76,52 +79,30 @@ fGet (VariableFuture stateMVar) callback = do
          InitializedPromiseState value -> return (callback value)
 
    nextAction
-fGet (HybridFuture previousFuture fun) callback =
-   fGet previousFuture $ \oldValue ->
-       callback ( fun oldValue )
-
-fGet (CompletedFuture value) callback = callback value
 
 {- Dado un futuro y una función monádica en IO devuelve otro
    otro futuro resultado de la aplicación del
    valor del futuro anterior
 -}
 fApplyIO :: Future a -> ( a -> IO b ) -> IO (Future b)
-fApplyIO ( VariableFuture stateMVar ) fun =
-   let srcFuture = VariableFuture stateMVar
-   in return $ HybridFuture srcFuture $ \previousIO ->
-         previousIO >>= fun
-
-fApplyIO ( HybridFuture previousFuture postFun ) fun =
-   return $ HybridFuture previousFuture $ \previousIO ->
-      (postFun previousIO) >>= fun
-
-fApplyIO ( CompletedFuture getValue ) fun =
-   newCompletedFuture $ do
-      value <- getValue
-      fun value
+fApplyIO ( Future stateMVar ) fun =
+   let srcFuture = Future stateMVar
+   in newFuture $ \dstPromise -> do
+         fGet srcFuture $ \getSrcValue -> do
+             pSet dstPromise ( getSrcValue >>= fun )
 
 {- Dado un futuro de futuro lo reduce
    a un futuro de valor literal
 -}
 fUnwrap :: forall a. (Future (Future a) -> IO (Future a))
-fUnwrap ( VariableFuture stateMVar ) =
-   let srcFutureOfFuture = VariableFuture stateMVar
+fUnwrap ( Future stateMVar ) =
+   let srcFutureOfFuture = Future stateMVar
    in newFuture $ \dstPromise -> do
          fGet srcFutureOfFuture $ \getSrcFutureOfFuture -> do
              eitherFuture <- (try getSrcFutureOfFuture) :: IO (Either SomeException (Future a))
              case eitherFuture of
                 Left e -> pSet dstPromise (throwIO e)
                 Right future -> pSetFromFuture dstPromise future
-
---fUnwrap ( HybridFuture previousFuture postFun ) =
-   
-
-fUnwrap ( CompletedFuture getFutureOfFuture ) = do
-   eitherFuture <- (try getFutureOfFuture) :: IO (Either SomeException (Future a))
-   case eitherFuture of
-      Left e -> newCompletedFuture (throwIO e)
-      Right future -> return (future)
 
 {- Dado un futuro y una función monádica que devuelve
    un futuro devuelve otro futuro resultado
