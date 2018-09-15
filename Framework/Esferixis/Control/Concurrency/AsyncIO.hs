@@ -4,7 +4,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 
-module Esferixis.Control.Concurrency.AsyncIO(AsyncIO, await) where
+module Esferixis.Control.Concurrency.AsyncIO(AsyncIO, runAsyncIO, runAsyncIOCPS, await) where
 
 import Data.Either
 import Control.Exception
@@ -26,33 +26,26 @@ data AsyncIO a where
    BindAsyncIO :: AsyncIO b -> ( b -> AsyncIO a ) -> AsyncIO a
 
 {-
+   Ejecuta una mónada AsyncIO y devuelve
+   su resultado en un futuro, en la mónada IO
+-}
+runAsyncIO :: AsyncIO a -> IO ( Future a)
+runAsyncIO asyncIO = newFuture $ \postPromise ->
+   runAsyncIOCPS asyncIO $ \preAction -> pSet postPromise preAction
+
+{-
    Ejecuta una mónada AsyncIO con el callback
-   especificado, en IO
+   de resultado especificado, en la mónada IO
 -}
 runAsyncIOCPS :: AsyncIO a -> (IO a -> IO ()) -> IO ()
 runAsyncIOCPS (AwaitAsyncIO future) postCallback = fGet future postCallback
 runAsyncIOCPS (SyncAsyncIO action) postCallback = postCallback action
 runAsyncIOCPS (BindAsyncIO preAsyncIO postFun) postCallback =
-   case preAsyncIO of
-      AwaitAsyncIO preFuture ->
-         fGet preFuture $ \preAction -> do
-             eitherPreValue <- (try preAction) :: IO (Either SomeException _)
-             case eitherPreValue of
-                Left e -> postCallback (throwIO e)
-                Right preValue -> runAsyncIOCPS (postFun preValue) postCallback
-
-      SyncAsyncIO preAction -> do
-         eitherPreValue <- (try preAction) :: IO (Either SomeException _)
-         case eitherPreValue of
-            Left e -> postCallback (throwIO e)
-            Right preValue -> runAsyncIOCPS (postFun preValue) postCallback
-
-      BindAsyncIO preAsyncIO2 postFun2 ->
-         runAsyncIOCPS preAsyncIO2 $ \preAction2 -> do
-            eitherPreValue <- (try preAction2) :: IO (Either SomeException _)
-            case eitherPreValue of
-               Left e -> postCallback (throwIO e)
-               Right preValue -> runAsyncIOCPS ( postFun2 preValue ) postCallback
+   runAsyncIOCPS preAsyncIO $ \preAction -> do
+      eitherPreValue <- ( try :: IO b -> IO (Either SomeException b) ) preAction
+      case eitherPreValue of
+         Left e -> postCallback $ throwIO e
+         Right preValue -> runAsyncIOCPS ( postFun preValue ) postCallback
 
 {-
    Dado el futuro especificado crea
