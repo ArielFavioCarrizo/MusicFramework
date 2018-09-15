@@ -29,7 +29,7 @@ data AsyncIO a where
    Ejecuta una mónada AsyncIO y devuelve
    su resultado en un futuro, en la mónada IO
 -}
-runAsyncIO :: AsyncIO a -> IO ( Future a)
+runAsyncIO :: AsyncIO a -> IO ( Future a )
 runAsyncIO asyncIO = newFuture $ \postPromise ->
    runAsyncIOCPS asyncIO $ \preAction -> pSet postPromise preAction
 
