@@ -2,8 +2,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 
-module Esferixis.Control.Concurrency.AsyncIO(AsyncIO, runAsyncIO, await) where
+module Esferixis.Control.Concurrency.AsyncIO(AsyncIO, await) where
 
 import Data.Either
 import Control.Exception
@@ -22,21 +23,36 @@ import Esferixis.Control.Concurrency.Promise
 data AsyncIO a where
    AwaitAsyncIO :: Future a -> AsyncIO a
    SyncAsyncIO :: IO a -> AsyncIO a
-   HybridAsyncIO :: Future b -> (IO b -> IO a) -> AsyncIO a
+   BindAsyncIO :: AsyncIO b -> ( b -> AsyncIO a ) -> AsyncIO a
 
 {-
-   Dada la mónada AsyncIO, devuelve
-   la mónada IO que la ejecuta.
-   Ésta operación devuelve el futuro representado
-   por la ejecución de la mónada de entrada.
+   Ejecuta una mónada AsyncIO con el callback
+   especificado, en IO
 -}
-runAsyncIO :: AsyncIO a -> IO (Future a)
-runAsyncIO (AwaitAsyncIO future) = return future
-runAsyncIO (SyncAsyncIO action) = newCompletedFuture action
-runAsyncIO (HybridAsyncIO previousFuture postFun) =
-   newFuture $ \promise ->
-      fGet previousFuture $ \previousAction ->
-          pSet promise ( postFun previousAction )
+runAsyncIOCPS :: AsyncIO a -> (IO a -> IO ()) -> IO ()
+runAsyncIOCPS (AwaitAsyncIO future) postCallback = fGet future postCallback
+runAsyncIOCPS (SyncAsyncIO action) postCallback = postCallback action
+runAsyncIOCPS (BindAsyncIO preAsyncIO postFun) postCallback =
+   case preAsyncIO of
+      AwaitAsyncIO preFuture ->
+         fGet preFuture $ \preAction -> do
+             eitherPreValue <- (try preAction) :: IO (Either SomeException _)
+             case eitherPreValue of
+                Left e -> postCallback (throwIO e)
+                Right preValue -> runAsyncIOCPS (postFun preValue) postCallback
+
+      SyncAsyncIO preAction -> do
+         eitherPreValue <- (try preAction) :: IO (Either SomeException _)
+         case eitherPreValue of
+            Left e -> postCallback (throwIO e)
+            Right preValue -> runAsyncIOCPS (postFun preValue) postCallback
+
+      BindAsyncIO preAsyncIO2 postFun2 ->
+         runAsyncIOCPS preAsyncIO2 $ \preAction2 -> do
+            eitherPreValue <- (try preAction2) :: IO (Either SomeException _)
+            case eitherPreValue of
+               Left e -> postCallback (throwIO e)
+               Right preValue -> runAsyncIOCPS ( postFun2 preValue ) postCallback
 
 {-
    Dado el futuro especificado crea
@@ -48,12 +64,9 @@ await future = AwaitAsyncIO future
 
 instance Monad AsyncIO where
    (>>=) :: forall a b. AsyncIO a -> (a -> AsyncIO b) -> AsyncIO b
-   AwaitAsyncIO future >>= k = SyncAsyncIO $ do
-       fApplyIOFuture future $ \srcValue -> runAsyncIO (k srcValue)
-   SyncAsyncIO action >>= k = SyncAsyncIO (action >>= k)
-   HybridAsyncIO future fun >>= k = HybridAsyncIO future $ \previousAction -> postFun previousAction
+   preAsyncIO >>= k = BindAsyncIO preAsyncIO k
 
-   return value = AsyncIO ( newCompletedFuture ( return value ) )
+   return value = SyncAsyncIO $ return value
 
 instance Applicative AsyncIO where
    pure = return
@@ -63,4 +76,4 @@ instance Functor AsyncIO where
    fmap = liftM
 
 instance MonadIO AsyncIO where
-   liftIO action = AsyncIO ( newCompletedFuture action )
+   liftIO action = SyncAsyncIO action
