@@ -2,9 +2,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE PartialTypeSignatures #-}
 
-module Esferixis.Control.Concurrency.AsyncIO(AsyncIO, runAsyncIO, runAsyncIOCPS, await) where
+module Esferixis.Control.Concurrency.AsyncIO(AsyncIO, runAsyncIO, async, await) where
 
 import Data.Either
 import Control.Exception
@@ -14,11 +13,15 @@ import Control.Monad.IO.Class
 import Esferixis.Control.Concurrency.Promise
 
 {-
-   Mónada para programación asíncrona con futuros, implementada sobre la mónada IO.
-   Sirve para simplificar la programación con promesas, evitando
+   Mónada para programación asíncrona con futuros, implementada sobre la acción IO.
+   Sirve para simplificar la programación con promesas y futuros, evitando
    así el 'callback hell'.
    Se asemeja a las funciones asincrónicas con 'async' y 'await'
    de lenguajes imperativos como C# y javascript.
+
+   Representa una acción que potencialmente
+   puede consistir en la espera de una acción asincrónica,
+   además de las acciones sincrónicas típicas de IO.
 -}
 data AsyncIO a where
    AwaitAsyncIO :: Future a -> AsyncIO a
@@ -26,7 +29,7 @@ data AsyncIO a where
    BindAsyncIO :: AsyncIO b -> ( b -> AsyncIO a ) -> AsyncIO a
 
 {-
-   Ejecuta una mónada AsyncIO y devuelve
+   Ejecuta una acción AsyncIO y devuelve
    su resultado en un futuro, en la mónada IO
 -}
 runAsyncIO :: AsyncIO a -> IO ( Future a )
@@ -34,8 +37,8 @@ runAsyncIO asyncIO = newFuture $ \postPromise ->
    runAsyncIOCPS asyncIO $ \preAction -> pSet postPromise preAction
 
 {-
-   Ejecuta una mónada AsyncIO con el callback
-   de resultado especificado, en la mónada IO
+   Ejecuta una acción AsyncIO con el callback
+   de resultado especificado, en la acción IO
 -}
 runAsyncIOCPS :: AsyncIO a -> (IO a -> IO ()) -> IO ()
 runAsyncIOCPS (AwaitAsyncIO future) postCallback = fGet future postCallback
@@ -48,8 +51,23 @@ runAsyncIOCPS (BindAsyncIO preAsyncIO postFun) postCallback =
          Right preValue -> runAsyncIOCPS ( postFun preValue ) postCallback
 
 {-
+   Dada una acción AsyncIO, crea
+   la acción AsyncIO que ejecuta
+   asincrónicamente dicha acción.
+   El resultado de la acción la
+   representa como un futuro.
+   
+   Cumple el mismo rol que la
+   palabra clave 'async' de
+   lenguajes imperativos como C#
+   y javascript.
+-}
+async :: AsyncIO a -> AsyncIO (Future a)
+async action = liftIO $ runAsyncIO action
+
+{-
    Dado el futuro especificado crea
-   la mónada AsyncIO que espera
+   la acción AsyncIO que espera
    que el futuro se complete
 -}
 await :: Future a -> AsyncIO a
