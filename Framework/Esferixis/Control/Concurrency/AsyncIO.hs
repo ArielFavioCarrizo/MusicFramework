@@ -11,6 +11,7 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.IO.Class
 import Esferixis.Control.Concurrency.Promise
+import Esferixis.Control.IO
 
 {-
    Mónada para programación asíncrona con futuros, implementada sobre la acción IO.
@@ -34,21 +35,22 @@ data AsyncIO a where
 -}
 runAsyncIO :: AsyncIO a -> IO ( Future a )
 runAsyncIO asyncIO = newFuture $ \postPromise ->
-   runAsyncIOCPS asyncIO $ \preAction -> pSet postPromise preAction
+   runAsyncIOCPS asyncIO $ \preEitherValue -> pSet postPromise ( eitherIOReturn preEitherValue )
 
 {-
    Ejecuta una acción AsyncIO con el callback
    de resultado especificado, en la acción IO
 -}
-runAsyncIOCPS :: AsyncIO a -> (IO a -> IO ()) -> IO ()
+runAsyncIOCPS :: AsyncIO a -> (FutureValue a -> IO ()) -> IO ()
 runAsyncIOCPS (AwaitAsyncIO future) postCallback = fGet future postCallback
-runAsyncIOCPS (SyncAsyncIO action) postCallback = postCallback action
+runAsyncIOCPS (SyncAsyncIO action) postCallback = do
+   value <- try action
+   postCallback value
 runAsyncIOCPS (BindAsyncIO preAsyncIO postFun) postCallback =
-   runAsyncIOCPS preAsyncIO $ \preAction -> do
-      eitherPreValue <- ( try :: IO b -> IO (Either SomeException b) ) preAction
-      case eitherPreValue of
-         Left e -> postCallback $ throwIO e
+   runAsyncIOCPS preAsyncIO $ \preEitherValue -> do
+      case preEitherValue of
          Right preValue -> runAsyncIOCPS ( postFun preValue ) postCallback
+         Left e -> postCallback $ Left e
 
 {-
    Dada una acción AsyncIO, crea
