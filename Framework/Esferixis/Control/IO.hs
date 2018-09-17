@@ -2,17 +2,16 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE InstanceSigs #-}
 
-module Esferixis.Control.IO(wrapIOResult) where
+module Esferixis.Control.IO(eitherIOReturn) where
 
 import Control.Exception
 
--- Enwrappea el resultado de la acción, y sólo almacena el resultado
-wrapIOResult :: forall a. (IO a -> IO (IO a))
-wrapIOResult action = do
-   result <- (try action) :: IO (Either SomeException a)
-   let getAction = 
-          case result of
-             Left e -> throwIO e
-             Right value -> return value
-   
-   return getAction
+{-
+   Convierte un valor con posible excepción en una acción
+   de obtención de valor
+-}
+eitherIOReturn :: (Exception e) => Either e a -> IO a
+eitherIOReturn either =
+   case either of
+      Left e -> throwIO e
+      Right value -> return value

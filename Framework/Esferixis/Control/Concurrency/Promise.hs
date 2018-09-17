@@ -2,7 +2,18 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE InstanceSigs #-}
 
-module Esferixis.Control.Concurrency.Promise(Promise, Future, newPromise, newCompletedFuture, newFuture, pSet, pSetFromFuture, pFuture, fGet, fWait, fApplyIO, fUnwrap, fApplyIOFuture) where
+module Esferixis.Control.Concurrency.Promise(
+     FutureValue
+   , Promise
+   , Future
+   , newPromise
+   , newCompletedFuture
+   , newFuture
+   , pSet
+   , pFuture
+   , fGet
+   , fWait
+   ) where
 
 import Data.Maybe
 import Data.Mutable
@@ -10,16 +21,18 @@ import Control.Exception
 import Control.Concurrent.MVar
 import Esferixis.Control.IO
 
+type FutureValue a = Either SomeException a
+
 {-
    En estado sin inicializar contiene una cola de funciones
    de notificación.
    Caso contrario contiene una función para obtener el valor.
 -}
-data PromiseState a = UnitializedPromiseState (BDeque RealWorld (IO a -> IO())) | InitializedPromiseState (IO a)
+data PromiseState a = UnitializedPromiseState (BDeque RealWorld (FutureValue a -> IO())) | InitializedPromiseState (FutureValue a)
 
 data Promise a = Promise (MVar (PromiseState a))
 
-data Future a = VariableFuture (MVar (PromiseState a)) | CompletedFuture (IO a)
+data Future a = VariableFuture (MVar (PromiseState a)) | CompletedFuture (FutureValue a)
 
 newPromise :: IO (Promise a)
 newPromise = do
@@ -30,8 +43,8 @@ newPromise = do
 -- Crea un futuro completado con la acción especificada
 newCompletedFuture :: IO a -> IO (Future a)
 newCompletedFuture action = do
-   getValue <- wrapIOResult action
-   return (CompletedFuture getValue)
+   value <- try action
+   return (CompletedFuture value)
 
 -- Crea un futuro con la acción que completa una promesa
 newFuture :: (Promise a -> IO ()) -> IO (Future a)
@@ -43,26 +56,21 @@ newFuture action = do
 -- Completa la promesa con la acción especificada
 pSet :: Promise a -> IO a -> IO ()
 pSet (Promise stateMVar) ioaction = do
-   getAction <- wrapIOResult ioaction
+   value <- try ioaction
 
    notifyActions <- modifyMVar stateMVar $ \state ->
       case state of
-         UnitializedPromiseState notifyActions -> return (InitializedPromiseState getAction, notifyActions)
+         UnitializedPromiseState notifyActions -> return (InitializedPromiseState value, notifyActions)
          InitializedPromiseState value -> fail "Cannot set value when it has been set"
 
-   pNotifyValue notifyActions getAction
-
--- Completa la promesa con el valor del futuro al completarse éste
-pSetFromFuture :: Promise a -> Future a -> IO ()
-pSetFromFuture promise future =
-   fGet future ( \value -> pSet promise value ) 
+   pNotifyValue notifyActions value
 
 -- Devuelve el futuro de la promesa
 pFuture :: Promise a -> Future a
 pFuture (Promise stateMVar) = VariableFuture stateMVar
 
 -- Agrega un callback que es invocado cuando el futuro se completa
-fGet :: Future a -> (IO a -> IO()) -> IO ()
+fGet :: Future a -> (FutureValue a -> IO()) -> IO ()
 fGet (VariableFuture stateMVar) callback = do
    nextAction <- withMVar stateMVar $ \state ->
       case state of
@@ -74,66 +82,20 @@ fGet (VariableFuture stateMVar) callback = do
    nextAction
 fGet (CompletedFuture value) callback = callback value
 
-{- Dado un futuro y una función monádica en IO devuelve otro
-   otro futuro resultado de la aplicación del
-   valor del futuro anterior
--}
-fApplyIO :: Future a -> ( a -> IO b ) -> IO (Future b)
-fApplyIO ( VariableFuture stateMVar ) fun =
-   let srcFuture = VariableFuture stateMVar
-   in newFuture $ \dstPromise -> do
-         fGet srcFuture $ \getSrcValue -> do
-             pSet dstPromise ( getSrcValue >>= fun )
-
-fApplyIO ( CompletedFuture getValue ) fun =
-   newCompletedFuture $ do
-      value <- getValue
-      fun value
-
-{- Dado un futuro de futuro lo reduce
-   a un futuro de valor literal
--}
-fUnwrap :: forall a. (Future (Future a) -> IO (Future a))
-fUnwrap ( VariableFuture stateMVar ) =
-   let srcFutureOfFuture = VariableFuture stateMVar
-   in newFuture $ \dstPromise -> do
-         fGet srcFutureOfFuture $ \getSrcFutureOfFuture -> do
-             eitherFuture <- (try getSrcFutureOfFuture) :: IO (Either SomeException (Future a))
-             case eitherFuture of
-                Left e -> pSet dstPromise (throwIO e)
-                Right future -> pSetFromFuture dstPromise future
-
-fUnwrap ( CompletedFuture getFutureOfFuture ) = do
-   eitherFuture <- (try getFutureOfFuture) :: IO (Either SomeException (Future a))
-   case eitherFuture of
-      Left e -> newCompletedFuture (throwIO e)
-      Right future -> return (future)
-
-{- Dado un futuro y una función monádica que devuelve
-   un futuro devuelve otro futuro resultado
-   de la aplicación del valor del futuro anterior
--}
-fApplyIOFuture :: Future a -> ( a -> IO (Future b) ) -> IO (Future b)
-fApplyIOFuture srcFuture fun = do
-   futureOfFuture <- fApplyIO srcFuture fun
-   future <- fUnwrap futureOfFuture
-
-   return future
-
 -- Bloquea el thread hasta que el futuro se complete
 fWait :: Future a -> IO a
 fWait future = do
-   getActionMVar <- newEmptyMVar
-   fGet future $ \action -> putMVar getActionMVar action
-   getAction <- takeMVar getActionMVar
-   getAction
+   valueMVar <- newEmptyMVar
+   fGet future $ \action -> putMVar valueMVar action
+   value <- takeMVar valueMVar
+   eitherIOReturn value
 
 -- Notifica el valor en los callbacks
-pNotifyValue :: BDeque RealWorld (IO a -> IO()) -> IO a -> IO ()
-pNotifyValue deque getValue = do
+pNotifyValue :: BDeque RealWorld (FutureValue a -> IO()) -> FutureValue a -> IO ()
+pNotifyValue deque value = do
    notifyAction_opt <- popBack deque
    case notifyAction_opt of
       Just notifyAction -> do
-         notifyAction getValue
-         pNotifyValue deque getValue
+         notifyAction value
+         pNotifyValue deque value
       Nothing -> return ()
