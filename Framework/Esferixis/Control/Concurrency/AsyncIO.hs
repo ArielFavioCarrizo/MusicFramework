@@ -23,6 +23,10 @@ import Esferixis.Control.IO
    Representa una acción que potencialmente
    puede consistir en la espera de una acción asincrónica,
    además de las acciones sincrónicas típicas de IO.
+
+   Controla las excepciones producidas tanto por la
+   ejecución de las acciones como por evaluaciones
+   no exitosas de futuros y de funciones de binding.
 -}
 data AsyncIO a where
    AwaitAsyncIO :: Future a -> AsyncIO a
@@ -36,29 +40,50 @@ data AsyncIO a where
 -}
 runAsyncIO :: AsyncIO a -> IO ( Future a )
 runAsyncIO asyncIO = newFuture $ \postPromise ->
-   runAsyncIOCPS asyncIO $ \preEitherValue -> pSet postPromise ( eitherIOReturn preEitherValue )
+   tryToRunAsyncIOCPS asyncIO $ \preEitherValue -> pSet postPromise ( eitherIOReturn preEitherValue )
+
+{-
+   Intenta obtener la acción AsyncIO en 'Weak head normal form',
+   y si lo puede a continuación la ejecuta en la acción IO devuelta.
+   Si no puede obtener la acción responde con la excepción en la
+   continuación (postCallback).
+-}
+tryToRunAsyncIOCPS :: AsyncIO a -> (FutureValue a -> IO ()) -> IO ()
+tryToRunAsyncIOCPS unevaluatedAsyncIO postCallback = do
+   evaluatedAsyncIO <- try $ evaluate unevaluatedAsyncIO
+   case evaluatedAsyncIO of
+      Right asyncIO -> runAsyncIOCPS asyncIO postCallback
+      Left e -> postCallback $ Left e
 
 {-
    Ejecuta una acción AsyncIO con el callback
    de resultado especificado, en la acción IO
 -}
 runAsyncIOCPS :: AsyncIO a -> (FutureValue a -> IO ()) -> IO ()
-runAsyncIOCPS (AwaitAsyncIO future) postCallback = fGet future postCallback
-runAsyncIOCPS (SyncAsyncIO action) postCallback = do
-   value <- try action
-   postCallback value
-runAsyncIOCPS (CatchAsyncIO targetAsyncIO handlerFun) postCallback =
-   runAsyncIOCPS targetAsyncIO $ \preEitherValue -> do
+runAsyncIOCPS (AwaitAsyncIO unevaluatedFuture) postCallback = do
+   evaluatedFuture <- try $ evaluate unevaluatedFuture
+   case evaluatedFuture of
+      Right future -> fGet future postCallback
+      Left e -> postCallback $ Left e
+runAsyncIOCPS (SyncAsyncIO unevaluatedAction) postCallback = do
+   evaluatedAction <- try $ evaluate unevaluatedAction
+   case evaluatedAction of
+      Right action -> do    
+         value <- try action
+         postCallback value
+      Left e -> postCallback $ Left e
+runAsyncIOCPS (CatchAsyncIO unevaluatedTargetAsyncIO handlerFun) postCallback =
+   tryToRunAsyncIOCPS unevaluatedTargetAsyncIO $ \preEitherValue -> do
       case preEitherValue of
          Right preValue -> postCallback $ Right preValue
          Left someException ->
             case ( fromException someException ) of
-               Just exceptionToHandle -> runAsyncIOCPS ( handlerFun exceptionToHandle ) postCallback
+               Just exceptionToHandle -> tryToRunAsyncIOCPS ( handlerFun exceptionToHandle ) postCallback
                Nothing -> postCallback $ Left someException
-runAsyncIOCPS (BindAsyncIO preAsyncIO postFun) postCallback =
-   runAsyncIOCPS preAsyncIO $ \preEitherValue -> do
+runAsyncIOCPS (BindAsyncIO unevaluatedPreAsyncIO postFun) postCallback =
+   tryToRunAsyncIOCPS unevaluatedPreAsyncIO $ \preEitherValue -> do
       case preEitherValue of
-         Right preValue -> runAsyncIOCPS ( postFun preValue ) postCallback
+         Right preValue -> tryToRunAsyncIOCPS ( postFun preValue ) postCallback
          Left e -> postCallback $ Left e
 
 {-
