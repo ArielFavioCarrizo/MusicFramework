@@ -3,7 +3,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE GADTs #-}
 
-module Esferixis.Control.Concurrency.AsyncIO(AsyncIO, runAsyncIO, async, await) where
+module Esferixis.Control.Concurrency.AsyncIO(AsyncIO, runAsyncIO, async, await, throwAsyncIO, catchAsyncIO) where
 
 import Data.Either
 import Control.Exception
@@ -27,6 +27,7 @@ import Esferixis.Control.IO
 data AsyncIO a where
    AwaitAsyncIO :: Future a -> AsyncIO a
    SyncAsyncIO :: IO a -> AsyncIO a
+   CatchAsyncIO :: (Exception e) => AsyncIO a -> (e -> AsyncIO a) -> AsyncIO a
    BindAsyncIO :: AsyncIO b -> ( b -> AsyncIO a ) -> AsyncIO a
 
 {-
@@ -46,6 +47,14 @@ runAsyncIOCPS (AwaitAsyncIO future) postCallback = fGet future postCallback
 runAsyncIOCPS (SyncAsyncIO action) postCallback = do
    value <- try action
    postCallback value
+runAsyncIOCPS (CatchAsyncIO targetAsyncIO handlerFun) postCallback =
+   runAsyncIOCPS targetAsyncIO $ \preEitherValue -> do
+      case preEitherValue of
+         Right preValue -> postCallback $ Right preValue
+         Left someException ->
+            case ( fromException someException ) of
+               Just exceptionToHandle -> runAsyncIOCPS ( handlerFun exceptionToHandle ) postCallback
+               Nothing -> postCallback $ Left someException
 runAsyncIOCPS (BindAsyncIO preAsyncIO postFun) postCallback =
    runAsyncIOCPS preAsyncIO $ \preEitherValue -> do
       case preEitherValue of
@@ -75,11 +84,30 @@ async action = liftIO $ runAsyncIO action
 await :: Future a -> AsyncIO a
 await future = AwaitAsyncIO future
 
+
+{-
+   Crea una acción AsyncIO que lanza la excepción
+   especificada
+-}
+throwAsyncIO :: (Exception e) => e -> AsyncIO a
+throwAsyncIO exception = liftIO $ throwIO exception
+
+{-
+   Crea una acción AsyncIO que ejecuta la acción AsyncIO
+   especificada, si ocurre una excepción realiza la acción
+   AsyncIO que especifica la función de manejo de excepción con
+   la excepción ocurrida
+-}
+catchAsyncIO :: (Exception e) => AsyncIO a -> ( e -> AsyncIO a ) -> AsyncIO a
+catchAsyncIO targetAsyncIO handlerFun = CatchAsyncIO targetAsyncIO handlerFun
+
 instance Monad AsyncIO where
    (>>=) :: forall a b. AsyncIO a -> (a -> AsyncIO b) -> AsyncIO b
    preAsyncIO >>= k = BindAsyncIO preAsyncIO k
 
    return value = SyncAsyncIO $ return value
+   
+   fail message = liftIO $ fail message
 
 instance Applicative AsyncIO where
    pure = return
