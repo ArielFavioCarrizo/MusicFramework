@@ -34,13 +34,76 @@ data AsyncIO a where
    CatchAsyncIO :: (Exception e) => AsyncIO a -> (e -> AsyncIO a) -> AsyncIO a
    BindAsyncIO :: AsyncIO b -> ( b -> AsyncIO a ) -> AsyncIO a
 
+instance Monad AsyncIO where
+   (>>=) :: forall a b. AsyncIO a -> (a -> AsyncIO b) -> AsyncIO b
+   preAsyncIO >>= k = BindAsyncIO preAsyncIO k
+
+   return value = liftIO $ return value
+   
+   fail message = liftIO $ fail message
+
+instance Applicative AsyncIO where
+   pure = return
+   (<*>) = ap
+
+instance Functor AsyncIO where
+   fmap = liftM
+
+instance MonadIO AsyncIO where
+   liftIO action = SyncAsyncIO action
+
 {-
    Ejecuta una acción AsyncIO y devuelve
-   su resultado en un futuro, en la mónada IO
+   su resultado en un futuro, en la acción IO
 -}
 runAsyncIO :: AsyncIO a -> IO ( Future a )
 runAsyncIO asyncIO = newFuture $ \postPromise ->
    tryToRunAsyncIOCPS asyncIO $ \preEitherValue -> pSet postPromise ( eitherIOReturn preEitherValue )
+
+{-
+   Dada una acción AsyncIO, crea
+   la acción AsyncIO que ejecuta
+   asincrónicamente dicha acción.
+   El resultado de la acción la
+   representa como un futuro.
+   
+   Cumple el mismo rol que la
+   palabra clave 'async' de
+   lenguajes imperativos como C#
+   y javascript.
+-}
+async :: AsyncIO a -> AsyncIO (Future a)
+async action = liftIO $ runAsyncIO action
+
+{-
+   Dado el futuro especificado crea
+   la acción AsyncIO que espera
+   que el futuro se complete
+-}
+await :: Future a -> AsyncIO a
+await future = AwaitAsyncIO future
+
+
+{-
+   Crea una acción AsyncIO que lanza la excepción
+   especificada
+-}
+throwAsyncIO :: (Exception e) => e -> AsyncIO a
+throwAsyncIO exception = liftIO $ throwIO exception
+
+{-
+   Crea una acción AsyncIO que ejecuta la acción AsyncIO
+   especificada, si ocurre una excepción realiza la acción
+   AsyncIO que especifica la función de manejo de excepción con
+   la excepción ocurrida
+-}
+catchAsyncIO :: (Exception e) => AsyncIO a -> ( e -> AsyncIO a ) -> AsyncIO a
+catchAsyncIO targetAsyncIO handlerFun = CatchAsyncIO targetAsyncIO handlerFun
+
+{-
+   A continuación viene el núcleo de la implementación de la ejecución de AsyncIO
+   sobre IO, con Continuation Passing Style (CPS)
+-}
 
 {-
    Intenta obtener la acción AsyncIO en 'Weak head normal form',
@@ -85,61 +148,3 @@ runAsyncIOCPS (BindAsyncIO unevaluatedPreAsyncIO postFun) postCallback =
       case preEitherValue of
          Right preValue -> tryToRunAsyncIOCPS ( postFun preValue ) postCallback
          Left e -> postCallback $ Left e
-
-{-
-   Dada una acción AsyncIO, crea
-   la acción AsyncIO que ejecuta
-   asincrónicamente dicha acción.
-   El resultado de la acción la
-   representa como un futuro.
-   
-   Cumple el mismo rol que la
-   palabra clave 'async' de
-   lenguajes imperativos como C#
-   y javascript.
--}
-async :: AsyncIO a -> AsyncIO (Future a)
-async action = liftIO $ runAsyncIO action
-
-{-
-   Dado el futuro especificado crea
-   la acción AsyncIO que espera
-   que el futuro se complete
--}
-await :: Future a -> AsyncIO a
-await future = AwaitAsyncIO future
-
-
-{-
-   Crea una acción AsyncIO que lanza la excepción
-   especificada
--}
-throwAsyncIO :: (Exception e) => e -> AsyncIO a
-throwAsyncIO exception = liftIO $ throwIO exception
-
-{-
-   Crea una acción AsyncIO que ejecuta la acción AsyncIO
-   especificada, si ocurre una excepción realiza la acción
-   AsyncIO que especifica la función de manejo de excepción con
-   la excepción ocurrida
--}
-catchAsyncIO :: (Exception e) => AsyncIO a -> ( e -> AsyncIO a ) -> AsyncIO a
-catchAsyncIO targetAsyncIO handlerFun = CatchAsyncIO targetAsyncIO handlerFun
-
-instance Monad AsyncIO where
-   (>>=) :: forall a b. AsyncIO a -> (a -> AsyncIO b) -> AsyncIO b
-   preAsyncIO >>= k = BindAsyncIO preAsyncIO k
-
-   return value = SyncAsyncIO $ return value
-   
-   fail message = liftIO $ fail message
-
-instance Applicative AsyncIO where
-   pure = return
-   (<*>) = ap
-
-instance Functor AsyncIO where
-   fmap = liftM
-
-instance MonadIO AsyncIO where
-   liftIO action = SyncAsyncIO action
