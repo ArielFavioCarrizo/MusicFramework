@@ -4,7 +4,7 @@
 module Esferixis.MusicFramework.Signal.Stateful.Producer
    (
      SFProducer(SFProducer, sfpNewInstance)
-   , SFProducerSt(SFProducerSt, sfpMaxChunkSecLength, sfpTickOp, sfpDelete)
+   , SFProducerSt(SFProducerSt, sfpMaxFrames, sfpTick, sfpDelete)
    ) where
 
 import Data.Word
@@ -23,12 +23,12 @@ data SFProducer m sc = SFProducer {
    no manejado
 -}
 data SFProducerSt m sc = SFProducerSt {
-     sfpMaxChunkSecLength :: Word64 -- Máximo tamaño de chunk que puede recibir
+     sfpMaxFrames :: Word64 -- Máxima cantidad de frames que puede recibir
      {-
         Escribe en el chunk especificado y pasa al siguiente estado
         Si el stream de entrada se termina devuelve Nothing y se destruye
         el productor
      -}
-   , sfpTickOp :: (Monad m) => sc -> m ( Maybe ( SFProducerSt m sc ) )
+   , sfpTick :: (Monad m) => sc -> m ( Maybe ( SFProducerSt m sc ) )
    , sfpDelete :: (Monad m) => m () -- Destruye el productor.
    }
