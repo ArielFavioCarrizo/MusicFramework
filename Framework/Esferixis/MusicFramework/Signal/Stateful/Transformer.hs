@@ -34,8 +34,10 @@ data SFTransformerTickOp m sc = SFTransformerTickOp {
 
 -- Ejecución de operaciones de transformación de frames
 data SFTransformerDoTicksOp m sc =
+   -- Recibe una lista de funciones que realizan operaciones de ticks y una función que ejecuta acciones en paralelo. Produce un nuevo estado.
    SFTransformerDoStatelessTicksOp ( (Monad m) => [SFTransformerTickOp m sc -> m ()] -> ( [m ()] -> m() ) -> m ( SFTransformerSt m sc ) ) |
-   SFTransformerDoStatefulTickOp ( (Monad m) => ( SFTransformerTickOp m sc -> m () ) -> ( m () -> m () ) -> m ( SFTransformerSt m sc ) )
+   -- Recibe una función que realiza un tick. Produce un nuevo estado.
+   SFTransformerDoStatefulTickOp ( (Monad m) => ( SFTransformerTickOp m sc -> m () ) -> m ( SFTransformerSt m sc ) )
 
 {-
    Representación abstracta de un estado de transformador stateful
