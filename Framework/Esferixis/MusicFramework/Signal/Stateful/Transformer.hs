@@ -41,9 +41,9 @@ data SFTransformerTickOp m sc = SFTransformerTickOp {
 -- Ejecución de operaciones de transformación de frames
 data SFTransformerDoTicksOp m sc =
    -- Recibe una lista de funciones que realizan operaciones de ticks y una función que ejecuta acciones en paralelo. Pasa el nuevo estado en la continuación.
-   SFTransformerDoStatelessTicksOp ( (Monad m, SFSignalChunk sc) => [SFTransformerTickOp m sc -> m ()] -> ( [m ()] -> m() ) -> ( SFTransformerSt m sc -> m () ) -> m () ) |
+   SFTransformerDoStatelessTicksOp ( (Monad m, SFSignalChunk sc) => [SFTransformerTickOp m sc -> m ()] -> ( [m ()] -> m() ) -> ( Maybe (SFTransformerSt m sc) -> m () ) -> m () ) |
    -- Recibe una función que realiza un tick. Pasa el nuevo estado en la continuación.
-   SFTransformerDoStatefulTickOp ( (Monad m, SFSignalChunk sc) => ( SFTransformerTickOp m sc -> m () ) -> ( SFTransformerSt m sc -> m () ) -> m () )
+   SFTransformerDoStatefulTickOp ( (Monad m, SFSignalChunk sc) => ( SFTransformerTickOp m sc -> m () ) -> ( Maybe (SFTransformerSt m sc) -> m () ) -> m () )
 
 {-
    Representación abstracta de un estado de transformador stateful
@@ -94,16 +94,20 @@ data SFTransformerPActionsSt m sc = SFTransformerPActionsSt {
    , sftpaDelete :: (Monad m) => m ()
    }
 
-mkSfTransformerStFromPActionsSt :: SFTransformerPActionsSt m sc -> SFTransformerSt m sc
-mkSfTransformerStFromPActionsSt srcTransformerSt =
-   let framesToDoAction = sftpaFramesToDoAction srcTransformerSt
-   in SFTransformerSt {
-          sftMaxFrames = framesToDoAction
+mkSfTransformerStFromPActionsSt :: Maybe (SFTransformerPActionsSt m sc) -> Maybe (SFTransformerSt m sc)
+mkSfTransformerStFromPActionsSt (Just srcTransformerSt) =
+   let framesToDoActionOpt = sftpaFramesToDoAction srcTransformerSt
+   in Just $ SFTransformerSt {
+          sftMaxFrames = framesToDoActionOpt
         , sftDoTicksOp =
              SFTransformerDoStatefulTickOp $ \doTickFun continuation ->
                 doTickFun $ sftTickOpPost ( sftpaTickOp srcTransformerSt ) $ \chunkLength ->
-                   case framesToDoAction of
-                      Nothing -> continuation $ mkSfTransformerStFromPActionsSt srcTransformerSt
-                      -- FIXME: Completar
+                   continuation $ mkSfTransformerStFromPActionsSt $
+                      case framesToDoActionOpt of
+                         Nothing -> Just srcTransformerSt
+                         Just framesToDoAction ->
+                            if ( chunkLength < framesToDoAction )
+                               then Just $ srcTransformerSt { sftpaFramesToDoAction = ( Just ( framesToDoAction - chunkLength ) ) }
+                               else sftpaNextState srcTransformerSt
         , sftDelete = sftpaDelete srcTransformerSt
         }
