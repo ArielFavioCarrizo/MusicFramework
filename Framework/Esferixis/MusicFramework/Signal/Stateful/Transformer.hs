@@ -23,6 +23,11 @@ import Data.Word
 import Data.Maybe
 
 {-
+   Representación de transformador stateful no manejado
+-}
+data SFTransformer m sc = SFTransformer { sftNewInstance :: (Monad m) => m ( SFTransformerSt m sc ) }
+
+{-
    Operación de transformación de sección de chunk
 -}
 data SFTransformerTickOp m sc = SFTransformerTickOp {
