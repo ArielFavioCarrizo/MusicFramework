@@ -17,6 +17,15 @@ module Esferixis.MusicFramework.Signal.Stateful.Transformer(
         , sftDoTicksOp
         , sftDelete
         )
+   , SFTransformerPActionsRunCfg(sfpaRunSingle, sfpaRunConcurrently)
+   , mkSfTransformerFromPActions
+   , SFTransformerPActionsSt (
+          sftpaMaxFrames
+        , sftpaIsPure
+        , sftpaTickOp
+        , sftpaNextState
+        , sftpaDelete
+        )
    ) where
 
 import Data.Word
@@ -30,7 +39,7 @@ import Esferixis.Control.Concurrency.Promise
 {-
    Representación de transformador stateful no manejado
 -}
-data SFTransformer sc = SFTransformer { sftNewInstance :: IO ( SFTransformerSt sc ) }
+data SFTransformer sc = SFTransformer { sftNewInstance :: AsyncIO ( Maybe ( SFTransformerSt sc ) ) }
 
 {-
    Operación de transformación de sección de chunk
@@ -44,9 +53,9 @@ data SFTransformerTickOp sc = SFTransformerTickOp {
 
 -- Ejecución de operaciones de transformación de frames
 data SFTransformerDoTicksOp sc =
-   -- Recibe una lista de funciones que realizan operaciones de ticks. Devuelve el nuevo estado.
+   -- Recibe una lista de funciones donde cada una realiza una operación de tick. Devuelve el nuevo estado.
    SFTransformerDoStatelessTicksOp ( (SFSignalChunk sc) => [SFTransformerTickOp sc -> IO ()] -> AsyncIO ( Maybe (SFTransformerSt sc) ) ) |
-   -- Recibe una función que realiza un tick. Devuelve el nuevo estado
+   -- Recibe una función que realiza un tick. Devuelve el nuevo estado.
    SFTransformerDoStatefulTickOp ( (SFSignalChunk sc) => ( SFTransformerTickOp sc -> IO () ) -> AsyncIO ( Maybe (SFTransformerSt sc) ) )
 
 {-
@@ -81,6 +90,15 @@ sftTickOpPre srcTickOp preAction =
       , sftTickInplace = doOp sftTickInplace
       }
 
+-- Decora el operador de tick con una acción de ejecución
+sftTickOpRunCont :: SFTransformerTickOp sc -> ( IO () -> IO () ) -> SFTransformerTickOp sc
+sftTickOpRunCont srcTickOp runAction =
+   let doOp tickFun input = runAction $ tickFun srcTickOp input
+   in SFTransformerTickOp {
+        sftTick = doOp sftTick
+      , sftTickInplace = doOp sftTickInplace
+      }
+
 -- Decora el operador de tick con una acción posterior que recibe la longitud o una excepción en una continuación
 sftTickOpPostCont :: SFTransformerTickOp sc -> ( FutureValue Word64 -> IO () ) -> SFTransformerTickOp sc
 sftTickOpPostCont srcTickOp postAction =
@@ -101,10 +119,28 @@ sftTickOpLimit srcTickOp (Just maxFrames) = sftTickOpPre srcTickOp $ \chunkSize 
       else return ()
 sftTickOpLimit srcTickOp Nothing = srcTickOp
 
+-- Configuración de ejecución del transformador stateful que realiza determinadas acciones en instantes de tiempo puntuales
+data SFTransformerPActionsRunCfg = SFTransformerPActionsRunCfg {
+     sfpaRunSingle :: IO () -> IO ()
+   , sfpaRunConcurrently :: [ IO () ] -> AsyncIO ()
+   }
+
+-- Crea un transformador a partir de una acción de creación de configuración de ejecución y de primer estado de transformador basado en acciones puntuales
+mkSfTransformerFromPActions :: (SFSignalChunk sc) => AsyncIO ( Maybe ( SFTransformerPActionsRunCfg, SFTransformerPActionsSt sc ) ) -> SFTransformer sc
+mkSfTransformerFromPActions mkSrcAction = SFTransformer {
+      sftNewInstance = do
+         mkResult <- mkSrcAction
+         return $ do
+            (runCfg, firstSt) <- mkResult
+            mkSfTransformerStFromPActionsSt runCfg $ Just firstSt
+   }
+
 -- Descripción de estado de transformador stateful que realiza determinadas acciones en instantes de tiempo puntuales
 data SFTransformerPActionsSt sc = SFTransformerPActionsSt {
      -- Máxima cantidad de frames tolerados antes de hacer la operación. Si es Nothing significa que es ilimitado.
      sftpaMaxFrames :: Maybe Word64
+     -- Indica si la transformación es pura
+   , sftpaIsPure :: Bool
      -- Operación de transformado de frames
    , sftpaTickOp :: SFTransformerTickOp sc
      -- Pasaje a próximo estado
@@ -114,21 +150,33 @@ data SFTransformerPActionsSt sc = SFTransformerPActionsSt {
    }
 
 -- Crea un estado de transformador a partir de uno basado en acciones puntuales
-mkSfTransformerStFromPActionsSt :: Maybe (SFTransformerPActionsSt sc) -> Maybe (SFTransformerSt sc)
-mkSfTransformerStFromPActionsSt = ( >>= \srcTransformerSt -> return $
+mkSfTransformerStFromPActionsSt :: SFTransformerPActionsRunCfg -> Maybe (SFTransformerPActionsSt sc) -> Maybe (SFTransformerSt sc)
+mkSfTransformerStFromPActionsSt runCfg = ( >>= \srcTransformerSt -> return $
    let maxFramesOpt = sftpaMaxFrames srcTransformerSt
+       srcTickOp = sftpaTickOp srcTransformerSt
+       mkSrcNextState = sftpaNextState srcTransformerSt
+       runSingle = sfpaRunSingle runCfg
+       runConcurrently = sfpaRunConcurrently runCfg
+       dstNextState = mkSfTransformerStFromPActionsSt runCfg
    in SFTransformerSt {
           sftMaxFrames = maxFramesOpt
         , sftDoTicksOp =
-             SFTransformerDoStatefulTickOp $ \doTickFun -> do
-                chunkLength <- callCC $ \continuation -> doTickFun $ ( ( sftpaTickOp srcTransformerSt ) `sftTickOpLimit` maxFramesOpt ) `sftTickOpPostCont` continuation
-                nextState <- liftIO $
-                   case maxFramesOpt of
-                      Nothing -> return $ Just srcTransformerSt
-                      Just maxFrames ->
-                         if ( chunkLength < maxFrames )
-                            then return $ Just $ srcTransformerSt { sftpaMaxFrames = Just $ maxFrames - chunkLength }
-                            else sftpaNextState srcTransformerSt
-                return $ mkSfTransformerStFromPActionsSt nextState
+             if ( sftpaIsPure srcTransformerSt )
+                then
+                   SFTransformerDoStatelessTicksOp $ \tickOpActions -> do
+                      runConcurrently $ map (\fun -> fun srcTickOp) tickOpActions
+                      nextState <- liftIO $ mkSrcNextState
+                      return $ dstNextState nextState
+                else
+                   SFTransformerDoStatefulTickOp $ \doTickFun -> do
+                      chunkLength <- callCC $ \continuation -> doTickFun $ sftTickOpRunCont ( ( srcTickOp `sftTickOpLimit` maxFramesOpt ) `sftTickOpPostCont` continuation ) runSingle 
+                      nextState <- liftIO $
+                         case maxFramesOpt of
+                            Nothing -> return $ Just srcTransformerSt
+                            Just maxFrames ->
+                               if ( chunkLength < maxFrames )
+                                  then return $ Just $ srcTransformerSt { sftpaMaxFrames = Just $ maxFrames - chunkLength }
+                                  else mkSrcNextState
+                      return $ dstNextState nextState
         , sftDelete = sftpaDelete srcTransformerSt
         } )
