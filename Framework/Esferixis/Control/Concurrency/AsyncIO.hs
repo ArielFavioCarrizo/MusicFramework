@@ -3,7 +3,15 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE GADTs #-}
 
-module Esferixis.Control.Concurrency.AsyncIO(AsyncIO, runAsyncIO, async, await, throwAsyncIO, catchAsyncIO) where
+module Esferixis.Control.Concurrency.AsyncIO(
+     AsyncIO
+   , runAsyncIO
+   , callCC
+   , async
+   , await
+   , throwAsyncIO
+   , catchAsyncIO
+   ) where
 
 import Data.Either
 import Control.Exception
@@ -29,6 +37,7 @@ import Esferixis.Control.IO
    no exitosas de futuros y de funciones de binding.
 -}
 data AsyncIO a where
+   CallCCAsyncIO :: ( (FutureValue a -> IO ()) -> IO () ) -> AsyncIO a
    AwaitAsyncIO :: Future a -> AsyncIO a
    SyncAsyncIO :: IO a -> AsyncIO a
    CatchAsyncIO :: (Exception e) => AsyncIO a -> (e -> AsyncIO a) -> AsyncIO a
@@ -83,6 +92,18 @@ async action = liftIO $ runAsyncIO action
 await :: Future a -> AsyncIO a
 await future = AwaitAsyncIO future
 
+{-
+   Realiza un acción en IO, cuyo resultado
+   se envía en la continuación actual, que la recibe
+
+   ATENCIÓN: Del manejo de excepciones se encarga la acción IO
+   recibida.
+
+   Toda excepción producida tiene que pasarse a través de la continuación.
+   Caso contrario se obtendrá comportamiento indefinido.
+-}
+callCC :: ( (FutureValue a -> IO ()) -> IO () ) -> AsyncIO a
+callCC ioActionByCC = CallCCAsyncIO ioActionByCC
 
 {-
    Crea una acción AsyncIO que lanza la excepción
@@ -91,11 +112,12 @@ await future = AwaitAsyncIO future
 throwAsyncIO :: (Exception e) => e -> AsyncIO a
 throwAsyncIO exception = liftIO $ throwIO exception
 
+
 {-
    Crea una acción AsyncIO que ejecuta la acción AsyncIO
    especificada, si ocurre una excepción realiza la acción
    AsyncIO que especifica la función de manejo de excepción con
-   la excepción ocurrida
+   la excepción ocurrida.
 -}
 catchAsyncIO :: (Exception e) => AsyncIO a -> ( e -> AsyncIO a ) -> AsyncIO a
 catchAsyncIO targetAsyncIO handlerFun = CatchAsyncIO targetAsyncIO handlerFun
@@ -123,6 +145,7 @@ tryToRunAsyncIOCPS unevaluatedAsyncIO postCallback = do
    de resultado especificado, en la acción IO
 -}
 runAsyncIOCPS :: AsyncIO a -> (FutureValue a -> IO ()) -> IO ()
+runAsyncIOCPS (CallCCAsyncIO ioActionByCC) postCallback = ioActionByCC postCallback
 runAsyncIOCPS (AwaitAsyncIO unevaluatedFuture) postCallback = do
    evaluatedFuture <- try $ evaluate unevaluatedFuture
    case evaluatedFuture of

@@ -21,8 +21,11 @@ module Esferixis.MusicFramework.Signal.Stateful.Transformer(
 
 import Data.Word
 import Data.Maybe
+import Control.Exception
+import Control.Monad.IO.Class
 import Esferixis.MusicFramework.Signal.Stateful.SignalChunk
 import Esferixis.Control.Concurrency.AsyncIO
+import Esferixis.Control.Concurrency.Promise
 
 {-
    Representación de transformador stateful no manejado
@@ -41,12 +44,10 @@ data SFTransformerTickOp sc = SFTransformerTickOp {
 
 -- Ejecución de operaciones de transformación de frames
 data SFTransformerDoTicksOp sc =
-   {-
-      Recibe una lista de funciones que realizan operaciones de ticks y una función que ejecuta acciones en paralelo. Pasa el nuevo estado en la continuación.
-   -}
-   SFTransformerDoStatelessTicksOp ( (SFSignalChunk sc) => [SFTransformerTickOp sc -> IO ()] -> ( [IO ()] -> AsyncIO () ) -> ( Maybe (SFTransformerSt sc) -> AsyncIO () ) -> AsyncIO () ) |
-   -- Recibe una función que realiza un tick. Pasa el nuevo estado en la continuación.
-   SFTransformerDoStatefulTickOp ( (SFSignalChunk sc) => ( SFTransformerTickOp sc -> IO () ) -> ( Maybe (SFTransformerSt sc) -> IO () ) -> IO () )
+   -- Recibe una lista de funciones que realizan operaciones de ticks. Devuelve el nuevo estado.
+   SFTransformerDoStatelessTicksOp ( (SFSignalChunk sc) => [SFTransformerTickOp sc -> IO ()] -> AsyncIO ( Maybe (SFTransformerSt sc) ) ) |
+   -- Recibe una función que realiza un tick. Devuelve el nuevo estado
+   SFTransformerDoStatefulTickOp ( (SFSignalChunk sc) => ( SFTransformerTickOp sc -> IO () ) -> AsyncIO ( Maybe (SFTransformerSt sc) ) )
 
 {-
    Representación abstracta de un estado de transformador stateful
@@ -69,48 +70,65 @@ data SFTransformerSt sc = SFTransformerSt {
    , sftDelete :: IO ()
    }
 
+-- Decora el operador de tick con una acción previa que recibe la longitud
 sftTickOpPre :: SFTransformerTickOp sc -> ( Word64 -> IO () ) -> SFTransformerTickOp sc
-sftTickOpPre srcTickOp preAction = SFTransformerTickOp {
-     sftTick = \ioChunkPair -> do
-        preAction $ sfscIOLength ioChunkPair
-        sftTick srcTickOp ioChunkPair
-   , sftTickInplace = \chunk -> do
-        preAction $ sfscLength chunk
-        sftTickInplace srcTickOp chunk
-   }
+sftTickOpPre srcTickOp preAction =
+   let doOp tickFun input = do
+       preAction $ sfscLength input
+       tickFun srcTickOp input
+   in SFTransformerTickOp {    
+        sftTick = doOp sftTick
+      , sftTickInplace = doOp sftTickInplace
+      }
 
-sftTickOpPost :: SFTransformerTickOp sc -> ( Word64 -> IO () ) -> SFTransformerTickOp sc
-sftTickOpPost srcTickOp postAction = SFTransformerTickOp {
-     sftTick = \ioChunkPair -> do
-        sftTick srcTickOp ioChunkPair
-        postAction $ sfscIOLength ioChunkPair
-   , sftTickInplace = \chunk -> do
-        sftTickInplace srcTickOp chunk
-        postAction $ sfscLength chunk
-   }
+-- Decora el operador de tick con una acción posterior que recibe la longitud o una excepción en una continuación
+sftTickOpPostCont :: SFTransformerTickOp sc -> ( FutureValue Word64 -> IO () ) -> SFTransformerTickOp sc
+sftTickOpPostCont srcTickOp postAction =
+   let doOp tickFun input = do
+       result <- try $ tickFun srcTickOp input
+       postAction $ do
+          result
+          return $ sfscLength input
+   in SFTransformerTickOp {    
+        sftTick = doOp sftTick
+      , sftTickInplace = doOp sftTickInplace
+      }
+
+sftTickOpLimit :: SFTransformerTickOp sc -> Maybe Word64 -> SFTransformerTickOp sc
+sftTickOpLimit srcTickOp (Just maxFrames) = sftTickOpPre srcTickOp $ \chunkSize ->
+   if ( chunkSize > maxFrames )
+      then fail "Chunk size is larger than expected"
+      else return ()
+sftTickOpLimit srcTickOp Nothing = srcTickOp
 
 -- Descripción de estado de transformador stateful que realiza determinadas acciones en instantes de tiempo puntuales
 data SFTransformerPActionsSt sc = SFTransformerPActionsSt {
-     sftpaFramesToDoAction :: Maybe Word64
+     -- Máxima cantidad de frames tolerados antes de hacer la operación. Si es Nothing significa que es ilimitado.
+     sftpaMaxFrames :: Maybe Word64
+     -- Operación de transformado de frames
    , sftpaTickOp :: SFTransformerTickOp sc
-   , sftpaNextState :: Maybe ( SFTransformerPActionsSt sc )
+     -- Pasaje a próximo estado
+   , sftpaNextState :: IO ( Maybe ( SFTransformerPActionsSt sc ) )
+     -- Destruye el transformador
    , sftpaDelete :: IO ()
    }
 
+-- Crea un estado de transformador a partir de uno basado en acciones puntuales
 mkSfTransformerStFromPActionsSt :: Maybe (SFTransformerPActionsSt sc) -> Maybe (SFTransformerSt sc)
-mkSfTransformerStFromPActionsSt (Just srcTransformerSt) =
-   let framesToDoActionOpt = sftpaFramesToDoAction srcTransformerSt
-   in Just $ SFTransformerSt {
-          sftMaxFrames = framesToDoActionOpt
+mkSfTransformerStFromPActionsSt = ( >>= \srcTransformerSt -> return $
+   let maxFramesOpt = sftpaMaxFrames srcTransformerSt
+   in SFTransformerSt {
+          sftMaxFrames = maxFramesOpt
         , sftDoTicksOp =
-             SFTransformerDoStatefulTickOp $ \doTickFun continuation ->
-                doTickFun $ sftTickOpPost ( sftpaTickOp srcTransformerSt ) $ \chunkLength ->
-                   continuation $ mkSfTransformerStFromPActionsSt $
-                      case framesToDoActionOpt of
-                         Nothing -> Just srcTransformerSt
-                         Just framesToDoAction ->
-                            if ( chunkLength < framesToDoAction )
-                               then Just $ srcTransformerSt { sftpaFramesToDoAction = ( Just ( framesToDoAction - chunkLength ) ) }
-                               else sftpaNextState srcTransformerSt
+             SFTransformerDoStatefulTickOp $ \doTickFun -> do
+                chunkLength <- callCC $ \continuation -> doTickFun $ ( ( sftpaTickOp srcTransformerSt ) `sftTickOpLimit` maxFramesOpt ) `sftTickOpPostCont` continuation
+                nextState <- liftIO $
+                   case maxFramesOpt of
+                      Nothing -> return $ Just srcTransformerSt
+                      Just maxFrames ->
+                         if ( chunkLength < maxFrames )
+                            then return $ Just $ srcTransformerSt { sftpaMaxFrames = Just $ maxFrames - chunkLength }
+                            else sftpaNextState srcTransformerSt
+                return $ mkSfTransformerStFromPActionsSt nextState
         , sftDelete = sftpaDelete srcTransformerSt
-        }
+        } )
