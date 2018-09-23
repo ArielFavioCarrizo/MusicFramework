@@ -165,6 +165,7 @@ mkSfTransformerStFromPActionsSt runCfg = ( >>= \srcTransformerSt -> return $
                 then
                    SFTransformerDoStatelessTicksOp $ \tickOpActions -> do
                       futures <- mapM (\fun -> async $ setThreadForParallel >> (liftIO $ fun srcTickOp) ) tickOpActions
+                      mapM_ await futures
                       nextState <- liftIO $ mkSrcNextState
                       return $ dstNextState nextState
                 else
