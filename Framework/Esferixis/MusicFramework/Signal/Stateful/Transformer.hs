@@ -17,7 +17,7 @@ module Esferixis.MusicFramework.Signal.Stateful.Transformer(
         , sftDoTicksOp
         , sftDelete
         )
-   , SFTransformerPActionsRunCfg(sfpaRunSingle, sfpaRunConcurrently)
+   , SFTransformerPActionsRunCfg(sfpaSetThreadForSingle, sfpaSetThreadForParallel)
    , mkSfTransformerFromPActions
    , SFTransformerPActionsSt (
           sftpaMaxFrames
@@ -121,8 +121,8 @@ sftTickOpLimit srcTickOp Nothing = srcTickOp
 
 -- Configuración de ejecución del transformador stateful que realiza determinadas acciones en instantes de tiempo puntuales
 data SFTransformerPActionsRunCfg = SFTransformerPActionsRunCfg {
-     sfpaRunSingle :: IO () -> IO ()
-   , sfpaRunConcurrently :: [ IO () ] -> AsyncIO ()
+     sfpaSetThreadForSingle :: AsyncIO ()
+   , sfpaSetThreadForParallel :: AsyncIO ()
    }
 
 -- Crea un transformador a partir de una acción de creación de configuración de ejecución y de primer estado de transformador basado en acciones puntuales
@@ -155,8 +155,8 @@ mkSfTransformerStFromPActionsSt runCfg = ( >>= \srcTransformerSt -> return $
    let maxFramesOpt = sftpaMaxFrames srcTransformerSt
        srcTickOp = sftpaTickOp srcTransformerSt
        mkSrcNextState = sftpaNextState srcTransformerSt
-       runSingle = sfpaRunSingle runCfg
-       runConcurrently = sfpaRunConcurrently runCfg
+       setThreadForSingle = sfpaSetThreadForSingle runCfg
+       setThreadForParallel = sfpaSetThreadForParallel runCfg
        dstNextState = mkSfTransformerStFromPActionsSt runCfg
    in SFTransformerSt {
           sftMaxFrames = maxFramesOpt
@@ -164,12 +164,13 @@ mkSfTransformerStFromPActionsSt runCfg = ( >>= \srcTransformerSt -> return $
              if ( sftpaIsPure srcTransformerSt )
                 then
                    SFTransformerDoStatelessTicksOp $ \tickOpActions -> do
-                      runConcurrently $ map (\fun -> fun srcTickOp) tickOpActions
+                      futures <- mapM (\fun -> async $ setThreadForParallel >> (liftIO $ fun srcTickOp) ) tickOpActions
                       nextState <- liftIO $ mkSrcNextState
                       return $ dstNextState nextState
                 else
                    SFTransformerDoStatefulTickOp $ \doTickFun -> do
-                      chunkLength <- callCC $ \continuation -> doTickFun $ sftTickOpRunCont ( ( srcTickOp `sftTickOpLimit` maxFramesOpt ) `sftTickOpPostCont` continuation ) runSingle 
+                      setThreadForSingle
+                      chunkLength <- callCC $ \continuation -> doTickFun $ ( srcTickOp `sftTickOpLimit` maxFramesOpt ) `sftTickOpPostCont` continuation
                       nextState <- liftIO $
                          case maxFramesOpt of
                             Nothing -> return $ Just srcTransformerSt

@@ -3,7 +3,7 @@
 
 module Esferixis.Control.Concurrency.ThreadLoop(ThreadLoop, newThreadLoop, newBoundedThreadLoop, tlRun, tlClose) where
 
-import Esferixis.Concurrency.Promise
+import Esferixis.Control.Concurrency.Promise
 import Control.Concurrent
 import Control.Concurrent.Chan
 import Control.Concurrent.MVar
