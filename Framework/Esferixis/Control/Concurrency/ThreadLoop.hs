@@ -4,6 +4,8 @@
 module Esferixis.Control.Concurrency.ThreadLoop(ThreadLoop, newThreadLoop, newBoundedThreadLoop, tlRun, tlClose) where
 
 import Esferixis.Control.Concurrency.Promise
+import Esferixis.Control.Concurrency.AsyncIO
+import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.Chan
 import Control.Concurrent.MVar
@@ -14,7 +16,6 @@ import Data.Maybe
 data ThreadLoopState =
    ThreadLoopState {
      tlThreadId :: ThreadId
-   , tlStopPromise :: Promise ()
    , tlCloseHasBeenRequested :: Bool
    , tlActionsChannel :: Chan (Maybe (IO ()))
    }
@@ -38,42 +39,50 @@ newThreadLoopGen chosenFork = do
    threadId <- chosenFork ( doPendingActions actionsChannel >> pSet stopPromise ( return () ) )
    stateMVar <- newMVar ThreadLoopState {
         tlThreadId = threadId
-      , tlStopPromise = stopPromise
       , tlCloseHasBeenRequested = False
       , tlActionsChannel = actionsChannel
       }
    return ( ThreadLoop stateMVar )
 
 {-
-   Encola la acción en el bucle de thread.
-   Devuelve el resultado en un futuro.
+   Crea una acción AsyncIO que ejecuta
+   la continuación en el ThreadLoop especificado
 -}
-tlRun :: ThreadLoop -> IO a -> IO (Future a)
-tlRun (ThreadLoop tlStateMVar) action =
-   withMVar tlStateMVar $ \state -> do
-      resultPromise <- newPromise
-
+tlRun :: ThreadLoop -> AsyncIO ()
+tlRun (ThreadLoop tlStateMVar) = callCC $ \continuation -> do
+   postAction <- withMVar tlStateMVar $ \state -> do
       if ( tlCloseHasBeenRequested state )
-         then pSet resultPromise ( fail "Close has been requested" )
-         else writeChan ( tlActionsChannel state ) ( Just ( pSet resultPromise action ) )
-
-      return (pFuture resultPromise)
+         then
+            return $ do
+               postValue <- try $ fail "Close has been requested"
+               continuation postValue
+         else do
+            writeChan ( tlActionsChannel state ) ( Just ( continuation ( Right () ) ) )
+            return $ return ()
+   postAction
 
 {-
-   Cierra el bucle de thread (El thread termina),
-   después de que se hayan terminado las tareas pendientes.
-   Devuelve un futuro que se completa al terminar.
+   Crea una acción AsyncIO que continúa
+   la continuación en el ThreadLoop especificado,
+   Una vez que no haya tareas anteriores pendientes.
+   Asegurando que una vez que se produzca el
+   cambio de thread, el bucle de thread se cierre.
 -}
-tlClose :: ThreadLoop -> IO (Future ())
-tlClose (ThreadLoop tlStateMVar) =
-   modifyMVar tlStateMVar $ \state -> do
+tlClose :: ThreadLoop -> AsyncIO ()
+tlClose (ThreadLoop tlStateMVar) = callCC $ \continuation -> do
+   postAction <- modifyMVar tlStateMVar $ \state -> do
       if ( tlCloseHasBeenRequested state )
          then do
-            future <- newCompletedFuture ( fail "Close has been requested" )
-            return ( state, future )
+            let postAction = do
+                   postValue <- try $ fail "Close has been requested"
+                   continuation postValue
+            return ( state, postAction )
          else do
-            writeChan ( tlActionsChannel state ) Nothing -- Para que el bucle termine
-            return ( state { tlCloseHasBeenRequested = True }, pFuture ( tlStopPromise state ) )
+            writeChan ( tlActionsChannel state ) ( Just ( continuation $ Right () ) ) -- Le pasa el control a la continuación
+            writeChan ( tlActionsChannel state ) Nothing -- Asegura que después de que se produzca el cambio de thread, el bucle de thread se cierre
+            return ( state { tlCloseHasBeenRequested = True }, return () )
+
+   postAction
 
 {-
    Realiza las acciones especificadas.
