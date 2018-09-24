@@ -9,6 +9,8 @@ module Esferixis.MusicFramework.Signal.Stateful.Producer
 
 import Data.Word
 import Data.Maybe
+import Esferixis.MusicFramework.Signal.Stateful.Signal
+import Esferixis.Control.Concurrency.AsyncIO
 
 {-
    Representación de productor stateful no manejado
@@ -22,13 +24,13 @@ data SFProducer m sc = SFProducer {
    Representación abstracta de estado de productor stateful
    no manejado
 -}
-data SFProducerSt m sc = SFProducerSt {
+data SFProducerSt sc = SFProducerSt {
      sfpMaxFrames :: Word64 -- Máxima cantidad de frames que puede recibir
      {-
         Escribe en el chunk especificado y pasa al siguiente estado
         Si el stream de entrada se termina devuelve Nothing y se destruye
         el productor
      -}
-   , sfpTick :: (Monad m) => sc -> m ( Maybe ( SFProducerSt m sc ) )
-   , sfpDelete :: (Monad m) => m () -- Destruye el productor.
+   , sfpTick :: (SFSignalChunk sc) => sc -> AsyncIO ( Maybe ( SFProducerSt sc ) )
+   , sfpDelete :: AsyncIO () -- Destruye el productor.
    }

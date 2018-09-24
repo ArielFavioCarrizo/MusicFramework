@@ -32,7 +32,7 @@ import Data.Word
 import Data.Maybe
 import Control.Exception
 import Control.Monad.IO.Class
-import Esferixis.MusicFramework.Signal.Stateful.SignalChunk
+import Esferixis.MusicFramework.Signal.Stateful.Signal
 import Esferixis.Control.Concurrency.AsyncIO
 import Esferixis.Control.Concurrency.Promise
 
@@ -76,7 +76,7 @@ data SFTransformerSt sc = SFTransformerSt {
      -- Operación de transformado de frames
    , sftDoTicksOp :: SFTransformerDoTicksOp sc
      -- Destruye el transformador
-   , sftDelete :: IO ()
+   , sftDelete :: AsyncIO ()
    }
 
 -- Decora el operador de tick con una acción previa que recibe la longitud
@@ -180,5 +180,5 @@ mkSfTransformerStFromPActionsSt runCfg = ( >>= \srcTransformerSt -> return $
                                   then return $ Just $ srcTransformerSt { sftpaMaxFrames = Just $ maxFrames - chunkLength }
                                   else mkSrcNextState
                       return $ dstNextState nextState
-        , sftDelete = sftpaDelete srcTransformerSt
+        , sftDelete = liftIO $ sftpaDelete srcTransformerSt
         } )
