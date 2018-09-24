@@ -8,7 +8,7 @@ module Esferixis.MusicFramework.Signal.Stateful.Signal
    , SFSignalChunk
    , SFSignalChunkIO(sfscIOInput, sfscIOOutput)
    , mkSFSignalChunkIO
-   , DeallocatableSignalFrames(dsfLength, dsfChannels, dsfDelete)
+   , DeallocatableSignalFrames(dsfChannels, dsfDelete)
    , dsfMonoSection
    , dsfMultichannelSection
    , DSFMonoSection(dsfmsSource, dsfmsOffset, dsfmsLength, dsfmsChannel)
@@ -45,8 +45,7 @@ mkSFSignalChunkIO inputChunk outputChunk =
       else
          error "Chunk size mismatch"
 
-class DeallocatableSignalFrames dsf f | dsf -> f where
-   dsfLength :: dsf -> Word64
+class (SFSignalChunkObject dsf) => DeallocatableSignalFrames dsf f | dsf -> f where
    dsfChannels :: dsf -> Word32
    dsfFormat :: dsf -> f
    dsfDelete :: dsf -> IO ()
@@ -57,9 +56,9 @@ dsfValidateChannel signalFrames channel object =
       then object
       else error "Invalid channel number"
 
-dsfValidateSection :: (DeallocatableSignalFrames dsf f) => dsf -> Word64 -> Word64 -> a -> a
+dsfValidateSection :: (SFSignalChunkObject sco) => sco -> Word64 -> Word64 -> a -> a
 dsfValidateSection signalFrames offset length object =
-   let srcLength = dsfLength signalFrames
+   let srcLength = sfscLength signalFrames
    in if ( ( offset + length ) < srcLength )
          then object
          else error "Invalid interval"

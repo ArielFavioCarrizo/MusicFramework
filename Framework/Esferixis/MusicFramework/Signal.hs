@@ -4,10 +4,41 @@
 {-# LANGUAGE FunctionalDependencies #-}
 
 module Esferixis.MusicFramework.Signal
-   ( SignalChunk(scLength, scSection, scAppend, scSplitRef, scZero), scEmpty, scIsEmpty, scCheckSameLength, SignalProcessorState(spChunkLength, spReduceChunkLength), makeSpPairConvert) where
+   (
+     Sectionable(sLength)
+   , MonomorphicSectionable(sSection)
+   , SignalChunk(
+       scLength
+     , scSection
+     , scAppend
+     , scSplitRef
+     , scZero
+     )
+   , scEmpty
+   , scIsEmpty
+   , scCheckSameLength
+   , SignalProcessorState(
+       spChunkLength
+     , spReduceChunkLength
+     )
+   , makeSpPairConvert
+   ) where
 
 import Data.Word
 import Data.Maybe
+
+class Sectionable s where
+   sLength :: s -> Word64
+
+class (Sectionable s) => MonomorphicSectionable s where
+   sSection :: s -> Word64 -> Word64 -> s
+
+validateSection :: (Sectionable s) => s -> Word64 -> Word64 -> a -> a
+validateSection sectionable offset length object =
+   let srcLength = sLength sectionable
+   in if ( ( offset + length ) < srcLength )
+         then object
+         else error "Invalid interval"
 
 {- 
    Representación abstracta de lo que es un chunk de señal
