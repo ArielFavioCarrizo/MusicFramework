@@ -57,23 +57,33 @@ dsfValidateChannel signalFrames channel object =
       then object
       else error "Invalid channel number"
 
+dsfValidateSection :: (DeallocatableSignalFrames dsf f) => dsf -> Word64 -> Word64 -> a -> a
+dsfValidateSection signalFrames offset length object =
+   let srcLength = dsfLength signalFrames
+   in if ( ( offset + length ) < srcLength )
+         then object
+         else error "Invalid interval"
+
 dsfMonoSection :: (DeallocatableSignalFrames dsf f) => dsf -> Word32 -> Word64 -> Word64 -> DSFMonoSection dsf f
 dsfMonoSection signalFrames channel offset length =
-   dsfValidateChannel signalFrames channel $
-      DSFMonoSection {
-          dsfmsSource = signalFrames
-         , dsfmsOffset = offset
-         , dsfmsLength = length
-         , dsfmsChannel = channel
-         }
+   let section =
+          DSFMonoSection {
+              dsfmsSource = signalFrames
+            , dsfmsOffset = offset
+            , dsfmsLength = length
+            , dsfmsChannel = channel
+            }
+   in dsfValidateChannel signalFrames channel $ dsfValidateSection signalFrames offset length section
 
 dsfMultichannelSection :: (DeallocatableSignalFrames dsf f) => dsf -> Word64 -> Word64 -> DSFMultichannelSection dsf f
 dsfMultichannelSection signalFrames offset length =
-   DSFMultichannelSection {
-       dsfmcsSource = signalFrames
-     , dsfmcsOffset = offset
-     , dsfmcsLength = length
-     }
+   let section = 
+          DSFMultichannelSection {
+               dsfmcsSource = signalFrames
+             , dsfmcsOffset = offset
+             , dsfmcsLength = length
+             }
+   in dsfValidateSection signalFrames offset length section
 
 data DSFMonoSection dsf f = DSFMonoSection {
      dsfmsSource :: (DeallocatableSignalFrames dsf f) => dsf
