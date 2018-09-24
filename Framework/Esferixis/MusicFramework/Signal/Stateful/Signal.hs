@@ -51,14 +51,21 @@ class DeallocatableSignalFrames dsf f | dsf -> f where
    dsfFormat :: dsf -> f
    dsfDelete :: dsf -> IO ()
 
+dsfValidateChannel :: (DeallocatableSignalFrames dsf f) => dsf -> Word32 -> a -> a
+dsfValidateChannel signalFrames channel object =
+   if ( channel < dsfChannels signalFrames )
+      then object
+      else error "Invalid channel number"
+
 dsfMonoSection :: (DeallocatableSignalFrames dsf f) => dsf -> Word32 -> Word64 -> Word64 -> DSFMonoSection dsf f
 dsfMonoSection signalFrames channel offset length =
-   DSFMonoSection {
-       dsfmsSource = signalFrames
-     , dsfmsOffset = offset
-     , dsfmsLength = length
-     , dsfmsChannel = channel
-     }
+   dsfValidateChannel signalFrames channel $
+      DSFMonoSection {
+          dsfmsSource = signalFrames
+         , dsfmsOffset = offset
+         , dsfmsLength = length
+         , dsfmsChannel = channel
+         }
 
 dsfMultichannelSection :: (DeallocatableSignalFrames dsf f) => dsf -> Word64 -> Word64 -> DSFMultichannelSection dsf f
 dsfMultichannelSection signalFrames offset length =
