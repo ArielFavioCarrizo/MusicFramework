@@ -7,7 +7,9 @@ module Esferixis.MusicFramework.Signal.Stateful.Signal
      SFSignalChunk
    , SFSignalChunkIO(sfscIOInput, sfscIOOutput)
    , mkSFSignalChunkIO
-   , DeallocatableSignalFrames(dsfChannels, dsfDelete)
+   , DeallocatableSignalFrames(dsfChannels, dsfFormat, dsfDelete)
+   , DSFChannel(dsfcSource, dsfcChannel)
+   , dsfChannel
    ) where
 
 import Data.Word
