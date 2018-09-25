@@ -48,6 +48,11 @@ class (Sectionable dsf) => DeallocatableSignalFrames dsf f | dsf -> f where
    dsfFormat :: dsf -> f
    dsfDelete :: dsf -> IO ()
 
+data DSFChannel dsf f = DSFChannel {
+     dsfcSource :: (DeallocatableSignalFrames dsf f) => dsf
+   , dsfcChannel :: Word32
+   }
+
 dsfValidateChannel :: (DeallocatableSignalFrames dsf f) => dsf -> Word32 -> a -> a
 dsfValidateChannel signalFrames channel object =
    if ( channel < dsfChannels signalFrames )
