@@ -35,6 +35,7 @@ import Control.Monad.IO.Class
 import Esferixis.MusicFramework.Signal.Stateful.Signal
 import Esferixis.Control.Concurrency.AsyncIO
 import Esferixis.Control.Concurrency.Promise
+import Esferixis.MusicFramework.Signal
 
 {-
    Representación de transformador stateful no manejado
@@ -83,7 +84,7 @@ data SFTransformerSt sc = SFTransformerSt {
 sftTickOpPre :: SFTransformerTickOp sc -> ( Word64 -> IO () ) -> SFTransformerTickOp sc
 sftTickOpPre srcTickOp preAction =
    let doOp tickFun input = do
-       preAction $ sfscLength input
+       preAction $ sLength input
        tickFun srcTickOp input
    in SFTransformerTickOp {    
         sftTick = doOp sftTick
@@ -106,7 +107,7 @@ sftTickOpPostCont srcTickOp postAction =
        result <- try $ tickFun srcTickOp input
        postAction $ do
           result
-          return $ sfscLength input
+          return $ sLength input
    in SFTransformerTickOp {    
         sftTick = doOp sftTick
       , sftTickInplace = doOp sftTickInplace

@@ -7,6 +7,9 @@ module Esferixis.MusicFramework.Signal
    (
      Sectionable(sLength)
    , MonomorphicSectionable(sSection)
+   , validateSection
+   , SectionFun
+   , mkSectionFun
    , SignalChunk(
        scLength
      , scSection
@@ -33,12 +36,18 @@ class Sectionable s where
 class (Sectionable s) => MonomorphicSectionable s where
    sSection :: s -> Word64 -> Word64 -> s
 
-validateSection :: (Sectionable s) => s -> Word64 -> Word64 -> a -> a
+validateSection :: (Sectionable s) => s -> Word64 -> Word64 -> r -> r
 validateSection sectionable offset length object =
    let srcLength = sLength sectionable
    in if ( ( offset + length ) < srcLength )
          then object
          else error "Invalid interval"
+
+type SectionFun s r = (Sectionable s) => s -> Word64 -> Word64 -> r
+
+mkSectionFun :: (Sectionable s) => SectionFun s r -> SectionFun s r
+mkSectionFun rawFun = \source offset length ->
+   validateSection source offset length $ rawFun source offset length
 
 {- 
    Representación abstracta de lo que es un chunk de señal

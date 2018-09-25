@@ -3,9 +3,8 @@
 {-# LANGUAGE FunctionalDependencies #-}
 
 module Esferixis.MusicFramework.Signal.Stateful.Signal
-   (
-     SFSignalChunkObject(sfscLength)
-   , SFSignalChunk
+   ( 
+     SFSignalChunk
    , SFSignalChunkIO(sfscIOInput, sfscIOOutput)
    , mkSFSignalChunkIO
    , DeallocatableSignalFrames(dsfChannels, dsfDelete)
@@ -18,11 +17,10 @@ module Esferixis.MusicFramework.Signal.Stateful.Signal
 import Data.Word
 import Data.Maybe
 
-class SFSignalChunkObject sco where
-   sfscLength :: sco -> Word64
+import Esferixis.MusicFramework.Signal
 
 -- Chunk de señal stateful
-class (SFSignalChunkObject sc) => SFSignalChunk sc
+class (Sectionable sc) => SFSignalChunk sc
  
 -- Par E/S
 data SFSignalChunkIO sc = SFSignalChunkIO {
@@ -30,13 +28,13 @@ data SFSignalChunkIO sc = SFSignalChunkIO {
    , sfscIOOutput :: (SFSignalChunk sc) => sc
    }
 
-instance (SFSignalChunk sc) => SFSignalChunkObject (SFSignalChunkIO sc) where
-   sfscLength sfscIOPair = sfscLength $ sfscIOInput sfscIOPair
+instance (SFSignalChunk sc) => Sectionable (SFSignalChunkIO sc) where
+   sLength sfscIOPair = sLength $ sfscIOInput sfscIOPair
 
 -- Hace un par E/S de los chunk de señal especificados
 mkSFSignalChunkIO :: (SFSignalChunk sc) => sc -> sc -> SFSignalChunkIO sc 
 mkSFSignalChunkIO inputChunk outputChunk =
-   if ( (sfscLength inputChunk) == (sfscLength outputChunk ) )
+   if ( (sLength inputChunk) == (sLength outputChunk ) )
       then
          SFSignalChunkIO {
               sfscIOInput = inputChunk
@@ -45,7 +43,7 @@ mkSFSignalChunkIO inputChunk outputChunk =
       else
          error "Chunk size mismatch"
 
-class (SFSignalChunkObject dsf) => DeallocatableSignalFrames dsf f | dsf -> f where
+class (Sectionable dsf) => DeallocatableSignalFrames dsf f | dsf -> f where
    dsfChannels :: dsf -> Word32
    dsfFormat :: dsf -> f
    dsfDelete :: dsf -> IO ()
@@ -56,13 +54,6 @@ dsfValidateChannel signalFrames channel object =
       then object
       else error "Invalid channel number"
 
-dsfValidateSection :: (SFSignalChunkObject sco) => sco -> Word64 -> Word64 -> a -> a
-dsfValidateSection signalFrames offset length object =
-   let srcLength = sfscLength signalFrames
-   in if ( ( offset + length ) < srcLength )
-         then object
-         else error "Invalid interval"
-
 dsfMonoSection :: (DeallocatableSignalFrames dsf f) => dsf -> Word32 -> Word64 -> Word64 -> DSFMonoSection dsf f
 dsfMonoSection signalFrames channel offset length =
    let section =
@@ -72,17 +63,15 @@ dsfMonoSection signalFrames channel offset length =
             , dsfmsLength = length
             , dsfmsChannel = channel
             }
-   in dsfValidateChannel signalFrames channel $ dsfValidateSection signalFrames offset length section
+   in dsfValidateChannel signalFrames channel $ validateSection signalFrames offset length section
 
 dsfMultichannelSection :: (DeallocatableSignalFrames dsf f) => dsf -> Word64 -> Word64 -> DSFMultichannelSection dsf f
-dsfMultichannelSection signalFrames offset length =
-   let section = 
-          DSFMultichannelSection {
-               dsfmcsSource = signalFrames
-             , dsfmcsOffset = offset
-             , dsfmcsLength = length
-             }
-   in dsfValidateSection signalFrames offset length section
+dsfMultichannelSection = mkSectionFun $ \signalFrames offset length ->
+   DSFMultichannelSection {
+        dsfmcsSource = signalFrames
+      , dsfmcsOffset = offset
+      , dsfmcsLength = length
+      }
 
 data DSFMonoSection dsf f = DSFMonoSection {
      dsfmsSource :: (DeallocatableSignalFrames dsf f) => dsf
@@ -91,8 +80,12 @@ data DSFMonoSection dsf f = DSFMonoSection {
    , dsfmsChannel :: Word32
    }
 
-instance SFSignalChunkObject (DSFMonoSection dsf f) where
-   sfscLength = dsfmsLength
+instance Sectionable (DSFMonoSection dsf f) where
+   sLength = dsfmsLength
+
+instance (DeallocatableSignalFrames dsf f) => MonomorphicSectionable (DSFMonoSection dsf f) where
+   sSection = mkSectionFun $ \srcSection offset length ->
+      dsfMonoSection (dsfmsSource srcSection) (dsfmsChannel srcSection) ( (dsfmsOffset srcSection) + offset ) length
 
 data DSFMultichannelSection dsf f = DSFMultichannelSection {
      dsfmcsSource :: (DeallocatableSignalFrames dsf f) => dsf
@@ -100,5 +93,9 @@ data DSFMultichannelSection dsf f = DSFMultichannelSection {
    , dsfmcsLength :: Word64
    }
 
-instance SFSignalChunkObject (DSFMultichannelSection dsf f) where
-   sfscLength = dsfmcsLength
+instance Sectionable (DSFMultichannelSection dsf f) where
+   sLength = dsfmcsLength
+
+instance (DeallocatableSignalFrames dsf f) => MonomorphicSectionable (DSFMultichannelSection dsf f) where
+   sSection = mkSectionFun $ \srcSection offset length ->
+      dsfMultichannelSection (dsfmcsSource srcSection) ( (dsfmcsOffset srcSection) + offset ) length
