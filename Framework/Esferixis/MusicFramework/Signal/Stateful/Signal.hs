@@ -8,10 +8,6 @@ module Esferixis.MusicFramework.Signal.Stateful.Signal
    , SFSignalChunkIO(sfscIOInput, sfscIOOutput)
    , mkSFSignalChunkIO
    , DeallocatableSignalFrames(dsfChannels, dsfDelete)
-   , dsfMonoSection
-   , dsfMultichannelSection
-   , DSFMonoSection(dsfmsSource, dsfmsOffset, dsfmsLength, dsfmsChannel)
-   , DSFMultichannelSection(dsfmcsSource, dsfmcsOffset, dsfmcsLength)
    ) where
 
 import Data.Word
@@ -53,54 +49,15 @@ data DSFChannel dsf f = DSFChannel {
    , dsfcChannel :: Word32
    }
 
-dsfValidateChannel :: (DeallocatableSignalFrames dsf f) => dsf -> Word32 -> a -> a
-dsfValidateChannel signalFrames channel object =
-   if ( channel < dsfChannels signalFrames )
-      then object
-      else error "Invalid channel number"
+instance (DeallocatableSignalFrames dsf f) => Sectionable (DSFChannel dsf f) where
+   sLength dsfChannel = sLength $ dsfcSource dsfChannel
 
-dsfMonoSection :: (DeallocatableSignalFrames dsf f) => dsf -> Word32 -> Word64 -> Word64 -> DSFMonoSection dsf f
-dsfMonoSection signalFrames channel offset length =
-   let section =
-          DSFMonoSection {
-              dsfmsSource = signalFrames
-            , dsfmsOffset = offset
-            , dsfmsLength = length
-            , dsfmsChannel = channel
+dsfChannel :: (DeallocatableSignalFrames dsf f) => dsf -> Word32 -> DSFChannel dsf f
+dsfChannel signalFrames nChannel =
+   if ( nChannel < dsfChannels signalFrames )
+      then
+         DSFChannel {
+              dsfcSource = signalFrames
+            , dsfcChannel = nChannel
             }
-   in dsfValidateChannel signalFrames channel $ validateSection signalFrames offset length section
-
-dsfMultichannelSection :: (DeallocatableSignalFrames dsf f) => dsf -> Word64 -> Word64 -> DSFMultichannelSection dsf f
-dsfMultichannelSection = mkSectionFun $ \signalFrames offset length ->
-   DSFMultichannelSection {
-        dsfmcsSource = signalFrames
-      , dsfmcsOffset = offset
-      , dsfmcsLength = length
-      }
-
-data DSFMonoSection dsf f = DSFMonoSection {
-     dsfmsSource :: (DeallocatableSignalFrames dsf f) => dsf
-   , dsfmsOffset :: Word64
-   , dsfmsLength :: Word64
-   , dsfmsChannel :: Word32
-   }
-
-instance Sectionable (DSFMonoSection dsf f) where
-   sLength = dsfmsLength
-
-instance (DeallocatableSignalFrames dsf f) => MonomorphicSectionable (DSFMonoSection dsf f) where
-   sSection = mkSectionFun $ \srcSection offset length ->
-      dsfMonoSection (dsfmsSource srcSection) (dsfmsChannel srcSection) ( (dsfmsOffset srcSection) + offset ) length
-
-data DSFMultichannelSection dsf f = DSFMultichannelSection {
-     dsfmcsSource :: (DeallocatableSignalFrames dsf f) => dsf
-   , dsfmcsOffset :: Word64
-   , dsfmcsLength :: Word64
-   }
-
-instance Sectionable (DSFMultichannelSection dsf f) where
-   sLength = dsfmcsLength
-
-instance (DeallocatableSignalFrames dsf f) => MonomorphicSectionable (DSFMultichannelSection dsf f) where
-   sSection = mkSectionFun $ \srcSection offset length ->
-      dsfMultichannelSection (dsfmcsSource srcSection) ( (dsfmcsOffset srcSection) + offset ) length
+      else error "Invalid channel number"
