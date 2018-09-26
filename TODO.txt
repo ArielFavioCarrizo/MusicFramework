@@ -1,9 +1,22 @@
 * Expresar filtros de pasabajo, pasaalto, pasabanda, stopbanda y distorsión.
 
-* Expresar instrumentos con abstracción del procesamiento de señales: Guitarra, bajo y batería
+* Expresar instrumentos con abstracción del procesamiento de señales: Guitarra, bajo y batería.
+La representación incluiría los eventos de tocado de dichos instrumentos.
 
-* Implementar sobremuestreo y submuestreo, para evitar 'aliasing' al aplicar la distorsión de la salida de la guitarra
+* Implementar sobremuestreo y submuestreo, para evitar 'aliasing' al aplicar la distorsión de la salida de la guitarra.
+
+* Buscar formas de expresar las notas en dichos instrumentos, con el menor costo computacional posible.
+Tratar que toda expresión de como se tocarían los instrumentos sea secuencial, con listas de Haskell.
+Donde la posición temporal de cada evento sea relativo al evento antecesor, si no es el primero.
+
+* Aplicar abstracciones sobre la representación de las notas, y funciones generales de generación de melodías
+usando los poderosos recursos abstracción de Haskell, como también para casos particulares. Sobretodo con ayuda de la realización
+de composiciones de prueba: En particular probar de componer heavy metal y rock pesado instrumental. Aunque
+también no se excluyen temas acústicos.
 
 * Implementar nexo administrativo entre operaciones y dataflow del procesamiento de señales.
 De tal manera de evitar la menor cantidad posible de clonados cuando hay una dependencia 1 a 1 de unidades
 en el grafo de transformaciones.
+
+* Después, en una fase avanzada, buscar la forma más práctica de incluir voz humana grabada.
+Si es posible, incluir soporte para la incorporación de motores de síntesis de voz humana.
