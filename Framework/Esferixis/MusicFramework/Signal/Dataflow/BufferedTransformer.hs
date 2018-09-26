@@ -1,13 +1,13 @@
 {-# LANGUAGE Rank2Types #-}
 
-module Esferixis.MusicFramework.Signal.BufferedTransformer
+module Esferixis.MusicFramework.Signal.Dataflow.BufferedTransformer
    ( BufferedTransformerOutputState(btsMaxPopChunkLength, btsPopChunk), BufferedTransformerInputState(btsPushChunkLength, btsReducePushChunkLength, btsPushChunk), BufferedTransformerState(btsOutput, btsInput) ) where
 
 import Data.Word
 import Data.Maybe
-import Esferixis.MusicFramework.Signal
-import Esferixis.MusicFramework.Signal.Producer
-import Esferixis.MusicFramework.Signal.Transformer
+import Esferixis.MusicFramework.Signal.Dataflow.Producer
+import Esferixis.MusicFramework.Signal.Dataflow.Transformer
+import Esferixis.MusicFramework.Signal.Dataflow.Misc
 
 {- 
    Representación abstracta de lo que es un transformador con buffering.

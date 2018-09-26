@@ -1,7 +1,7 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Esferixis.MusicFramework.Signal.Stateful.Transformer(
+module Esferixis.MusicFramework.Signal.Operations.Transformer(
      SFTransformerTickOp(
           SFTransformerTickOp
         , sftTick
@@ -32,10 +32,10 @@ import Data.Word
 import Data.Maybe
 import Control.Exception
 import Control.Monad.IO.Class
-import Esferixis.MusicFramework.Signal.Stateful.Signal
+import Esferixis.MusicFramework.Signal.Misc
+import Esferixis.MusicFramework.Signal.Operations.Signal
 import Esferixis.Control.Concurrency.AsyncIO
 import Esferixis.Control.Concurrency.Promise
-import Esferixis.MusicFramework.Signal
 
 {-
    Representación de transformador stateful no manejado

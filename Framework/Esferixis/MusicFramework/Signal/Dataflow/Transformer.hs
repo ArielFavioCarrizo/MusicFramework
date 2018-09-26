@@ -1,12 +1,12 @@
 {-# LANGUAGE Rank2Types #-}
 
-module Esferixis.MusicFramework.Signal.Transformer
+module Esferixis.MusicFramework.Signal.Dataflow.Transformer
    ( TransformerState(TransformerState, tsChunkLength, tsReduceChunkLength, tsTransform) ) where
 
 import Data.Word
 import Data.Maybe
-import Esferixis.MusicFramework.Signal
-import Esferixis.MusicFramework.Signal.Producer
+import Esferixis.MusicFramework.Signal.Dataflow.Producer
+import Esferixis.MusicFramework.Signal.Dataflow.Misc
 
 {- 
    Representación abstracta de lo que es un transformador.

@@ -1,11 +1,11 @@
 {-# LANGUAGE Rank2Types #-}
 
-module Esferixis.MusicFramework.Signal.Producer
+module Esferixis.MusicFramework.Signal.Dataflow.Producer
    ( ProducerState(ProducerState, psChunkLength, psReduceChunkLength, psPopChunk) ) where
 
 import Data.Word
 import Data.Maybe
-import Esferixis.MusicFramework.Signal
+import Esferixis.MusicFramework.Signal.Dataflow.Misc
 
 {- 
    Representación abstracta de lo que es un estado de productor.

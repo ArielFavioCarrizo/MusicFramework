@@ -1,7 +1,7 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Esferixis.MusicFramework.Signal.Stateful.Producer
+module Esferixis.MusicFramework.Signal.Operations.Producer
    (
      SFProducer(SFProducer, sfpNewInstance)
    , SFProducerSt(SFProducerSt, sfpMaxFrames, sfpTick, sfpDelete)
@@ -9,7 +9,7 @@ module Esferixis.MusicFramework.Signal.Stateful.Producer
 
 import Data.Word
 import Data.Maybe
-import Esferixis.MusicFramework.Signal.Stateful.Signal
+import Esferixis.MusicFramework.Signal.Operations.Signal
 import Esferixis.Control.Concurrency.AsyncIO
 
 {-

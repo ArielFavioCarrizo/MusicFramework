@@ -2,7 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module Esferixis.MusicFramework.Signal.Stateful.Signal
+module Esferixis.MusicFramework.Signal.Operations.Signal
    ( 
      SFSignalChunk
    , SFSignalChunkIO(sfscIOInput, sfscIOOutput)
@@ -15,7 +15,7 @@ module Esferixis.MusicFramework.Signal.Stateful.Signal
 import Data.Word
 import Data.Maybe
 
-import Esferixis.MusicFramework.Signal
+import Esferixis.MusicFramework.Signal.Misc
 
 -- Chunk de señal stateful
 class (Sectionable sc) => SFSignalChunk sc
