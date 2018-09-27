@@ -10,7 +10,7 @@ module Esferixis.MusicFramework.Signal.Operations.Transformer(
    , SFTransformerSt(
           SFTransformerSt
         , sftMaxFrames
-        , sftDoTicksOp
+        , sftTick
         , sftDelete
         )
    ) where
@@ -44,7 +44,7 @@ data SFTransformerSt sc = SFTransformerSt {
         Si la transformación de señal termina devuelve Nothing
         y se destruye el transformador.
      -}
-   , sftDoTicksOp :: (SFSignalChunk sc) => SFTransformerTickOp sc -> AsyncIO ( Future (), Maybe (SFTransformerSt sc) )
+   , sftTick :: (SFSignalChunk sc) => SFTransformerTickOp sc -> AsyncIO ( Future (), Maybe (SFTransformerSt sc) )
      -- Destruye el transformador
    , sftDelete :: AsyncIO ()
    }
