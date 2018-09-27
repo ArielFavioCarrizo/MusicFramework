@@ -31,7 +31,7 @@ data SFProducerSt sc = SFProducerSt {
         Si el stream de entrada se termina devuelve Nothing y se destruye
         el productor.
 
-        Devuelve el futuro de la operación y el próximo estado
+        Devuelve el futuro del resultado de la operación y el próximo estado.
      -}
    , sfpTick :: (SFSignalChunk sc) => sc -> AsyncIO ( Maybe ( Future (), SFProducerSt sc ) )
    , sfpDelete :: AsyncIO () -- Destruye el productor.

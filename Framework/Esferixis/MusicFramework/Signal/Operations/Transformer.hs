@@ -46,7 +46,9 @@ data SFTransformerSt sc = SFTransformerSt {
      {-
         Operación de transformado de frames
         Si la transformación de señal termina devuelve Nothing
-        y se destruye el transformador
+        y se destruye el transformador.
+       
+        Devuelve el futuro del resultado de la operación y el próximo estado.
      -}
    , sftDoTicksOp :: (SFSignalChunk sc) => ( SFTransformerTickOp sc -> IO () ) -> AsyncIO ( Maybe ( Future (), SFTransformerSt sc ) )
      -- Destruye el transformador
