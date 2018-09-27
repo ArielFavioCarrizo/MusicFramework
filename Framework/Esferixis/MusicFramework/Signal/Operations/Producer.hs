@@ -27,12 +27,12 @@ data SFProducer sc = SFProducer {
 data SFProducerSt sc = SFProducerSt {
      sfpMaxFrames :: Word64 -- Máxima cantidad de frames con los que puede operar en el tick
      {-
-        Escribe en el chunk especificado y pasa al siguiente estado
-        Si el stream de entrada se termina devuelve Nothing y se destruye
-        el productor.
-
+        Escribe en el chunk especificado y pasa al siguiente estado.
         Devuelve el futuro del resultado de la operación y el próximo estado.
+
+        Si el stream de entrada se termina el próximo estado es Nothing y se destruye
+        el productor.
      -}
-   , sfpTick :: (SFSignalChunk sc) => sc -> AsyncIO ( Maybe ( Future (), SFProducerSt sc ) )
+   , sfpTick :: (SFSignalChunk sc) => sc -> AsyncIO ( Future (), Maybe (SFProducerSt sc) )
    , sfpDelete :: AsyncIO () -- Destruye el productor.
    }

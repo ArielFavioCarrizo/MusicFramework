@@ -44,13 +44,14 @@ data SFTransformerSt sc = SFTransformerSt {
      -- Máxima cantidad de frames con los que puede operar en el en el tick
      sftMaxFrames :: Word64
      {-
-        Operación de transformado de frames
+        Operación de transformado de frames con la función que realiza
+        una operación de tick.
+        Devuelve el futuro del resultado de la operación y el próximo estado.
+
         Si la transformación de señal termina devuelve Nothing
         y se destruye el transformador.
-       
-        Devuelve el futuro del resultado de la operación y el próximo estado.
      -}
-   , sftDoTicksOp :: (SFSignalChunk sc) => ( SFTransformerTickOp sc -> IO () ) -> AsyncIO ( Maybe ( Future (), SFTransformerSt sc ) )
+   , sftDoTicksOp :: (SFSignalChunk sc) => ( SFTransformerTickOp sc -> IO () ) -> AsyncIO ( Future (), Maybe (SFTransformerSt sc) )
      -- Destruye el transformador
    , sftDelete :: AsyncIO ()
    }
