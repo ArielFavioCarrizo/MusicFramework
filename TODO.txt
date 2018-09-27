@@ -1,22 +1,24 @@
-* Expresar filtros de pasabajo, pasaalto, pasabanda, stopbanda y distorsi髇.
+* Reificar transformador stateful: Trabajar con una secuencia de entrega de futuros en AsyncIO por funci贸n de procesamiento de chunk en IO.
 
-* Expresar instrumentos con abstracci髇 del procesamiento de se馻les: Guitarra, bajo y bater韆.
-La representaci髇 incluir韆 los eventos de tocado de dichos instrumentos.
+* Expresar filtros de pasabajo, pasaalto, pasabanda, stopbanda y distorsi贸n.
 
-* Implementar sobremuestreo y submuestreo, para evitar 'aliasing' al aplicar la distorsi髇 de la salida de la guitarra.
+* Expresar instrumentos con abstracci贸n del procesamiento de se帽ales: Guitarra, bajo y bater铆a.
+La representaci贸n incluir铆a los eventos de tocado de dichos instrumentos.
+
+* Implementar sobremuestreo y submuestreo, para evitar 'aliasing' al aplicar la distorsi贸n de la salida de la guitarra.
 
 * Buscar formas de expresar las notas en dichos instrumentos, con el menor costo computacional posible.
-Tratar que toda expresi髇 de como se tocar韆n los instrumentos sea secuencial, con listas de Haskell.
-Donde la posici髇 temporal de cada evento sea relativo al evento antecesor, si no es el primero.
+Tratar que toda expresi贸n de como se tocar铆an los instrumentos sea secuencial, con listas de Haskell.
+Donde la posici贸n temporal de cada evento sea relativo al evento antecesor, si no es el primero.
 
-* Aplicar abstracciones sobre la representaci髇 de las notas, y funciones generales de generaci髇 de melod韆s
-usando los poderosos recursos abstracci髇 de Haskell, como tambi閚 para casos particulares. Sobretodo con ayuda de la realizaci髇
+* Aplicar abstracciones sobre la representaci贸n de las notas, y funciones generales de generaci贸n de melod铆as
+usando los poderosos recursos abstracci贸n de Haskell, como tambi茅n para casos particulares. Sobretodo con ayuda de la realizaci贸n
 de composiciones de prueba: En particular probar de componer heavy metal y rock pesado instrumental. Aunque
-tambi閚 no se excluyen temas ac鷖ticos.
+tambi茅n no se excluyen temas ac煤sticos.
 
-* Implementar nexo administrativo entre operaciones y dataflow del procesamiento de se馻les.
+* Implementar nexo administrativo entre operaciones y dataflow del procesamiento de se帽ales.
 De tal manera de evitar la menor cantidad posible de clonados cuando hay una dependencia 1 a 1 de unidades
 en el grafo de transformaciones.
 
-* Despu閟, en una fase avanzada, buscar la forma m醩 pr醕tica de incluir voz humana grabada.
-Si es posible, incluir soporte para la incorporaci髇 de motores de s韓tesis de voz humana.
+* Despu茅s, en una fase avanzada, buscar la forma m谩s pr谩ctica de incluir voz humana grabada.
+Si es posible, incluir soporte para la incorporaci贸n de motores de s铆ntesis de voz humana.
