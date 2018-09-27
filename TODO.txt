@@ -1,26 +1,32 @@
-* Implementar ejecutador asÃ­ncrono de acciones AsyncIO que va recibiendo acciones, y da el resultado al terminar de ejecutar las acciones.
+* Aspecto operacional del procesamiento de señales:
+	- Definir productor y transformador stateful
+        - Definir transformador stateless
+        - A partir de dichas definiciones, implementar la fabricación de los productores y transformadores
 
-* Reificar transformador stateful: Trabajar con una secuencia de entrega de futuros en AsyncIO por funciÃ³n de procesamiento de chunk en IO.
+* Implementar ejecutador así­ncrono de cadenas de acciones de AsyncIO que va recibiendo acciones, y da el resultado al terminar de ejecutar las acciones.
+Se usará en principio para la implementación de productores y transformadores.
 
-* Expresar filtros de pasabajo, pasaalto, pasabanda, stopbanda y distorsiÃ³n.
+* Expresar filtros de pasabajo, pasaalto, pasabanda, stopbanda y distorsión.
 
-* Expresar instrumentos con abstracciÃ³n del procesamiento de seÃ±ales: Guitarra, bajo y baterÃ­a.
-La representaciÃ³n incluirÃ­a los eventos de tocado de dichos instrumentos.
+* Expresar instrumentos con abstracción del procesamiento de seÃ±ales: Guitarra, bajo y baterÃ­a.
+La representación incluirÃ­a los eventos de tocado de dichos instrumentos.
 
-* Implementar sobremuestreo y submuestreo, para evitar 'aliasing' al aplicar la distorsiÃ³n de la salida de la guitarra.
+* Implementar sobremuestreo y submuestreo, para evitar 'aliasing' al aplicar la distorsión de la salida de la guitarra.
 
-* Buscar formas de expresar las notas en dichos instrumentos, con el menor costo computacional posible.
-Tratar que toda expresiÃ³n de como se tocarÃ­an los instrumentos sea secuencial, con listas de Haskell.
-Donde la posiciÃ³n temporal de cada evento sea relativo al evento antecesor, si no es el primero.
+* Buscar formas de expresar las notas en dichos instrumentos, con el menor costo computacional posible:
+- Tratar que toda expresión de como se tocarán los instrumentos sea secuencial, con listas de Haskell.
+Donde la posición temporal de cada evento sea relativo al evento antecesor, si no es el primero.
+Así mismo, también de los eventos de la manipulación de las transformaciones.
+- Implementar pitch bending.
 
-* Aplicar abstracciones sobre la representaciÃ³n de las notas, y funciones generales de generaciÃ³n de melodÃ­as
-usando los poderosos recursos abstracciÃ³n de Haskell, como tambiÃ©n para casos particulares. Sobretodo con ayuda de la realizaciÃ³n
-de composiciones de prueba: En particular probar de componer heavy metal y rock pesado instrumental. Aunque
-tambiÃ©n no se excluyen temas acÃºsticos.
+* Aplicar abstracciones sobre la representación de las notas, y funciones generales de generación de melodí­as
+usando los poderosos recursos abstracción de Haskell, como también para casos particulares. Sobretodo con ayuda de la realización
+de composiciones de prueba: En particular probar de componer heavy metal y rock pesado instrumental en principio, aunque también no se excluyen temas acústicos.
+Después probar de componer música electrónica.
 
-* Implementar nexo administrativo entre operaciones y dataflow del procesamiento de seÃ±ales.
+* Implementar nexo administrativo entre operaciones y dataflow del procesamiento de señales.
 De tal manera de evitar la menor cantidad posible de clonados cuando hay una dependencia 1 a 1 de unidades
 en el grafo de transformaciones.
 
-* DespuÃ©s, en una fase avanzada, buscar la forma mÃ¡s prÃ¡ctica de incluir voz humana grabada.
-Si es posible, incluir soporte para la incorporaciÃ³n de motores de sÃ­ntesis de voz humana.
+* Después, en una fase avanzada, buscar la forma más práctica de incluir voz humana grabada.
+Si es posible, incluir soporte para la incorporación de motores de sí­ntesis de voz humana.

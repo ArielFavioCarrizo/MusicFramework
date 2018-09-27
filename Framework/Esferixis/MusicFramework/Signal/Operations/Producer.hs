@@ -1,23 +1,23 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Esferixis.MusicFramework.Signal.Operations.Producer
-   (
+module Esferixis.MusicFramework.Signal.Operations.Producer(
      SFProducer(SFProducer, sfpNewInstance)
    , SFProducerSt(SFProducerSt, sfpMaxFrames, sfpTick, sfpDelete)
    ) where
 
 import Data.Word
 import Data.Maybe
-import Esferixis.MusicFramework.Signal.Operations.Signal
 import Esferixis.Control.Concurrency.AsyncIO
+import Esferixis.Control.Concurrency.Promise
+import Esferixis.MusicFramework.Signal.Operations.Signal
 
 {-
    Representación de productor stateful no manejado
 -}
-data SFProducer m sc = SFProducer {
+data SFProducer sc = SFProducer {
      -- Crea una instancia del productor. Si el stream es vacío el productor no sea crea.
-     sfpNewInstance :: SFProducer m sc -> m ( Maybe ( SFProducer m sc ) )
+     sfpNewInstance :: (SFSignalChunk sc) => SFProducer sc -> AsyncIO ( Maybe ( SFProducer sc ) )
    }
 
 {- 
@@ -25,12 +25,14 @@ data SFProducer m sc = SFProducer {
    no manejado
 -}
 data SFProducerSt sc = SFProducerSt {
-     sfpMaxFrames :: Word64 -- Máxima cantidad de frames que puede recibir
+     sfpMaxFrames :: Word64 -- Máxima cantidad de frames con los que puede operar en el tick
      {-
         Escribe en el chunk especificado y pasa al siguiente estado
         Si el stream de entrada se termina devuelve Nothing y se destruye
-        el productor
+        el productor.
+
+        Devuelve el futuro de la operación y el próximo estado
      -}
-   , sfpTick :: (SFSignalChunk sc) => sc -> AsyncIO ( Maybe ( SFProducerSt sc ) )
+   , sfpTick :: (SFSignalChunk sc) => sc -> AsyncIO ( Maybe ( Future (), SFProducerSt sc ) )
    , sfpDelete :: AsyncIO () -- Destruye el productor.
    }
