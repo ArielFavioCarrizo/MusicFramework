@@ -1,3 +1,5 @@
+* Implementar ejecutador asíncrono de acciones AsyncIO que va recibiendo acciones, y da el resultado al terminar de ejecutar las acciones.
+
 * Reificar transformador stateful: Trabajar con una secuencia de entrega de futuros en AsyncIO por función de procesamiento de chunk en IO.
 
 * Expresar filtros de pasabajo, pasaalto, pasabanda, stopbanda y distorsión.
