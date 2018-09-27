@@ -32,7 +32,7 @@ data SFTransformer sc = SFTransformer { sftNewInstance :: AsyncIO ( Maybe ( SFTr
 {-
    Operación de transformación de sección de chunk
 -}
-data SFTransformerTickOp sc = SFTransformerPureTickOp ( SFSignalChunkIO sc ) | SFTransformerInplaceTickOp ( SFSignalChunkIO sc )
+data SFTransformerTickOp sc = SFTransformerPureTickOp ( SFSignalChunkIO sc ) | SFTransformerInplaceTickOp sc
 
 data SFTransformerSt sc = SFTransformerSt {
      -- Máxima cantidad de frames con los que puede operar en el en el tick
