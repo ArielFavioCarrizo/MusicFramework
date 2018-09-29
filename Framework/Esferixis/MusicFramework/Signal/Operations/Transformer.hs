@@ -9,11 +9,11 @@ module Esferixis.MusicFramework.Signal.Operations.Transformer(
         )
    , SFTransformerSt(
           SFReadyTransformerSt
-        , SFTerminatedTransformerSt
         , sftMaxFrames
         , sftPushTickOp
         , sftDoPendingOps
         , sftTerminate
+        , SFTerminatedTransformerSt
         )
    ) where
 
@@ -45,13 +45,13 @@ data SFTransformerSt sc =
         {-
            Agrega la operación de tick con el tamaño de chunk,
            la acción AsyncIO de recepción de operación de tick,
-           y una función que recibe una acción que se realiza
-           cuando termina de realizarse el tick y da
+           y una función que recibe una acción que devuelve el futuro
+           de la próxima operación cuando termina de realizarse el tick y da
            como resultado otra acción AsyncIO.
 
            Devuelve el próximo estado.
          -}
-      , sftPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( Future ( SFTransformerTickOp sc ) ) -> ( AsyncIO () -> AsyncIO () ) -> SFTransformerSt sc
+      , sftPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( Future ( SFTransformerTickOp sc ) ) -> ( AsyncIO ( Future () ) -> AsyncIO () ) -> SFTransformerSt sc
         -- Realiza las acciones pendientes y devuelve el próximo estado
       , sftDoPendingOps :: AsyncIO ( SFTransformerSt sc )
         {-
