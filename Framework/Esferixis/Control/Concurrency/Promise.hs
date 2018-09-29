@@ -10,6 +10,7 @@ module Esferixis.Control.Concurrency.Promise(
    , newCompletedFuture
    , newFuture
    , pSet
+   , pSetFromResult
    , pFuture
    , fGet
    , fWait
@@ -56,14 +57,18 @@ newFuture action = do
 -- Completa la promesa con la acción especificada
 pSet :: Promise a -> IO a -> IO ()
 pSet (Promise stateMVar) ioaction = do
-   value <- try ioaction
+   result <- try ioaction
+   pSetFromResult (Promise stateMVar) result
 
+-- Completa la promesa con un resultado de acción
+pSetFromResult :: Promise a -> FutureValue a -> IO ()
+pSetFromResult (Promise stateMVar) result = do
    notifyActions <- modifyMVar stateMVar $ \state ->
       case state of
-         UnitializedPromiseState notifyActions -> return (InitializedPromiseState value, notifyActions)
+         UnitializedPromiseState notifyActions -> return (InitializedPromiseState result, notifyActions)
          InitializedPromiseState value -> fail "Cannot set value when it has been set"
 
-   pNotifyValue notifyActions value
+   pNotifyValue notifyActions result
 
 -- Devuelve el futuro de la promesa
 pFuture :: Promise a -> Future a
