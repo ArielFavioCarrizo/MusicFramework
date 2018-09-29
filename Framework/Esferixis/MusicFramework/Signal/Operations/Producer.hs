@@ -41,14 +41,14 @@ data SFProducerSt sc =
            como resultado otra acción AsyncIO.
 
            Devuelve el próximo estado.
-         -}
+        -}
       , sfpPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( sc ) -> ( AsyncIO ( Future () ) -> AsyncIO () ) -> SFProducerSt sc
         -- Realiza las acciones pendientes y devuelve el próximo estado
       , sftDoPendingOps :: AsyncIO ( SFProducerSt sc )
         {-
            Termina el uso del transformador, devolviendo
            una acción que realiza todas las operaciones pendientes
-         -}
+        -}
       , sfpTerminate :: AsyncIO ()
       } |
    -- Estado de productor que necesita que se hagan las operaciones pendientes para avanzar
