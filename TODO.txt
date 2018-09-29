@@ -8,7 +8,7 @@ Se usará en principio para la implementación de productores y transformadores.
 
 * Expresar filtros de pasabajo, pasaalto, pasabanda, stopbanda y distorsión.
 
-* Expresar instrumentos con abstracción del procesamiento de seÃ±ales: Guitarra, bajo y baterÃ­a.
+* Expresar instrumentos con abstracción del procesamiento de señales: Guitarra, bajo y batería.
 La representación incluirÃ­a los eventos de tocado de dichos instrumentos.
 
 * Implementar sobremuestreo y submuestreo, para evitar 'aliasing' al aplicar la distorsión de la salida de la guitarra.
