@@ -2,16 +2,15 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Esferixis.MusicFramework.Signal.Operations.Transformer(
-     SFTransformer(SFTransformer, sftNewInstance)
+     SFTransformer(SFTransformer, sftFirstState)
    , SFTransformerTickOp(
           SFTransformerPureTickOp
         , SFTransformerInplaceTickOp
         )
    , SFTransformerSt(
-          SFTransformerSt
-        , sftMaxFrames
-        , sftTick
-        , sftDelete
+          sftMaxFrames
+        , sftTickOp
+        , sftDeleteOp
         )
    ) where
 
@@ -27,7 +26,7 @@ import Esferixis.MusicFramework.Signal.Operations.Signal
 {-
    Representación de transformador stateful no manejado
 -}
-data SFTransformer sc = SFTransformer { sftNewInstance :: AsyncIO ( Maybe ( SFTransformerSt sc ) ) }
+data SFTransformer sc = SFTransformer { sftFirstState :: Maybe ( SFTransformerSt sc ) }
 
 {-
    Operación de transformación de sección de chunk
@@ -37,15 +36,21 @@ data SFTransformerTickOp sc = SFTransformerPureTickOp ( SFSignalChunkIO sc ) | S
 data SFTransformerSt sc = SFTransformerSt {
      -- Máxima cantidad de frames con los que puede operar en el tick
      sftMaxFrames :: Word64
-     {-
-        Operación de transformado de frames con la operación de tick, y el futuro de operación
-	anterior sobre el chunk especificado.
-        Devuelve el futuro del resultado de la operación y el próximo estado.
-
-        Si la transformación de señal termina devuelve Nothing
-        y se destruye el transformador.
-     -}
-   , sftTick :: (SFSignalChunk sc) => ( SFTransformerTickOp sc, Future () ) -> AsyncIO ( Future (), Maybe (SFTransformerSt sc) )
-     -- Destruye el transformador
-   , sftDelete :: AsyncIO ()
+     -- Agrega una operación de tick con el tamaño de chunk especificado
+   , sftTickOp :: (SFSignalChunk sc) => Word64 -> SFTransformerOp sc
+     -- Agrega una operación de eliminación del transformador
+   , sftDeleteOp :: SFTransformerOp sc
    }
+
+data SFTransformerOp sc =
+   {-
+      Operación de transformado de frames con la operación de tick, y el futuro de operación
+      anterior sobre el chunk especificado.
+      Devuelve el futuro del resultado de la operación y el próximo estado.
+
+      Si la transformación de señal termina devuelve Nothing
+      y se destruye el transformador.
+   -}
+   SFTransformerTickOp ( (SFSignalChunk sc) => ( SFTransformerTickOp sc, Future () ) -> AsyncIO ( Future (), Maybe (SFTransformerOp sc) ) ) |
+   -- Elimina el transformador
+   SFTransformerDeleteOp ( AsyncIO () )
