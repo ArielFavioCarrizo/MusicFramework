@@ -45,12 +45,13 @@ data SFTransformerSt sc =
         {-
            Agrega la operación de tick con el tamaño de chunk,
            la acción AsyncIO de recepción de operación de tick,
-           y una función que dado el resultado del procesamiento
-           devuelve otra acción AsyncIO a realizar.
+           y una función que recibe una acción que se realiza
+           cuando termina de realizarse el tick y da
+           como resultado otra acción AsyncIO.
 
            Devuelve el próximo estado.
          -}
-      , sftPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( SFTransformerTickOp sc ) -> ( FutureValue () -> AsyncIO () ) -> SFTransformerSt sc
+      , sftPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( Future ( SFTransformerTickOp sc ) ) -> ( AsyncIO () -> AsyncIO () ) -> SFTransformerSt sc
         -- Realiza las acciones pendientes y devuelve el próximo estado
       , sftDoPendingOps :: AsyncIO ( SFTransformerSt sc )
         {-
