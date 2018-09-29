@@ -29,7 +29,7 @@ import Esferixis.MusicFramework.Signal.Operations.Signal
 {-
    Representación de transformador puro con operaciones stateful
 -}
-data SFTransformer sc = SFTransformer { sftFirstState :: Maybe ( SFTransformerSt sc ) }
+data SFTransformer sc = SFTransformer { sftFirstState :: SFTransformerSt sc }
 
 {-
    Operación de transformación de chunk
