@@ -36,13 +36,16 @@ data SFProducerSt sc =
         {-
            Agrega la operación de tick con el tamaño de chunk,
            la acción AsyncIO de recepción de operación de tick,
-           y una función que recibe una acción que se realiza
-           cuando termina de realizarse el tick y da
-           como resultado otra acción AsyncIO.
+           y una función que recibe una acción que realiza
+           el tick.
+           Ésta devuelve el futuro de la compleción del tick
+           y la continuación del productor.
+           Dependiendo de la implementación, la continuación puede bloquear.
+           Con éstos dos elementos construye una acción compuesta.
 
            Devuelve el próximo estado.
         -}
-      , sfpPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( sc ) -> ( AsyncIO ( Future () ) -> AsyncIO () ) -> SFProducerSt sc
+      , sfpPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO sc -> ( AsyncIO ( Future (), AsyncIO () ) -> AsyncIO () ) -> SFProducerSt sc
         -- Realiza las acciones pendientes y devuelve el próximo estado
       , sftDoPendingOps :: AsyncIO ( SFProducerSt sc )
         {-

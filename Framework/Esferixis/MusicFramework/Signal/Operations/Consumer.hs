@@ -35,13 +35,16 @@ data SFConsumerSt sc =
         {-
            Agrega la operación de tick con el tamaño de chunk,
            la acción AsyncIO de recepción de chunk,
-           y una función que recibe una acción que se realiza
-           cuando termina de realizarse el tick y da
-           como resultado otra acción AsyncIO.
+           y una función que recibe la acción que realiza
+           la operación de tick.
+           Ésta da el futuro de la compleción del tick, y la
+           continuación del consumo.
+           Dependiendo de la implementación, la continuación puede bloquear.
+           Con éstos dos elementos construye una acción compuesta.
 
            Devuelve el próximo estado.
         -}
-      , sfcPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO sc -> ( AsyncIO () -> AsyncIO () ) -> SFConsumerSt sc
+      , sfcPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO (Future sc) -> ( AsyncIO ( Future (), AsyncIO () ) -> AsyncIO () ) -> SFConsumerSt sc
         -- Realiza las acciones pendientes y devuelve el próximo estado
       , sfcDoPendingOps :: AsyncIO ( SFConsumerSt sc )
         {-

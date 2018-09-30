@@ -1,6 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE GADTs #-}
 
 module Esferixis.Control.Concurrency.Promise(
      FutureValue
@@ -21,6 +22,7 @@ import Data.Mutable
 import Control.Exception
 import Control.Concurrent.MVar
 import Esferixis.Control.IO
+import Data.Functor
 
 type FutureValue a = Either SomeException a
 
@@ -33,7 +35,10 @@ data PromiseState a = UnitializedPromiseState (BDeque RealWorld (FutureValue a -
 
 data Promise a = Promise (MVar (PromiseState a))
 
-data Future a = VariableFuture (MVar (PromiseState a)) | CompletedFuture (FutureValue a)
+data Future a where
+   VariableFuture :: MVar (PromiseState a) -> Future a
+   CompletedFuture :: FutureValue a -> Future a
+   MappedFuture :: Future b -> ( b -> a ) -> Future a
 
 newPromise :: IO (Promise a)
 newPromise = do
@@ -86,6 +91,13 @@ fGet (VariableFuture stateMVar) callback = do
 
    nextAction
 fGet (CompletedFuture value) callback = callback value
+fGet (MappedFuture srcFuture fun) callback =
+   fGet srcFuture $ \srcValue ->
+      callback ( srcValue >>= \value -> return $ fun value )
+
+-- Un valor futuro es un functor
+instance Functor Future where
+   fmap fun srcFuture = MappedFuture srcFuture fun
 
 -- Bloquea el thread hasta que el futuro se complete
 fWait :: Future a -> IO a
