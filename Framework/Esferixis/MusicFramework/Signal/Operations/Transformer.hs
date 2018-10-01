@@ -118,18 +118,16 @@ instance (SFSignalChunk sc) => SFTransformerStConvertible sc (SFTVTransformerSt 
          } =
              SFReadyTransformerSt {
                   sftMaxFrames = srcMaxFrames
-                , sftPushTickOp = \chunkLength dstDoPrevOp dstMkClientOp ->
-                     let srcDoPrevOp = dstDoPrevOp >>= await
+                , sftPushTickOp = \chunkLength dstMkCmd dstMkClientOp ->
+                     let srcMkCmd = dstMkCmd >>= await
                          srcMkClientOp = \srcDoOp ->
                             dstMkClientOp $ do
                                srcDoOpFuture <- async srcDoOp
                                
                                return ( void srcDoOpFuture, join $ await srcDoOpFuture )
 
-                     in mkSFTransformerSt $ srcPushTickOp chunkLength srcDoPrevOp srcMkClientOp
-                , sftDoPendingOps = do
-                     srcNewState <- srcDoPendingOps
-                     return $ mkSFTransformerSt $ srcNewState
+                     in mkSFTransformerSt $ srcPushTickOp chunkLength srcMkCmd srcMkClientOp
+                , sftDoPendingOps = liftM mkSFTransformerSt srcDoPendingOps
                 , sftTerminate = srcTerminate
                 }
    mkSFTransformerSt (SFTVTerminatedTDTransformerSt pendingActions) = SFTerminatedTransformerSt $ pendingActions

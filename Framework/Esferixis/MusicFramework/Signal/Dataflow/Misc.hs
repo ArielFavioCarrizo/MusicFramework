@@ -9,9 +9,8 @@ module Esferixis.MusicFramework.Signal.Dataflow.Misc
      , scSection
      , scAppend
      , scSplitRef
-     , scZero
+     , scEmpty
      )
-   , scEmpty
    , scIsEmpty
    , scCheckSameLength
    , SignalProcessorState(
@@ -40,13 +39,10 @@ class (Monad m) => SignalChunk m sc | sc -> m where
    scSection :: sc -> Word64 -> Word64 -> m sc -- Devuelve la sección con el offset y la longitud especificados
    scAppend :: sc -> sc -> m sc -- Toma dos chunks y genera un chunk nuevo uniendo el primer chunk con el segundo
    scSplitRef :: sc -> m (sc, sc) -- Divide la referencia del chunk en dos referencias
-   scZero :: Word64 -> m sc -- Genera un chunk silencioso con la longitud especificada
-
-scEmpty :: (SignalChunk m sc) => m sc
-scEmpty = scZero 0
+   scEmpty :: m sc -- Produce un chunk vacío
 
 scIsEmpty :: (SignalChunk m sc) => sc -> Bool
-scIsEmpty signalChunk = (scLength signalChunk == 0 )
+scIsEmpty signalChunk = (scLength signalChunk == 0)
 
 scCheckSameLength :: (SignalChunk m sc) => sc -> Word64 -> m ()
 scCheckSameLength signalChunk expectedLength = do
