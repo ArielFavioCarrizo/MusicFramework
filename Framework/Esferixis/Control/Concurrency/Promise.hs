@@ -92,8 +92,12 @@ fGet (VariableFuture stateMVar) callback = do
    nextAction
 fGet (CompletedFuture value) callback = callback value
 fGet (MappedFuture srcFuture fun) callback =
-   fGet srcFuture $ \srcValue ->
-      callback ( srcValue >>= \value -> return $ fun value )
+   fGet srcFuture $ \srcValue -> do
+      dstValue <- case srcValue of
+         Right value -> try $ evaluate $ fun value
+         Left e -> return $ Left e
+
+      callback dstValue
 
 -- Un valor futuro es un functor
 instance Functor Future where
