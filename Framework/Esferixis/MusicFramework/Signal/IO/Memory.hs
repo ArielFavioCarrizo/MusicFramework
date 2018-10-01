@@ -6,9 +6,11 @@
 module Esferixis.MusicFramework.Signal.IO.Memory(
      ShareableSection(
           ShareableSection
-        , ssOffset
+        , ssRelativeOffset
         , ssLength
+        , ssSplit
         , ssDoAction
+        , ssNextSection
         )
    ) where
 
@@ -23,15 +25,23 @@ import Esferixis.MusicFramework.Signal.Operations.Signal
 data SharingMode = Immutable | Mutable
 
 data ShareableSection m = ShareableSection {
-     ssRelativeOffset :: Word64 -- ATENCIÓN: Offset relativo a sección anterior
-   , ssLength :: Word64 -- Longitud del offset
-   , ssDoAction :: (Monad m) => SharingMode -> m ( m () ) -- Acción que realiza la operación asincrónicamente y devuelve una acción que espera por ella
+     -- Offset relativo a sección anterior
+     ssRelativeOffset :: Word64
+     -- Longitud del offset
+   , ssLength :: Word64
+     -- Parte la sección en el offset especificado. Devuelve la primer parte de la sección, la segunda parte y las demás secciones vienen después de ésta.
+   , ssSplit :: Word64 -> ShareableSection m
+     -- Dado en modo de compartición devuelve una acción que realiza la operación asociada asincrónicamente y devuelve una acción que espera por ella
+   , ssDoAction :: (Monad m) => SharingMode -> m ( m () )
+     -- Devuelve a sección siguiente
+   , ssNextSection :: ShareableSection m
    }
 
 {-
-   Dada una lista de secciones devuelve una acción
-   que realiza las acciones de cada sección asincrónicamente
+   Dada la primer sección devuelve una acción
+   que realiza las acciones de la sección y
+   sus siguientes asincrónicamente,
    y devuelve otra acción que espera por ellas
 -}
-performWithSharedSectionable :: (Monad m) => [ShareableSection m] -> m ( m () )
-performWithSharedSectionable sections = return $ return () -- FIXME: Implementar
+performWithSharedSectionable :: (Monad m) => ShareableSection m -> m ( m () )
+performWithSharedSectionable firstSection = return $ return () -- FIXME: Implementar
