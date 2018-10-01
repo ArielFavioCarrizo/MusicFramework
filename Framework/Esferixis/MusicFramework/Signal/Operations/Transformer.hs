@@ -60,17 +60,15 @@ data SFTransformerSt sc =
         sftMaxFrames :: Word64
         {-
            Agrega la operación de tick con el tamaño de chunk,
-           la acción AsyncIO de recepción de futuro de comando de tick a realizar,
-           y la función que construye una acción a partir de la acción que
+           la acción AsyncIO de recepción de futuro de comando de tick a realizar
+           y de la función que devuelve una acción de cliente a partir de la acción que
            realiza el tick.
-           Ésta devuelve una acción que espera la compleción del tick, y
-           otra acción que representa la continuación del transformador.
-           Dependiendo de la implementación, la continuación puede bloquear.
-           Con éstos dos elementos construye una acción compuesta.
-
            Devuelve el próximo estado.
+
+           La acción que realiza el tick devuelve un futuro y la acción de continuación del transformador.
+           Dependiendo de la implementación, la continuación puede bloquear.
         -}
-      , sftPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( Future ( SFTransformerTickCmd sc ) ) -> ( AsyncIO ( Future (), AsyncIO () ) -> AsyncIO () ) -> SFTransformerSt sc
+      , sftPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( Future ( SFTransformerTickCmd sc ), AsyncIO ( Future (), AsyncIO () ) -> AsyncIO () ) -> SFTransformerSt sc
         -- Realiza las acciones pendientes y devuelve el próximo estado
       , sftDoPendingOps :: AsyncIO ( SFTransformerSt sc )
         {-
@@ -90,13 +88,14 @@ data SFTVTransformerSt sc =
         sftTvMaxFrames :: Word64
         {-
            Agrega la operación de tick con el tamaño de chunk,
-           la acción AsyncIO de elaboración del comando de tick,
-           y la función que elabora la operación de tick desde el cliente.
-           Ésta devuelve otra acción que representa la continuación del transformador.
-
+           la acción AsyncIO de elaboración del comando de tick, y de
+           función que recibe una acción de realización de tick y
+           devuelve una acción de cliente.
            Devuelve el próximo estado.
+
+           La acción de tick devuelve otra acción que representa la continuación del transformador.
         -}
-      , sftTvPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( SFTransformerTickCmd sc ) -> ( AsyncIO ( AsyncIO () ) -> AsyncIO () ) -> ( SFTVTransformerSt sc)
+      , sftTvPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( SFTransformerTickCmd sc, AsyncIO ( AsyncIO () ) -> AsyncIO () ) -> SFTVTransformerSt sc
         -- Realiza las acciones pendientes y devuelve el próximo estado
       , sftTvDoPendingOps :: AsyncIO ( SFTVTransformerSt sc )
         {-
@@ -118,15 +117,21 @@ instance (SFSignalChunk sc) => SFTransformerStConvertible sc (SFTVTransformerSt 
          } =
              SFReadyTransformerSt {
                   sftMaxFrames = srcMaxFrames
-                , sftPushTickOp = \chunkLength dstMkCmd dstMkClientOp ->
-                     let srcMkCmd = dstMkCmd >>= await
-                         srcMkClientOp = \srcDoOp ->
-                            dstMkClientOp $ do
-                               srcDoOpFuture <- async srcDoOp
-                               
-                               return ( void srcDoOpFuture, join $ await srcDoOpFuture )
+                , sftPushTickOp = \chunkLength dstClientOp ->
+                     let srcClientOp = do
+                            (cmdFuture, dstMkClientOp) <- dstClientOp
+                            
+                            cmd <- await cmdFuture
 
-                     in mkSFTransformerSt $ srcPushTickOp chunkLength srcMkCmd srcMkClientOp
+                            let srcMkClientOp = \srcDoTick ->
+                                   dstMkClientOp $ do
+                                      srcTickOpFuture <- async srcDoTick
+
+                                      return ( void srcTickOpFuture, join $ await srcTickOpFuture )
+
+                            return (cmd, srcMkClientOp)
+
+                     in mkSFTransformerSt $ srcPushTickOp chunkLength srcClientOp
                 , sftDoPendingOps = liftM mkSFTransformerSt srcDoPendingOps
                 , sftTerminate = srcTerminate
                 }

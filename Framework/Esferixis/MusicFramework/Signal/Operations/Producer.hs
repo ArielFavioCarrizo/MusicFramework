@@ -35,17 +35,16 @@ data SFProducerSt sc =
         sfpMaxFrames :: Word64 -- Máxima cantidad de frames con los que puede operar en el tick
         {-
            Agrega la operación de tick con el tamaño de chunk,
-           la acción AsyncIO de recepción de operación de tick,
-           y una función que recibe una acción que realiza
-           el tick.
-           Ésta devuelve el futuro de la compleción del tick
+           la acción AsyncIO de recepción de operación de tick
+           y de una función que devuelve una acción de cliente
+           a partir de la acción de realización del tick.
+           Devuelve el próximo estado.
+
+           La acción de realización del tick devuelve el futuro de la compleción del tick
            y la continuación del productor.
            Dependiendo de la implementación, la continuación puede bloquear.
-           Con éstos dos elementos construye una acción compuesta.
-
-           Devuelve el próximo estado.
         -}
-      , sfpPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO sc -> ( AsyncIO ( Future (), AsyncIO () ) -> AsyncIO () ) -> SFProducerSt sc
+      , sfpPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( sc, AsyncIO ( Future (), AsyncIO () ) -> AsyncIO () ) -> SFProducerSt sc
         -- Realiza las acciones pendientes y devuelve el próximo estado
       , sftDoPendingOps :: AsyncIO ( SFProducerSt sc )
         {-

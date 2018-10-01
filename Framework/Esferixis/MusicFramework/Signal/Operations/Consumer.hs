@@ -34,17 +34,16 @@ data SFConsumerSt sc =
         sfcMaxFrames :: Word64 -- Máxima cantidad de frames con los que puede operar en el tick
         {-
            Agrega la operación de tick con el tamaño de chunk,
-           la acción AsyncIO de recepción de chunk,
-           y una función que recibe la acción que realiza
-           la operación de tick.
-           Ésta da el futuro de la compleción del tick, y la
+           la acción AsyncIO de recepción de futuro de chunk
+           y de función que devuelve una acción de cliente
+           a partir de la acción de realización de tick.
+           Devuelve el próximo estado.
+
+           La acción de realización de tick devuelve el futuro de la compleción del tick, y la
            continuación del consumo.
            Dependiendo de la implementación, la continuación puede bloquear.
-           Con éstos dos elementos construye una acción compuesta.
-
-           Devuelve el próximo estado.
         -}
-      , sfcPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO (Future sc) -> ( AsyncIO ( Future (), AsyncIO () ) -> AsyncIO () ) -> SFConsumerSt sc
+      , sfcPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO (Future sc, AsyncIO ( Future (), AsyncIO () ) -> AsyncIO () ) -> SFConsumerSt sc
         -- Realiza las acciones pendientes y devuelve el próximo estado
       , sfcDoPendingOps :: AsyncIO ( SFConsumerSt sc )
         {-
