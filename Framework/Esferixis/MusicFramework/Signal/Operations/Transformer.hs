@@ -30,13 +30,14 @@ module Esferixis.MusicFramework.Signal.Operations.Transformer(
 
 import Data.Word
 import Data.Maybe
+import Data.Functor
 import Control.Exception
+import Control.Monad
 import Control.Monad.IO.Class
 import Esferixis.Control.Concurrency.AsyncIO
 import Esferixis.Control.Concurrency.Promise
 import Esferixis.MusicFramework.Signal.Misc
 import Esferixis.MusicFramework.Signal.Operations.Signal
-import Data.Functor
 
 {-
    Representación de transformador puro con operaciones stateful
@@ -123,7 +124,7 @@ instance (SFSignalChunk sc) => SFTransformerStConvertible sc (SFTVTransformerSt 
                             dstMkClientOp $ do
                                srcDoOpFuture <- async srcDoOp
                                
-                               return ( void srcDoOpFuture, await srcDoOpFuture >>= id )
+                               return ( void srcDoOpFuture, join $ await srcDoOpFuture )
 
                      in mkSFTransformerSt $ srcPushTickOp chunkLength srcDoPrevOp srcMkClientOp
                 , sftDoPendingOps = do
