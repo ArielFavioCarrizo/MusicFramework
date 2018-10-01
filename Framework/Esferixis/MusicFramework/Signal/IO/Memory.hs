@@ -23,9 +23,9 @@ import Esferixis.MusicFramework.Signal.Operations.Signal
 data SharingMode = Immutable | Mutable
 
 data ShareableSection m = ShareableSection {
-     ssOffset :: Word64
-   , ssLength :: Word64
-   , ssDoAction :: (Monad m) => SharingMode -> m ( m () ) -- Acción que realiza la operación asincrónicamente y devuelve una acción que espera por ella 
+     ssRelativeOffset :: Word64 -- ATENCIÓN: Offset relativo a sección anterior
+   , ssLength :: Word64 -- Longitud del offset
+   , ssDoAction :: (Monad m) => SharingMode -> m ( m () ) -- Acción que realiza la operación asincrónicamente y devuelve una acción que espera por ella
    }
 
 {-
