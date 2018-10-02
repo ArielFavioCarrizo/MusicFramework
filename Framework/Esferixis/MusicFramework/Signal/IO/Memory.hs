@@ -29,12 +29,12 @@ data ShareableSection m = ShareableSection {
      ssRelativeOffset :: Word64
      -- Longitud del offset
    , ssLength :: Word64
-     -- Parte la sección en el offset especificado. Devuelve la primer parte de la sección, la segunda parte y las demás secciones vienen después de ésta.
+     -- Parte la sección en el offset especificado. Devuelve la primer parte de la sección, la segunda parte, y las demás secciones vienen después de ésta.
    , ssSplit :: Word64 -> ShareableSection m
      -- Dado en modo de compartición devuelve una acción que realiza la operación asociada asincrónicamente y devuelve una acción que espera por ella
    , ssDoAction :: (Monad m) => SharingMode -> m ( m () )
-     -- Devuelve a sección siguiente
-   , ssNextSection :: ShareableSection m
+     -- Devuelve la sección con el offset siguiente
+   , ssNextSection :: Maybe (ShareableSection m)
    }
 
 {-
@@ -44,4 +44,4 @@ data ShareableSection m = ShareableSection {
    y devuelve otra acción que espera por ellas
 -}
 performWithSharedSectionable :: (Monad m) => ShareableSection m -> m ( m () )
-performWithSharedSectionable firstSection = return $ return () -- FIXME: Implementar
+performWithSharedSectionable firstSection = return $ return ()
