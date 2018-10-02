@@ -1,3 +1,5 @@
+* Incluir interactividad con GUI: Que se puedan ver las notas y darle play. Darle la posibilidad de step sequencing.
+
 * Aspecto operacional del procesamiento de señales:
 	- Definir productor y transformador stateful
         - Definir transformador stateless
