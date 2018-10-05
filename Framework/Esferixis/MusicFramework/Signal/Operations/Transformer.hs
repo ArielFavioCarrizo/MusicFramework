@@ -4,27 +4,23 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Esferixis.MusicFramework.Signal.Operations.Transformer(
-     SFTransformer(SFTransformer, sftFirstState)
+     SFTransformer(SFTransformer, sftNewInstance)
    , SFTransformerTickCmd(
           SFTransformerIOTickCmd
         , SFTransformerInplaceTickCmd
         )
    , SFTransformerSt(
-          SFReadyTransformerSt
+          SFTransformerSt
         , sftMaxFrames
         , sftPushTickOp
-        , sftDoPendingOps
         , sftTerminate
-        , SFTerminatedTransformerSt
         )
    , SFTransformerStConvertible(mkSFTransformerSt)
    , SFTVTransformerSt(
-          SFTVReadyTransformerSt
+          SFTVTransformerSt
         , sftTvMaxFrames
         , sftTvPushTickOp
-        , sftTvDoPendingOps
         , sftTvTerminate
-        , SFTVTerminatedTDTransformerSt
         )
    ) where
 
@@ -42,7 +38,7 @@ import Esferixis.MusicFramework.Signal.Operations.Signal
 {-
    Representación de transformador puro con operaciones stateful
 -}
-data SFTransformer sc = SFTransformer { sftFirstState :: SFTransformerSt sc }
+data SFTransformer sc = SFTransformer { sftNewInstance :: AsyncIO ( Maybe ( SFTransformerSt sc ) ) }
 
 {-
    Comando de transformación de chunk
@@ -52,87 +48,52 @@ data SFTransformerTickCmd sc = SFTransformerIOTickCmd ( SFSignalChunkIO sc ) | S
 class (SFSignalChunk sc) => SFTransformerStConvertible sc state | state -> sc where
    mkSFTransformerSt :: state -> SFTransformerSt sc -- Convierte a estado de transformador genérico
 
--- Descripción de estado del transformador puro, con operaciones stateful
+-- Descripción de estado del transformador stateful
 data SFTransformerSt sc = 
    -- Estado de transformador sin terminar
-   SFReadyTransformerSt {
+   SFTransformerSt {
         -- Máxima cantidad de frames con los que puede operar en el tick
         sftMaxFrames :: Word64
         {-
-           Agrega la operación de tick con el tamaño de chunk,
-           la acción AsyncIO de recepción de futuro de comando de tick a realizar
-           y de la función que devuelve una acción de cliente a partir de la acción que
-           realiza el tick.
-           Devuelve el próximo estado.
-
-           La acción que realiza el tick devuelve un futuro y la acción de continuación del transformador.
-           Dependiendo de la implementación, la continuación puede bloquear.
+           Devuelve una acción querRealiza la operación de tick con el comando de tick a realizar
+           especificado y que devuelve el futuro de compleción del tick y el futuro del próximo estado.
         -}
-      , sftPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( Future ( SFTransformerTickCmd sc ), AsyncIO ( Future (), AsyncIO () ) -> AsyncIO () ) -> SFTransformerSt sc
-        -- Realiza las acciones pendientes y devuelve el próximo estado
-      , sftDoPendingOps :: AsyncIO ( SFTransformerSt sc )
+      , sftPushTickOp :: (SFSignalChunk sc) => Future ( SFTransformerTickCmd sc ) -> AsyncIO ( Future (), Future ( Maybe ( SFTransformerSt sc ) ) )
         {-
-           Termina el uso del transformador, devolviendo
-           una acción que realiza todas las operaciones pendientes
+           Termina el uso del transformador
         -}
       , sftTerminate :: AsyncIO ()
-      } |
-   -- Estado de transformador terminado. Contiene la acción asíncrona que realiza todas las acciones pendientes.
-   SFTerminatedTransformerSt ( AsyncIO () )
+      }
 
 -- Descripción de estado del transformador variante en el tiempo
 data SFTVTransformerSt sc = 
    -- Estado de transformador sin terminar
-   SFTVReadyTransformerSt {
+   SFTVTransformerSt {
         -- Máxima cantidad de frames con los que puede operar en el tick
         sftTvMaxFrames :: Word64
         {-
-           Agrega la operación de tick con el tamaño de chunk,
-           la acción AsyncIO de elaboración del comando de tick, y de
-           función que recibe una acción de realización de tick y
-           devuelve una acción de cliente.
-           Devuelve el próximo estado.
-
-           La acción de tick devuelve otra acción que representa la continuación del transformador.
+           Devuelve una acción que realiza la operación de tick con el comando especificado, y devuelve el próximo estado.
         -}
-      , sftTvPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( SFTransformerTickCmd sc, AsyncIO ( AsyncIO () ) -> AsyncIO () ) -> SFTVTransformerSt sc
-        -- Realiza las acciones pendientes y devuelve el próximo estado
-      , sftTvDoPendingOps :: AsyncIO ( SFTVTransformerSt sc )
+      , sftTvPushTickOp :: (SFSignalChunk sc) => SFTransformerTickCmd sc -> AsyncIO ( Maybe ( SFTVTransformerSt sc ) )
         {-
-           Termina el uso del transformador, devolviendo
-           una acción que realiza todas las operaciones pendientes
+           Termina el uso del transformador
         -}
       , sftTvTerminate :: AsyncIO ()
-      } |
-   -- Estado de transformador terminado. Contiene la acción AsyncIO que realiza todas las acciones pendientes.
-   SFTVTerminatedTDTransformerSt ( AsyncIO () )
+      }
 
 instance (SFSignalChunk sc) => SFTransformerStConvertible sc (SFTVTransformerSt sc) where
    mkSFTransformerSt
-      SFTVReadyTransformerSt {
+      SFTVTransformerSt {
            sftTvMaxFrames = srcMaxFrames
          , sftTvPushTickOp = srcPushTickOp
-         , sftTvDoPendingOps = srcDoPendingOps
          , sftTvTerminate = srcTerminate 
          } =
-             SFReadyTransformerSt {
+             SFTransformerSt {
                   sftMaxFrames = srcMaxFrames
-                , sftPushTickOp = \chunkLength dstClientOp ->
-                     let srcClientOp = do
-                            (cmdFuture, dstMkClientOp) <- dstClientOp
-                            
-                            cmd <- await cmdFuture
+                , sftPushTickOp = \cmdFuture -> do
+                     nextSrcStateFuture_opt <- async $
+                        await cmdFuture >>= srcPushTickOp
 
-                            let srcMkClientOp = \srcDoTick ->
-                                   dstMkClientOp $ do
-                                      srcTickOpFuture <- async srcDoTick
-
-                                      return ( void srcTickOpFuture, join $ await srcTickOpFuture )
-
-                            return (cmd, srcMkClientOp)
-
-                     in mkSFTransformerSt $ srcPushTickOp chunkLength srcClientOp
-                , sftDoPendingOps = liftM mkSFTransformerSt srcDoPendingOps
+                     return ( void nextSrcStateFuture_opt, (liftM mkSFTransformerSt) <$> nextSrcStateFuture_opt )
                 , sftTerminate = srcTerminate
                 }
-   mkSFTransformerSt (SFTVTerminatedTDTransformerSt pendingActions) = SFTerminatedTransformerSt $ pendingActions

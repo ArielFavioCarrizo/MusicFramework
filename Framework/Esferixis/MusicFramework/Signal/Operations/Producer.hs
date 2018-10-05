@@ -2,15 +2,12 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Esferixis.MusicFramework.Signal.Operations.Producer(
-     SFProducer(sfpFirstState)
+     SFProducer(sfpNewInstance)
    , SFProducerSt(
-          SFReadyProducerSt
+          SFProducerSt
         , sfpMaxFrames
         , sfpPushTickOp
-        , sftDoPendingOps
         , sfpTerminate
-        , SFPendingOpsProducerSt
-        , SFTerminatedProducerSt
         )
    ) where
 
@@ -23,37 +20,18 @@ import Esferixis.MusicFramework.Signal.Operations.Signal
 {-
    Representación de productor stateful
 -}
-data SFProducer sc = SFProducer { sfpFirstState :: SFProducerSt sc }
+data SFProducer sc = SFProducer { sfpNewInstance :: AsyncIO ( Maybe ( SFProducerSt sc ) ) }
 
 {- 
    Representación abstracta de estado de productor stateful
    no manejado
 -}
 data SFProducerSt sc =
-   -- Estado de productor listo para ordenarle operaciones
-   SFReadyProducerSt {
-        sfpMaxFrames :: Word64 -- Máxima cantidad de frames con los que puede operar en el tick
-        {-
-           Agrega la operación de tick con el tamaño de chunk,
-           la acción AsyncIO de recepción de operación de tick
-           y de una función que devuelve una acción de cliente
-           a partir de la acción de realización del tick.
-           Devuelve el próximo estado.
-
-           La acción de realización del tick devuelve el futuro de la compleción del tick
-           y la continuación del productor.
-           Dependiendo de la implementación, la continuación puede bloquear.
-        -}
-      , sfpPushTickOp :: (SFSignalChunk sc) => Word64 -> AsyncIO ( sc, AsyncIO ( Future (), AsyncIO () ) -> AsyncIO () ) -> SFProducerSt sc
-        -- Realiza las acciones pendientes y devuelve el próximo estado
-      , sftDoPendingOps :: AsyncIO ( SFProducerSt sc )
-        {-
-           Termina el uso del transformador, devolviendo
-           una acción que realiza todas las operaciones pendientes
-        -}
+   SFProducerSt {
+        -- Máxima cantidad de frames con los que puede operar en el tick, y cota superior mínima para los siguientes
+        sfpMaxFrames :: Word64
+        -- Devuelve una acción que realiza la operación con el chunk especificado y que devuelve el próximo estado
+      , sfpPushTickOp :: (SFSignalChunk sc) => Word64 -> sc -> AsyncIO ( Maybe ( SFProducerSt sc ) )
+        -- Termina el uso del productor
       , sfpTerminate :: AsyncIO ()
-      } |
-   -- Estado de productor que necesita que se hagan las operaciones pendientes para avanzar
-   SFPendingOpsProducerSt ( AsyncIO ( SFProducerSt sc ) ) |
-   -- Estado de productor terminado. Contiene la acción asíncrona que realiza todas las acciones pendientes
-   SFTerminatedProducerSt ( AsyncIO () )
+      }
