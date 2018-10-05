@@ -44,4 +44,7 @@ data ShareableSection m = ShareableSection {
    y devuelve otra acción que espera por ellas
 -}
 performWithSharedSectionable :: (Monad m) => ShareableSection m -> m ( m () )
-performWithSharedSectionable firstSection = return $ return ()
+performWithSharedSectionable firstSection =
+   let nextSection = ssNextSection firstSection
+       if ( ssRelativeOffset nextSection > ssLength firstSection ) then
+          
