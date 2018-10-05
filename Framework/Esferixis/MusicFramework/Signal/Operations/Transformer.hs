@@ -52,7 +52,7 @@ class (SFSignalChunk sc) => SFTransformerStConvertible sc state | state -> sc wh
 data SFTransformerSt sc = 
    -- Estado de transformador sin terminar
    SFTransformerSt {
-        -- Máxima cantidad de frames con los que puede operar en el tick
+        -- Máxima cantidad de frames con los que puede operar en el tick, y cota superior mínima para los siguientes
         sftMaxFrames :: Word64
         {-
            Devuelve una acción querRealiza la operación de tick con el comando de tick a realizar
@@ -69,7 +69,7 @@ data SFTransformerSt sc =
 data SFTVTransformerSt sc = 
    -- Estado de transformador sin terminar
    SFTVTransformerSt {
-        -- Máxima cantidad de frames con los que puede operar en el tick
+        -- Máxima cantidad de frames con los que puede operar en el tick, y cota superior mínima para los siguientes
         sftTvMaxFrames :: Word64
         {-
            Devuelve una acción que realiza la operación de tick con el comando especificado, y devuelve el próximo estado.
@@ -86,7 +86,7 @@ instance (SFSignalChunk sc) => SFTransformerStConvertible sc (SFTVTransformerSt 
       SFTVTransformerSt {
            sftTvMaxFrames = srcMaxFrames
          , sftTvPushTickOp = srcPushTickOp
-         , sftTvTerminate = srcTerminate 
+         , sftTvTerminate = srcTerminate
          } =
              SFTransformerSt {
                   sftMaxFrames = srcMaxFrames
