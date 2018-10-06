@@ -5,7 +5,8 @@
 
 module Esferixis.MusicFramework.Signal.IO.SharedSections(
      SSTickCmd(
-          ssDoIOTick
+          SSTickCmd
+        , ssDoIOTick
         , ssDoInplaceTick
         )
    , ShareableSection(
@@ -23,12 +24,6 @@ import Data.Word
 import Data.Maybe
 import Data.List
 import Control.Monad
-import Esferixis.Control.Concurrency.AsyncIO
-import Esferixis.Control.Concurrency.Promise
-import Esferixis.MusicFramework.Signal.Misc
-import Esferixis.MusicFramework.Signal.Operations.Signal
-
-data SharingMode = Immutable | Mutable
 
 data SSTickCmd m =
    SSTickCmd {
