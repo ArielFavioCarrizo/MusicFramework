@@ -4,19 +4,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Esferixis.MusicFrameworkTest.Signal.IO.SharedSections(
-     SSTickCmd(
-          ssDoIOTick
-        , ssDoInplaceTick
-        )
-   , ShareableSection(
-          ShareableSection
-        , ssRelativeOffset
-        , ssLength
-        , ssTickCmd
-        )
-   , SafeSSList
-   , ssEnsureSafety
-   , ssPerformTicks
+     mkSSTickCmd
+   , mkSS
    ) where
 
 import Data.Word
@@ -35,8 +24,8 @@ mkSSTickCmd label =
            return $ putStrLn $ "Wait inplace I/O " ++ label
       }
 
-mkShareableSection :: String -> Word64 -> Word64 -> ShareableSection IO
-mkShareableSection label relativeOffset length =
+mkSS :: String -> Word64 -> Word64 -> ShareableSection IO
+mkSS label relativeOffset length =
    ShareableSection {
         ssRelativeOffset = relativeOffset
       , ssLength = length
