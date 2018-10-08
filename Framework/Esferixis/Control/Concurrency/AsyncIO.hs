@@ -14,6 +14,7 @@ module Esferixis.Control.Concurrency.AsyncIO(
    , catchAsyncIO
    , tryAsyncIO
    , dropAsyncIO
+   , pSetFromAsyncIO
    ) where
 
 import Data.Either
@@ -150,6 +151,14 @@ tryAsyncIO action = catchAsyncIO ( action >>= \value -> return $ Right value) (\
 -}
 dropAsyncIO :: AsyncIO () -> AsyncIO ()
 dropAsyncIO action = catchAsyncIO action ( ( const $ return () ) :: SomeException -> AsyncIO () )
+
+{-
+   Setea el valor de la promesa ejecutando la acción AsyncIO especificada
+-}
+pSetFromAsyncIO :: Promise a -> AsyncIO a -> AsyncIO ()
+pSetFromAsyncIO promise action = do
+   result :: Either SomeException a <- (tryAsyncIO $ action)
+   liftIO $ pSetFromResult promise result
 
 {-
    A continuación viene el núcleo de la implementación de la ejecución de AsyncIO

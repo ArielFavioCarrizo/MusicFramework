@@ -55,10 +55,10 @@ data SFTransformerSt sc =
         -- Máxima cantidad de frames con los que puede operar en el tick, y cota superior mínima para los siguientes
         sftMaxFrames :: Word64
         {-
-           Devuelve una acción querRealiza la operación de tick con el comando de tick a realizar
-           especificado y que devuelve el futuro de compleción del tick y el futuro del próximo estado.
+           Devuelve una acción que realiza la operación de tick con una función que
+           recibe el comando de tick a realizar y el futuro del próximo estado.
         -}
-      , sftPushTickOp :: (SFSignalChunk sc) => Future ( SFTransformerTickCmd sc ) -> AsyncIO ( Future (), Future ( Maybe ( SFTransformerSt sc ) ) )
+      , sftPushTickOp :: (SFSignalChunk sc) => Future ( SFTransformerTickCmd sc ) -> AsyncIO ( Future ( Maybe ( SFTransformerSt sc ) ) )
         {-
            Termina el uso del transformador
         -}
@@ -94,6 +94,6 @@ instance (SFSignalChunk sc) => SFTransformerStConvertible sc (SFTVTransformerSt 
                      nextSrcStateFuture_opt <- async $
                         await cmdFuture >>= srcPushTickOp
 
-                     return ( void nextSrcStateFuture_opt, (liftM mkSFTransformerSt) <$> nextSrcStateFuture_opt )
+                     return $ (liftM mkSFTransformerSt) <$> nextSrcStateFuture_opt
                 , sftTerminate = srcTerminate
                 }

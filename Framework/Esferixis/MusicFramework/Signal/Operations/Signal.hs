@@ -14,7 +14,11 @@ import Data.Maybe
 
 import Esferixis.MusicFramework.Signal.Misc
 
--- Chunk de señal stateful
+{-
+   Chunk de señal stateful.
+   
+   En algunas implementaciones puede contener una función de consumo.
+-}
 class SFSignalChunk sc where
    scLength :: sc -> Word64
  
