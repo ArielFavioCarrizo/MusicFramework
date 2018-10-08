@@ -12,6 +12,7 @@ module Esferixis.Control.Concurrency.AsyncIO(
    , forkAsyncIO
    , throwAsyncIO
    , catchAsyncIO
+   , tryAsyncIO
    , dropAsyncIO
    ) where
 
@@ -129,7 +130,6 @@ callCC ioActionByCC = CallCCAsyncIO ioActionByCC
 throwAsyncIO :: (Exception e) => e -> AsyncIO a
 throwAsyncIO exception = liftIO $ throwIO exception
 
-
 {-
    Crea una acción AsyncIO que ejecuta la acción AsyncIO
    especificada, si ocurre una excepción realiza la acción
@@ -138,6 +138,12 @@ throwAsyncIO exception = liftIO $ throwIO exception
 -}
 catchAsyncIO :: (Exception e) => AsyncIO a -> ( e -> AsyncIO a ) -> AsyncIO a
 catchAsyncIO targetAsyncIO handlerFun = CatchAsyncIO targetAsyncIO handlerFun
+
+{-
+   Ejecuta la acción, y da el resultado o la excepción
+-}
+tryAsyncIO :: (Exception e) => AsyncIO a -> AsyncIO ( Either e a )
+tryAsyncIO action = catchAsyncIO ( action >>= \value -> return $ Right value) (\e -> return $ Left e)
 
 {-
    Descarta las excepciones de la acción especificada

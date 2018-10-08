@@ -27,8 +27,8 @@ import Control.Monad
 
 data SSTickCmd m =
    SSTickCmd {
-        ssDoIOTick :: (Monad m) => m ( m () )
-      , ssDoInplaceTick :: (Monad m) => Maybe ( m ( m () ) )
+        ssDoIOTick :: (Monad m) => m ()
+      , ssDoInplaceTick :: (Monad m) => Maybe ( m () )
       }
 
 ssTickCmdRemoveInplace :: (Monad m) => SSTickCmd m -> SSTickCmd m
@@ -67,18 +67,14 @@ ssEnsureSafety_impl (firstSection:nextSection:remainingSections) =
          else (ssRemoveInplaceTick firstSection):(self ((ssRemoveInplaceTick nextSection):remainingSections))
 
 {-
-   Dada la lista de secciones segura devuelve una acción que realiza los ticks asincrónicamente.
-   Devolviendo una acción que espera por ellos.
+   Dada la lista de secciones segura devuelve una acción que realiza los ticks.
 -}
-ssPerformTicks :: (Monad m) => SafeSSList m -> m ( m() )
-ssPerformTicks (SafeSSList []) = return $ return ()
+ssPerformTicks :: (Monad m) => SafeSSList m -> m ()
+ssPerformTicks (SafeSSList []) = return ()
 ssPerformTicks (SafeSSList (firstSection:nextSections)) = do
    let tickCmd = ssTickCmd firstSection
-   waitTick <-
-      case ( ssDoInplaceTick tickCmd ) of
-         Just action -> action
-         Nothing -> ssDoIOTick tickCmd
+   case ( ssDoInplaceTick tickCmd ) of
+      Just action -> action
+      Nothing -> ssDoIOTick tickCmd
    
-   waitNextTicks <- ssPerformTicks $ SafeSSList nextSections
-   
-   return $ waitTick >> waitNextTicks
+   ssPerformTicks $ SafeSSList nextSections

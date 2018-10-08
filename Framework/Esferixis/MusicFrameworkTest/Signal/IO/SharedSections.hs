@@ -18,10 +18,8 @@ mkSSTickCmd label =
    SSTickCmd {
         ssDoIOTick = do
            putStrLn $ "Run I/O " ++ label
-           return $ putStrLn $ "Wait I/O " ++ label
       , ssDoInplaceTick = Just $ do
            putStrLn $ "Run inplace " ++ label
-           return $ putStrLn $ "Wait inplace I/O " ++ label
       }
 
 mkSS :: String -> Word64 -> Word64 -> ShareableSection IO
