@@ -9,8 +9,10 @@ module Esferixis.Control.Concurrency.AsyncIO(
    , callCC
    , async
    , await
+   , forkAsyncIO
    , throwAsyncIO
    , catchAsyncIO
+   , dropAsyncIO
    ) where
 
 import Data.Either
@@ -93,6 +95,21 @@ await :: Future a -> AsyncIO a
 await future = AwaitAsyncIO future
 
 {-
+   Crea una acción que ejecuta asincrónicamente la
+   acción especificada, sin feedback.
+
+   ATENCIÓN: La acción a ejecutar no puede lanzar
+   excepciones. Caso contrario lanzará una excepción
+   en la mónada IO, con el riesgo potencial
+   de que el programa sea abortado.
+-}
+forkAsyncIO :: AsyncIO () -> AsyncIO ()
+forkAsyncIO action = liftIO $ runAsyncIOCPS action $ \eitherValue ->
+   case eitherValue of
+      Right a -> return ()
+      Left e -> throwIO e
+
+{-
    Realiza un acción en IO, cuyo resultado
    se envía en la continuación actual, que la recibe
 
@@ -121,6 +138,12 @@ throwAsyncIO exception = liftIO $ throwIO exception
 -}
 catchAsyncIO :: (Exception e) => AsyncIO a -> ( e -> AsyncIO a ) -> AsyncIO a
 catchAsyncIO targetAsyncIO handlerFun = CatchAsyncIO targetAsyncIO handlerFun
+
+{-
+   Descarta las excepciones de la acción especificada
+-}
+dropAsyncIO :: AsyncIO () -> AsyncIO ()
+dropAsyncIO action = catchAsyncIO action ( ( const $ return () ) :: SomeException -> AsyncIO () )
 
 {-
    A continuación viene el núcleo de la implementación de la ejecución de AsyncIO
