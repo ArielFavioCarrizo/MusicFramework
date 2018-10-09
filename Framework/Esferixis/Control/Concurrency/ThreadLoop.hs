@@ -5,6 +5,7 @@ module Esferixis.Control.Concurrency.ThreadLoop(ThreadLoop, newThreadLoop, newBo
 
 import Esferixis.Control.Concurrency.Promise
 import Esferixis.Control.Concurrency.AsyncIO
+import Control.Monad
 import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.Chan
@@ -42,24 +43,21 @@ newThreadLoopGen chosenFork = do
       , tlCloseHasBeenRequested = False
       , tlActionsChannel = actionsChannel
       }
-   return ( ThreadLoop stateMVar )
+   return $ ThreadLoop stateMVar
 
 {-
    Crea una acción AsyncIO que ejecuta
    la continuación en el ThreadLoop especificado
 -}
 tlRun :: ThreadLoop -> AsyncIO ()
-tlRun (ThreadLoop tlStateMVar) = callCC $ \continuation -> do
-   postAction <- withMVar tlStateMVar $ \state -> do
+tlRun (ThreadLoop tlStateMVar) = callCC $ \continuation ->
+   join $ withMVar tlStateMVar $ \state ->
       if ( tlCloseHasBeenRequested state )
          then
-            return $ do
-               postValue <- try $ fail "Close has been requested"
-               continuation postValue
+            return $ (try $ fail "Close has been requested") >>= continuation
          else do
-            writeChan ( tlActionsChannel state ) ( Just ( continuation ( Right () ) ) )
+            writeChan ( tlActionsChannel state ) $ Just $ continuation $ Right () -- Le pasa el control a la continuación en el loop del thread
             return $ return ()
-   postAction
 
 {-
    Crea una acción AsyncIO que continúa
@@ -69,20 +67,19 @@ tlRun (ThreadLoop tlStateMVar) = callCC $ \continuation -> do
    cambio de thread, el bucle de thread se cierre.
 -}
 tlClose :: ThreadLoop -> AsyncIO ()
-tlClose (ThreadLoop tlStateMVar) = callCC $ \continuation -> do
-   postAction <- modifyMVar tlStateMVar $ \state -> do
+tlClose (ThreadLoop tlStateMVar) = callCC $ \continuation ->
+   join $ modifyMVar tlStateMVar $ \state ->
       if ( tlCloseHasBeenRequested state )
-         then do
-            let postAction = do
-                   postValue <- try $ fail "Close has been requested"
-                   continuation postValue
-            return ( state, postAction )
+         then
+            let postAction = (try $ fail "Close has been requested") >>= continuation
+            in return ( state, postAction )
          else do
-            writeChan ( tlActionsChannel state ) ( Just ( continuation $ Right () ) ) -- Le pasa el control a la continuación
-            writeChan ( tlActionsChannel state ) Nothing -- Asegura que después de que se produzca el cambio de thread, el bucle de thread se cierre
-            return ( state { tlCloseHasBeenRequested = True }, return () )
+            let sendAction = writeChan $ tlActionsChannel state
 
-   postAction
+            sendAction $ Just $ continuation $ Right () -- Le pasa el control a la continuación en el loop del thread
+            sendAction Nothing -- Asegura que después de que se produzca un cambio de thread, el bucle de thread se cierre
+
+            return ( state { tlCloseHasBeenRequested = True }, return () )
 
 {-
    Realiza las acciones especificadas.
@@ -91,4 +88,4 @@ tlClose (ThreadLoop tlStateMVar) = callCC $ \continuation -> do
 doPendingActions :: Chan (Maybe (IO ())) -> IO ()
 doPendingActions actionsChannel = do
    actions <- getChanContents actionsChannel
-   sequence_ ( map fromJust (takeWhile isJust actions) )
+   sequence_ $ map fromJust $ takeWhile isJust actions
