@@ -31,7 +31,7 @@ data SFProducerSt sc =
         -- Máxima cantidad de frames con los que puede operar en el tick, y cota superior mínima para los siguientes
         sfpMaxFrames :: Word64
         -- Realiza una operación con el chunk especificado. Devuelve el próximo estado.
-      , sfpPushTickOp :: (SFSignalChunk sc) => sc -> AsyncIO ( Maybe ( SFProducerSt sc ) )
+      , sfpPushTickOp :: sc -> AsyncIO ( Maybe ( SFProducerSt sc ) )
         -- Termina el uso del productor
       , sfpTerminate :: AsyncIO ()
       }

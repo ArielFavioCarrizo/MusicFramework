@@ -55,6 +55,3 @@ sffcChannel chunk nChannel =
              }
       else error "Invalid channel number"
 
-instance SFSignalChunk (Section (SFFramesChunkChannel fc)) where
-   scLength = secLength
-

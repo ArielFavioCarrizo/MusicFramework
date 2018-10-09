@@ -12,6 +12,7 @@ module Esferixis.Control.Concurrency.Promise(
    , newFuture
    , pSet
    , pSetFromResult
+   , pSetFromResultWithCallback
    , pFuture
    , fGet
    , fWait
@@ -21,6 +22,7 @@ import Data.Maybe
 import Data.Mutable
 import Control.Exception
 import Control.Concurrent.MVar
+import Control.Monad
 import Esferixis.Control.IO
 import Data.Functor
 
@@ -31,33 +33,43 @@ type FutureValue a = Either SomeException a
    de notificación.
    Caso contrario contiene una función para obtener el valor.
 -}
-data PromiseState a = UnitializedPromiseState (BDeque RealWorld (FutureValue a -> IO())) | InitializedPromiseState (FutureValue a)
+data PromiseState a =
+   -- Estado sin completar
+   UncompletedPromiseState {
+        pendingPromiseNotifications :: BDeque RealWorld (FutureValue a -> IO()) -- Funciones de notificaciones pendientes
+      , promiseIsOnCompletionProcess :: Bool
+      } |
+   CompletedPromiseState (FutureValue a) -- Estado de promesa completada
 
 data Promise a = Promise (MVar (PromiseState a))
 
 data Future a where
-   VariableFuture :: MVar (PromiseState a) -> Future a
+   StatefulFuture :: Promise a -> Future a
    CompletedFuture :: FutureValue a -> Future a
    MappedFuture :: Future b -> ( b -> a ) -> Future a
 
 newPromise :: IO (Promise a)
 newPromise = do
    notifyActions <- newColl
-   stateRef <- newMVar (UnitializedPromiseState notifyActions)
-   return ( Promise stateRef )
+   let firstState = UncompletedPromiseState {
+        pendingPromiseNotifications = notifyActions
+      , promiseIsOnCompletionProcess = False
+      }
+   stateRef <- newMVar firstState
+   return $ Promise stateRef
 
 -- Crea un futuro completado con la acción especificada
 newCompletedFuture :: IO a -> IO (Future a)
 newCompletedFuture action = do
    value <- try action
-   return (CompletedFuture value)
+   return $ CompletedFuture value
 
 -- Crea un futuro con la acción que completa una promesa
 newFuture :: (Promise a -> IO ()) -> IO (Future a)
 newFuture action = do
    promise <- newPromise
    action promise
-   return ( pFuture promise )
+   return $ pFuture promise
 
 -- Completa la promesa con la acción especificada
 pSet :: Promise a -> IO a -> IO ()
@@ -65,29 +77,68 @@ pSet (Promise stateMVar) ioaction = do
    result <- try ioaction
    pSetFromResult (Promise stateMVar) result
 
--- Completa la promesa con un resultado de acción
+{-
+   Completa la promesa con un resultado de acción.
+
+   Si la promesa está en proceso de ser completada o ya fue completada lanza excepción.
+-}
 pSetFromResult :: Promise a -> FutureValue a -> IO ()
 pSetFromResult (Promise stateMVar) result = do
-   notifyActions <- modifyMVar stateMVar $ \state ->
+   join $ modifyMVar stateMVar $ \state ->
       case state of
-         UnitializedPromiseState notifyActions -> return (InitializedPromiseState result, notifyActions)
-         InitializedPromiseState value -> fail "Cannot set value when it has been set"
+         UncompletedPromiseState {
+              pendingPromiseNotifications = notifyActions
+            , promiseIsOnCompletionProcess = isOnCompletionProcess
+            } ->
+               if ( isOnCompletionProcess )
+                  then fail "Promise is on completion process"
+                  else return (CompletedPromiseState result, pNotifyValue notifyActions result)
 
-   pNotifyValue notifyActions result
+         CompletedPromiseState value -> fail "Promise has been completed"
+
+{- 
+   Completa la promesa con un callback que da un resultado de acción
+   eventual
+
+   Si la promesa está en proceso de ser completada o ya fue completada lanza excepción.
+-}
+pSetFromResultWithCallback :: Promise a -> ( ( FutureValue a -> IO () ) -> IO () ) -> IO ()
+pSetFromResultWithCallback (Promise stateMVar) callback = do
+   join $ modifyMVar stateMVar $ \state ->
+      case state of
+         UncompletedPromiseState { promiseIsOnCompletionProcess = isOnCompletionProcess } ->
+            if ( isOnCompletionProcess )
+               then fail "Promise is already on completion process"
+               else
+                    let nextAction =
+                           callback $ \result ->
+                              join $ modifyMVar stateMVar $ \state ->
+                                 case state of
+                                    UncompletedPromiseState {
+                                         pendingPromiseNotifications = notifyActions
+                                       , promiseIsOnCompletionProcess = isOnCompletionProcess
+                                       } ->
+                                          if ( isOnCompletionProcess )
+                                             then return (CompletedPromiseState result, pNotifyValue notifyActions result)
+                                             else fail "Assertion error on pSetFromResultWithCallback: Expected that promise is on completion process"
+                                    CompletedPromiseState value -> fail "Assertion error on pSetFromResultWithCallback: Unexpected completed state"
+
+                    in return ( state { promiseIsOnCompletionProcess = True }, nextAction )
+         CompletedPromiseState value -> fail "Promise has been completed"
 
 -- Devuelve el futuro de la promesa
 pFuture :: Promise a -> Future a
-pFuture (Promise stateMVar) = VariableFuture stateMVar
+pFuture = StatefulFuture
 
 -- Agrega un callback que es invocado cuando el futuro se completa
 fGet :: Future a -> (FutureValue a -> IO()) -> IO ()
-fGet (VariableFuture stateMVar) callback = do
+fGet (StatefulFuture (Promise stateMVar)) callback = do
    nextAction <- withMVar stateMVar $ \state ->
       case state of
-         UnitializedPromiseState notifyActions -> do
+         UncompletedPromiseState { pendingPromiseNotifications = notifyActions } -> do
             pushFront notifyActions callback
             return (return ())
-         InitializedPromiseState value -> return (callback value)
+         CompletedPromiseState value -> return (callback value)
 
    nextAction
 fGet (CompletedFuture value) callback = callback value

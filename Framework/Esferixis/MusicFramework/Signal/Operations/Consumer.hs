@@ -30,7 +30,7 @@ data SFConsumerSt sc =
         -- Máxima cantidad de frames con los que puede operar en el tick, y cota superior mínima para los siguientes
         sfcMaxFrames :: Word64
         -- Devuelve una acción que realiza la operación de tick con el chunk especificado. Devuelve el próximo estado.
-      , sfcPushTickOp :: (SFSignalChunk sc) => sc -> AsyncIO ( Maybe ( SFConsumerSt sc ) )
+      , sfcPushTickOp :: sc -> AsyncIO ( Maybe ( SFConsumerSt sc ) )
         -- Termina el uso del consumidor
       , sfcTerminate :: AsyncIO ()
       }

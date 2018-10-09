@@ -8,13 +8,13 @@ module Esferixis.Control.Concurrency.AsyncIO(
    , runAsyncIO
    , callCC
    , async
+   , asyncPSet
    , await
    , forkAsyncIO
    , throwAsyncIO
    , catchAsyncIO
    , tryAsyncIO
    , dropAsyncIO
-   , pSetFromAsyncIO
    ) where
 
 import Data.Either
@@ -89,6 +89,14 @@ async :: AsyncIO a -> AsyncIO (Future a)
 async action = liftIO $ runAsyncIO action
 
 {-
+   Setea el valor de la promesa ejecutando asincrónicamente la acción AsyncIO especificada.
+
+   Si la promesa está en proceso de ser completada o ya fue completada lanza excepción.
+-}
+asyncPSet :: Promise a -> AsyncIO a -> AsyncIO ()
+asyncPSet promise action = liftIO $ pSetFromResultWithCallback promise $ tryToRunAsyncIOCPS action
+
+{-
    Dado el futuro especificado crea
    la acción AsyncIO que espera
    que el futuro se complete
@@ -151,14 +159,6 @@ tryAsyncIO action = catchAsyncIO ( action >>= \value -> return $ Right value) (\
 -}
 dropAsyncIO :: AsyncIO () -> AsyncIO ()
 dropAsyncIO action = catchAsyncIO action ( ( const $ return () ) :: SomeException -> AsyncIO () )
-
-{-
-   Setea el valor de la promesa ejecutando la acción AsyncIO especificada
--}
-pSetFromAsyncIO :: Promise a -> AsyncIO a -> AsyncIO ()
-pSetFromAsyncIO promise action = do
-   result :: Either SomeException a <- (tryAsyncIO $ action)
-   liftIO $ pSetFromResult promise result
 
 {-
    A continuación viene el núcleo de la implementación de la ejecución de AsyncIO

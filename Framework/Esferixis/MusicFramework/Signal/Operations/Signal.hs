@@ -4,32 +4,31 @@
 
 module Esferixis.MusicFramework.Signal.Operations.Signal
    ( 
-     SFSignalChunk(scLength)
+     SFSignalChunk(SFSignalChunk, scLength, scConsume)
    , SFSignalChunkIO(sfscIOInput, sfscIOOutput)
    , mkSFSignalChunkIO
    ) where
 
 import Data.Word
 import Data.Maybe
+import Esferixis.Control.Concurrency.AsyncIO
 
 import Esferixis.MusicFramework.Signal.Misc
 
-{-
-   Chunk de señal stateful.
-   
-   En algunas implementaciones puede contener una función de consumo.
--}
-class SFSignalChunk sc where
-   scLength :: sc -> Word64
+-- Chunk de señal stateful.
+data SFSignalChunk sc = SFSignalChunk {
+     scLength :: Word64 -- Longitud del chunk
+   , scConsume :: (sc -> AsyncIO ()) -> AsyncIO () -- Consume el chunk con un callback, que recibe la referencia del chunk y le aplica operaciones
+   }
  
 -- Par E/S
-data SFSignalChunkIO sc = SFSignalChunkIO {
-     sfscIOInput :: (SFSignalChunk sc) => sc
-   , sfscIOOutput :: (SFSignalChunk sc) => sc
+data SFSignalChunkIO sc= SFSignalChunkIO {
+     sfscIOInput :: SFSignalChunk sc
+   , sfscIOOutput :: SFSignalChunk sc
    }
 
 -- Hace un par E/S de los chunk de señal especificados
-mkSFSignalChunkIO :: (SFSignalChunk sc) => sc -> sc -> SFSignalChunkIO sc 
+mkSFSignalChunkIO :: SFSignalChunk sc -> SFSignalChunk sc -> SFSignalChunkIO sc 
 mkSFSignalChunkIO inputChunk outputChunk =
    if ( (scLength inputChunk) == (scLength outputChunk ) )
       then

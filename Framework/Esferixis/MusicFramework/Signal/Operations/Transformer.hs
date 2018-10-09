@@ -45,7 +45,7 @@ data SFTransformer sc = SFTransformer { sftNewInstance :: AsyncIO ( Maybe ( SFTr
 -}
 data SFTransformerTickCmd sc = SFTransformerIOTickCmd ( SFSignalChunkIO sc ) | SFTransformerInplaceTickCmd sc
 
-class (SFSignalChunk sc) => SFTransformerStConvertible sc state | state -> sc where
+class SFTransformerStConvertible sc state | state -> sc where
    mkSFTransformerSt :: state -> SFTransformerSt sc -- Convierte a estado de transformador genérico
 
 -- Descripción de estado del transformador stateful
@@ -58,7 +58,7 @@ data SFTransformerSt sc =
            Devuelve una acción que realiza la operación de tick con una función que
            recibe el comando de tick a realizar y el futuro del próximo estado.
         -}
-      , sftPushTickOp :: (SFSignalChunk sc) => Future ( SFTransformerTickCmd sc ) -> AsyncIO ( Future ( Maybe ( SFTransformerSt sc ) ) )
+      , sftPushTickOp :: Future ( SFTransformerTickCmd sc ) -> AsyncIO ( Future ( Maybe ( SFTransformerSt sc ) ) )
         {-
            Termina el uso del transformador
         -}
@@ -74,14 +74,14 @@ data SFTVTransformerSt sc =
         {-
            Devuelve una acción que realiza la operación de tick con el comando especificado, y devuelve el próximo estado.
         -}
-      , sftTvPushTickOp :: (SFSignalChunk sc) => SFTransformerTickCmd sc -> AsyncIO ( Maybe ( SFTVTransformerSt sc ) )
+      , sftTvPushTickOp :: SFTransformerTickCmd sc -> AsyncIO ( Maybe ( SFTVTransformerSt sc ) )
         {-
            Termina el uso del transformador
         -}
       , sftTvTerminate :: AsyncIO ()
       }
 
-instance (SFSignalChunk sc) => SFTransformerStConvertible sc (SFTVTransformerSt sc) where
+instance SFTransformerStConvertible sc (SFTVTransformerSt sc) where
    mkSFTransformerSt
       SFTVTransformerSt {
            sftTvMaxFrames = srcMaxFrames
