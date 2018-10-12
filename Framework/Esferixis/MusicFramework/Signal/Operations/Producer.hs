@@ -1,5 +1,6 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Esferixis.MusicFramework.Signal.Operations.Producer(
      SFProducer(sfpNewInstance)
@@ -35,3 +36,8 @@ data SFProducerSt sc =
         -- Termina el uso del productor
       , sfpTerminate :: AsyncIO ()
       }
+
+instance SFSignalUnitSt (SFProducerSt sc) sc where
+   sfsuMaxFrames = sfpMaxFrames
+   sfsuPushTickOp = sfpPushTickOp
+   sfsuTerminate = sfpTerminate

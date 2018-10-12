@@ -65,6 +65,11 @@ data SFTransformerSt sc =
       , sftTerminate :: AsyncIO ()
       }
 
+instance SFSignalUnitSt (SFTransformerSt sc) ( Future ( SFTransformerTickCmd sc ) ) where
+   sfsuMaxFrames = sftMaxFrames
+   sfsuPushTickOp transformerSt cmdFuture = sftPushTickOp transformerSt cmdFuture >>= await
+   sfsuTerminate = sftTerminate
+
 -- Descripción de estado del transformador variante en el tiempo
 data SFTVTransformerSt sc = 
    -- Estado de transformador sin terminar
@@ -80,6 +85,11 @@ data SFTVTransformerSt sc =
         -}
       , sftTvTerminate :: AsyncIO ()
       }
+
+instance SFSignalUnitSt (SFTVTransformerSt sc) ( SFTransformerTickCmd sc ) where
+   sfsuMaxFrames = sftTvMaxFrames
+   sfsuPushTickOp = sftTvPushTickOp
+   sfsuTerminate = sftTvTerminate
 
 instance SFTransformerStConvertible sc (SFTVTransformerSt sc) where
    mkSFTransformerSt

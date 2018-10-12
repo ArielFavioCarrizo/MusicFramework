@@ -1,5 +1,6 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Esferixis.MusicFramework.Signal.Operations.Consumer(
      SFConsumer(sfcNewInstance)
@@ -34,3 +35,8 @@ data SFConsumerSt sc =
         -- Termina el uso del consumidor
       , sfcTerminate :: AsyncIO ()
       }
+
+instance SFSignalUnitSt (SFConsumerSt sc) sc where
+   sfsuMaxFrames = sfcMaxFrames
+   sfsuPushTickOp = sfcPushTickOp
+   sfsuTerminate = sfcTerminate

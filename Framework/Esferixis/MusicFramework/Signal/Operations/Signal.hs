@@ -7,6 +7,8 @@ module Esferixis.MusicFramework.Signal.Operations.Signal
      SFSignalChunk(SFSignalChunk, scLength, scConsume)
    , SFSignalChunkIO(sfscIOInput, sfscIOOutput)
    , mkSFSignalChunkIO
+   , SFSignalUnitSt(sfsuMaxFrames, sfsuPushTickOp, sfsuTerminate)
+   , sfsuDoTicksBatch
    ) where
 
 import Data.Word
@@ -38,3 +40,27 @@ mkSFSignalChunkIO inputChunk outputChunk =
             }
       else
          error "Chunk size mismatch"
+
+-- Definición de unidad de señal
+class SFSignalUnitSt su ti | su -> ti where
+   sfsuMaxFrames :: su -> Word64
+   sfsuPushTickOp :: su -> ti -> AsyncIO ( Maybe ( su ) )
+   sfsuTerminate :: su -> AsyncIO ()
+
+{-
+   Devuelve una acción que toma el estado de la unidad de procesamiento de señal
+   y la lista de entrada de ticks.
+   Realiza los ticks.
+   
+   La acción devuelve el próximo estado.
+-}
+sfsuDoTicksBatch :: (SFSignalUnitSt su ti) => su -> [ti] -> AsyncIO ( Maybe su )
+sfsuDoTicksBatch unitSt [] = return $ Just $ unitSt
+sfsuDoTicksBatch unitSt (tickIn:nextTickIns) = do
+   mnextUnitSt <- sfsuPushTickOp unitSt tickIn
+   case mnextUnitSt of
+      Just nextUnitSt -> sfsuDoTicksBatch nextUnitSt nextTickIns
+      Nothing ->
+         if ( null nextTickIns )
+            then return $ Nothing
+            else fail "Unexpected signal processor unit termination"
