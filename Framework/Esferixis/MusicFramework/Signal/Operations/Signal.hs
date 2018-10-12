@@ -41,10 +41,13 @@ mkSFSignalChunkIO inputChunk outputChunk =
       else
          error "Chunk size mismatch"
 
--- Definición de unidad de señal
+-- Definición de unidad de procesamiento de señal
 class SFSignalUnitSt su ti | su -> ti where
+   -- Máxima cantidad de frames con los que puede operar en el tick. Los restantes son la cota superior mínima garantizada.
    sfsuMaxFrames :: su -> Word64
+   -- Devuelve una acción que realiza la operación de tick con la entrada especificada. Devuelve el próximo estado.
    sfsuPushTickOp :: su -> ti -> AsyncIO ( Maybe ( su ) )
+   -- Termina el uso de la unidad de procesamiento de señal
    sfsuTerminate :: su -> AsyncIO ()
 
 {-

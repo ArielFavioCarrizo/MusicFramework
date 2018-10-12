@@ -28,7 +28,7 @@ data SFConsumer sc = SFConsumer { sfcNewInstance :: AsyncIO ( Maybe ( SFConsumer
 -}
 data SFConsumerSt sc =
    SFConsumerSt {
-        -- Máxima cantidad de frames con los que puede operar en el tick, y cota superior mínima para los siguientes
+        -- Máxima cantidad de frames con los que puede operar en el tick. Los restantes son la cota superior mínima garantizada.
         sfcMaxFrames :: Word64
         -- Devuelve una acción que realiza la operación de tick con el chunk especificado. Devuelve el próximo estado.
       , sfcPushTickOp :: sc -> AsyncIO ( Maybe ( SFConsumerSt sc ) )

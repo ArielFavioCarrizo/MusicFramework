@@ -52,7 +52,7 @@ class SFTransformerStConvertible sc state | state -> sc where
 data SFTransformerSt sc = 
    -- Estado de transformador sin terminar
    SFTransformerSt {
-        -- Máxima cantidad de frames con los que puede operar en el tick, y cota superior mínima para los siguientes
+        -- Máxima cantidad de frames con los que puede operar en el tick. Los restantes son la cota superior mínima garantizada.
         sftMaxFrames :: Word64
         {-
            Devuelve una acción que realiza la operación de tick con una función que
@@ -74,7 +74,7 @@ instance SFSignalUnitSt (SFTransformerSt sc) ( Future ( SFTransformerTickCmd sc 
 data SFTVTransformerSt sc = 
    -- Estado de transformador sin terminar
    SFTVTransformerSt {
-        -- Máxima cantidad de frames con los que puede operar en el tick, y cota superior mínima para los siguientes
+        -- Máxima cantidad de frames con los que puede operar en el tick. Los restantes son la cota superior mínima garantizada.
         sftTvMaxFrames :: Word64
         {-
            Devuelve una acción que realiza la operación de tick con el comando especificado, y devuelve el próximo estado.

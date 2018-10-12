@@ -29,7 +29,7 @@ data SFProducer sc = SFProducer { sfpNewInstance :: AsyncIO ( Maybe ( SFProducer
 -}
 data SFProducerSt sc =
    SFProducerSt {
-        -- Máxima cantidad de frames con los que puede operar en el tick, y cota superior mínima para los siguientes
+        -- Máxima cantidad de frames con los que puede operar en el tick. Los restantes son la cota superior mínima garantizada.
         sfpMaxFrames :: Word64
         -- Realiza una operación con el chunk especificado. Devuelve el próximo estado.
       , sfpPushTickOp :: sc -> AsyncIO ( Maybe ( SFProducerSt sc ) )
