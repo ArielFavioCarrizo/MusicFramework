@@ -56,9 +56,9 @@ data SFTransformerSt sc =
         sftMaxFrames :: Word64
         {-
            Devuelve una acción que realiza la operación de tick con una función que
-           recibe el comando de tick a realizar y el futuro del próximo estado.
+           recibe el comando de tick a realizar y que devuelve del próximo estado.
         -}
-      , sftPushTickOp :: Future ( SFTransformerTickCmd sc ) -> AsyncIO ( Future ( Maybe ( SFTransformerSt sc ) ) )
+      , sftPushTickOp :: Future ( SFTransformerTickCmd sc ) -> AsyncIO ( Maybe ( SFTransformerSt sc ) )
         {-
            Termina el uso del transformador
         -}
@@ -67,7 +67,7 @@ data SFTransformerSt sc =
 
 instance SFSignalUnitSt (SFTransformerSt sc) ( Future ( SFTransformerTickCmd sc ) ) where
    sfsuMaxFrames = sftMaxFrames
-   sfsuPushTickOp transformerSt cmdFuture = sftPushTickOp transformerSt cmdFuture >>= await
+   sfsuPushTickOp = sftPushTickOp
    sfsuTerminate = sftTerminate
 
 -- Descripción de estado del transformador variante en el tiempo
@@ -101,9 +101,7 @@ instance SFTransformerStConvertible sc (SFTVTransformerSt sc) where
              SFTransformerSt {
                   sftMaxFrames = srcMaxFrames
                 , sftPushTickOp = \cmdFuture -> do
-                     nextSrcStateFuture_opt <- async $
-                        await cmdFuture >>= srcPushTickOp
-
-                     return $ (liftM mkSFTransformerSt) <$> nextSrcStateFuture_opt
+                     nextSrcSt <- await cmdFuture >>= srcPushTickOp
+                     return $ (liftM mkSFTransformerSt) nextSrcSt
                 , sftTerminate = srcTerminate
                 }
