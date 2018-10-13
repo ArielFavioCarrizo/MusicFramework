@@ -4,7 +4,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Esferixis.MusicFramework.Signal.IO.FramesChunk(
-     SFFramesChunk(
+     SFFramesChunkType(SFFramesChunkType)
+   , SFFramesChunk(
           sffcMaxLength
         , sffcNew
         , sffcLength
@@ -19,17 +20,18 @@ module Esferixis.MusicFramework.Signal.IO.FramesChunk(
 import Data.Word
 import Data.Maybe
 import Data.Functor
-import Type.Reflection
 import Esferixis.Control.Concurrency.AsyncIO
 import Esferixis.Control.Concurrency.Promise
 import Esferixis.MusicFramework.Signal.Misc
 import Esferixis.MusicFramework.Signal.Operations.Signal
 
+data SFFramesChunkType fc = SFFramesChunkType -- Representación de tipo de chunk de frames
+
 {-
    Representación de chunk de frames stateful
 -}
 class SFFramesChunk fc where
-   sffcMaxLength :: TypeRep fc -> Word64 -- Tamaño máximo de chunk
+   sffcMaxLength :: SFFramesChunkType fc -> Word64 -- Tamaño máximo de chunk
    sffcNew :: Word64 -> Word32 -> IO fc -- Crea un chunk con la longitud y los canales especificados
    sffcLength :: fc -> Word64 -- Devuelve la longitud
    sffcChannels :: fc -> Word32 -- Devuelve la cantidad de canales
