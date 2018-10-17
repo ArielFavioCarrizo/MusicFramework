@@ -4,11 +4,11 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 
-module Esferixis.Control.Concurrency.Shared(
-     Shared
-   , mkShared
-   , sSplitRef
-   , sConsume
+module Esferixis.Control.Concurrency.SharedRef(
+     SharedRef
+   , mkSharedRef
+   , srSplit
+   , srConsume
    ) where
 
 import Data.Functor
@@ -16,31 +16,31 @@ import Esferixis.Control.Concurrency.AsyncIO
 import Esferixis.Control.Concurrency.Promise
 import Esferixis.Control.Concurrency.RefCount
 
-data Shared a = Shared {
+data SharedRef a = SharedRef {
      sTarget :: a
    , sRefCount :: RefCount
    }
 
-mkShared :: a -> AsyncIO () -> AsyncIO (Shared a)
-mkShared target deleteTarget = do
+mkSharedRef :: a -> AsyncIO () -> AsyncIO (SharedRef a)
+mkSharedRef target deleteTarget = do
    refCount <- mkRefCount deleteTarget
 
    return
-      Shared {
+      SharedRef {
            sTarget = target
          , sRefCount = refCount
          }
 
-sSplitRef :: Shared a -> AsyncIO ( Shared a, Shared a )
-sSplitRef shared = do
+srSplit :: SharedRef a -> AsyncIO ( SharedRef a, SharedRef a )
+srSplit shared = do
    refCountIncRef $ sRefCount shared
    return ( shared, shared )
 
-instance Functor Shared where
+instance Functor SharedRef where
    fmap fun shared =
       shared { sTarget = fun $ sTarget shared }
 
-sConsume :: Shared a -> ( a -> AsyncIO () ) -> AsyncIO ()
-sConsume shared fun = do
+srConsume :: SharedRef a -> ( a -> AsyncIO () ) -> AsyncIO ()
+srConsume shared fun = do
    fun $ sTarget shared
    refCountDecRef $ sRefCount shared
