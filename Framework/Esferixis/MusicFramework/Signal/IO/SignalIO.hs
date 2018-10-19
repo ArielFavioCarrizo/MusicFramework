@@ -16,6 +16,7 @@ module Esferixis.MusicFramework.Signal.IO.SignalIO(
         , SIOJoin
         , SIOSplit
         , SIOSection
+        , SIOFuse
         , SIODispose
         , SIOBind
         , SIOReturn
@@ -85,6 +86,8 @@ data SignalIO r where
    SIOSplit :: (SChunkTuple tsc lsc rsc) => tsc -> SignalIO (lsc, rsc)
    -- Devuelve una porción del chunk con el offset y el tamaño especificados
    SIOSection :: (SChunk sc) => sc -> Word64 -> Word64 -> SignalIO sc
+   -- Fusiona dos chunks. Del izquierdo al derecho.
+   SIOFuse :: (SChunk sc) => sc -> sc -> SignalIO sc
 
    -- Termina el uso del objeto especificado
    SIODispose :: (SIODisposable a) => a -> SignalIO ()
