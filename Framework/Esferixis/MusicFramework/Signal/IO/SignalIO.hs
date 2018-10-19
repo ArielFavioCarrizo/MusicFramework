@@ -6,32 +6,31 @@
 
 module Esferixis.MusicFramework.Signal.IO.SignalIO(
      SignalIO(
-          SIONewProducer
+          SIOMaxChunkLength
+        , SIONewProducer
         , SIOPopChunk
-        , SIODisposeProducer
         , SIONewConsumer
         , SIOPushChunk
-        , SIODisposeConsumer
         , SIONewTransformer
         , SIOTransform
-        , SIODisposeTransformer
         , SIOJoin
         , SIOSplit
         , SIOSection
-        , SIODisposeChunk
+        , SIODispose
         , SIOBind
         , SIOReturn
         , SIOFail
         )
-   , SignalChunk(scLength)
-   , SignalUnitGen
-   , SignalProducer
-   , SignalProducerTemplate
-   , SignalTransformer
-   , SignalTransformerTemplate
-   , SignalConsumer
-   , SignalConsumerTemplate
-   , SignalChunkTuple
+   , SIODisposable
+   , SChunk(scLength)
+   , SChunkTuple
+   , SIOUnitGen
+   , SIOProducer
+   , SIOProducerTemplate
+   , SIOTransformer
+   , SIOTransformerTemplate
+   , SIOConsumer
+   , SIOConsumerTemplate
    ) where
 
 import Data.Word
@@ -39,62 +38,59 @@ import Data.Maybe
 import Control.Applicative
 import Control.Monad
 
-class SignalChunk sc where
+class SIODisposable a
+
+class (SIODisposable sc) => SChunk sc where
    scLength :: sc -> Word64
 
-class SignalUnitGen p
+class (SChunk lsc, SChunk rsc, SChunk tsc) => SChunkTuple tsc lsc rsc | lsc -> tsc, rsc -> tsc
 
-class (SignalUnitGen p, SignalChunk sc) => SignalProducer p sc | p -> sc
+class (SIODisposable p) => SIOUnitGen p
 
-class (SignalProducer p sc) => SignalProducerTemplate pt p sc
+class (SIOUnitGen p, SChunk sc) => SIOProducer p sc | p -> sc
 
-class (SignalUnitGen t, SignalChunk isc, SignalChunk osc) => SignalTransformer t isc osc | t -> isc, t -> osc
+class (SIOProducer p sc) => SIOProducerTemplate pt p sc
 
-class (SignalTransformer t isc osc) => SignalTransformerTemplate tt t isc osc
+class (SIOUnitGen t, SChunk isc, SChunk osc) => SIOTransformer t isc osc | t -> isc, t -> osc
 
-class (SignalChunk osc) => SignalConsumer c osc | c -> osc
+class (SIOTransformer t isc osc) => SIOTransformerTemplate tt t isc osc
 
-class (SignalUnitGen c, SignalConsumer c sc) => SignalConsumerTemplate ct c sc
+class (SChunk osc) => SIOConsumer c osc | c -> osc
 
-class (SignalChunk lsc, SignalChunk rsc, SignalChunk tsc) => SignalChunkTuple tsc lsc rsc | lsc -> tsc, rsc -> tsc
+class (SIOUnitGen c, SIOConsumer c sc) => SIOConsumerTemplate ct c sc
 
 -- Acción con señales
-data SignalIO r where 
+data SignalIO r where
    -- Dado el UnitGen devuelve la longitud máxima garantizada que puede procesar de chunks de ahora para adelante. Si devuelve cero significa que no puede procesar más.
-   SIOMaxChunkLength :: (SignalUnitGen ug) => ug -> SignalIO Word64
+   SIOMaxChunkLength :: (SIOUnitGen ug) => ug -> SignalIO Word64
 
    -- Crea un productor con el template especificado
-   SIONewProducer :: (SignalProducerTemplate pt p sc) => pt -> SignalIO p
+   SIONewProducer :: (SIOProducerTemplate pt p sc) => pt -> SignalIO p
    -- Devuelve un chunk con el productor y el tamaño de chunk deseado
-   SIOPopChunk :: (SignalProducer p sc) => p -> Word64 -> SignalIO sc
-   -- Termina el uso del productor especificado
-   SIODisposeProducer :: (SignalProducer p sc) => p -> SignalIO ()
+   SIOPopChunk :: (SIOProducer p sc) => p -> Word64 -> SignalIO sc
 
    -- Crea un consumidor con el template especificado
-   SIONewConsumer :: (SignalConsumerTemplate ct c sc) => ct -> SignalIO c
+   SIONewConsumer :: (SIOConsumerTemplate ct c sc) => ct -> SignalIO c
    -- Empuja un chunk al consumidor especificado
-   SIOPushChunk :: (SignalConsumer c sc) => c -> sc -> SignalIO ()
-   -- Termina el uso del consumidor
-   SIODisposeConsumer :: (SignalConsumer c sc) => c -> SignalIO ()
+   SIOPushChunk :: (SIOConsumer c sc) => c -> sc -> SignalIO ()
 
    -- Crea un transformador con el template especificado
-   SIONewTransformer :: (SignalTransformerTemplate tt t isc osc) => tt -> SignalIO t
+   SIONewTransformer :: (SIOTransformerTemplate tt t isc osc) => tt -> SignalIO t
    -- Realiza una transformación con el transformador y el chunk de entrada especificado. Devuelve el chunk transformado.
-   SIOTransform :: (SignalTransformer t isc osc) => t -> isc -> SignalIO osc
-   -- Termina el uso del transformador especificado
-   SIODisposeTransformer :: (SignalTransformer t isc osc) => t -> SignalIO ()
+   SIOTransform :: (SIOTransformer t isc osc) => t -> isc -> SignalIO osc
 
    -- Une dos chunks en una tupla
-   SIOJoin :: (SignalChunkTuple tsc lsc rsc) => lsc -> rsc -> SignalIO tsc
+   SIOJoin :: (SChunkTuple tsc lsc rsc) => lsc -> rsc -> SignalIO tsc
    -- Divide la tupla de chunks, separándola en sus componentes
-   SIOSplit :: (SignalChunkTuple tsc lsc rsc) => tsc -> SignalIO (lsc, rsc)
+   SIOSplit :: (SChunkTuple tsc lsc rsc) => tsc -> SignalIO (lsc, rsc)
    -- Devuelve una porción del chunk con el offset y el tamaño especificados
-   SIOSection :: (SignalChunk sc) => sc -> Word64 -> Word64 -> SignalIO sc
-   -- Termina el uso del chunk
-   SIODisposeChunk :: (SignalChunk sc) => sc -> SignalIO ()
+   SIOSection :: (SChunk sc) => sc -> Word64 -> Word64 -> SignalIO sc
+
+   -- Termina el uso del objeto especificado
+   SIODispose :: (SIODisposable a) => a -> SignalIO ()
 
    -- Bind monádico
-   SIOBind :: SignalIO a -> ( a -> SignalIO r ) -> SignalIO r
+   SIOBind :: SignalIO s -> ( s -> SignalIO r ) -> SignalIO r
 
    -- Return monádico
    SIOReturn :: r -> SignalIO r
