@@ -13,10 +13,6 @@ module Esferixis.MusicFramework.Signal.IO.MSignalIO(
         , MSIOPushChunk
         , MSIONewTransformer
         , MSIOTransform
-        , MSIOJoin
-        , MSIOSplit
-        , MSIOSection
-        , MSIOFuse
         , MSIODispose
         , MSIOBind
         , MSIOReturn
@@ -56,7 +52,7 @@ class (MSIOUnitGen p, MSChunk sc) => MSIOProducer p sc | p -> sc
 
 class (MSIOProducer p sc) => MSIOProducerTemplate pt p sc
 
-class (MSIOUnitGen t, SChunk isc, MSChunk osc) => MSIOTransformer t isc osc | t -> isc, t -> osc
+class (MSIOUnitGen t, MSChunk isc, MSChunk osc) => MSIOTransformer t isc osc | t -> isc, t -> osc
 
 class (MSIOTransformer t isc osc) => MSIOTransformerTemplate tt t isc osc
 
@@ -80,32 +76,32 @@ data MSignalIO r where
    MSIOPushChunk :: (MSIOConsumer c sc) => c -> sc -> MSignalIO ()
 
    -- Crea un transformador con el template especificado
-   SIONewTransformer :: (MSIOTransformerTemplate tt t isc osc) => tt -> MSignalIO t
+   MSIONewTransformer :: (MSIOTransformerTemplate tt t isc osc) => tt -> MSignalIO t
    -- Realiza una transformación con el transformador, el chunk de entrada y el chunk de salida especificados. Devuelve el chunk transformado.
-   MSIOTransform :: (SIOTransformer t isc osc) => t -> isc -> osc -> SignalIO osc
+   MSIOTransform :: (MSIOTransformer t isc osc) => t -> isc -> osc -> MSignalIO ()
 
    -- Termina el uso del objeto especificado
-   SIODispose :: (SIODisposable a) => a -> SignalIO ()
+   MSIODispose :: (MSIODisposable a) => a -> MSignalIO ()
 
    -- Bind monádico
-   SIOBind :: SignalIO s -> ( s -> SignalIO r ) -> SignalIO r
+   MSIOBind :: MSignalIO s -> ( s -> MSignalIO r ) -> MSignalIO r
 
    -- Return monádico
-   SIOReturn :: r -> SignalIO r
+   MSIOReturn :: r -> MSignalIO r
 
    -- Error monádico
-   SIOFail :: String -> SignalIO r
+   MSIOFail :: String -> MSignalIO r
 
-instance Monad SignalIO where
-   preSignalIO >>= k = SIOBind preSignalIO k
+instance Monad MSignalIO where
+   preSignalIO >>= k = MSIOBind preSignalIO k
 
-   return value = SIOReturn value
+   return value = MSIOReturn value
    
-   fail message = SIOFail message
+   fail message = MSIOFail message
 
-instance Applicative SignalIO where
+instance Applicative MSignalIO where
    pure = return
    (<*>) = ap
 
-instance Functor SignalIO where
+instance Functor MSignalIO where
    fmap = liftM
