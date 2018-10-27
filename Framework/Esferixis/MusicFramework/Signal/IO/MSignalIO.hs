@@ -11,8 +11,9 @@ module Esferixis.MusicFramework.Signal.IO.MSignalIO(
         , MSIOPopChunk
         , MSIONewConsumer
         , MSIOPushChunk
-        , MSIONewTransformer
+        , MSIONewSymmetricTransformer
         , MSIOTransform
+        , MSIONewBufferedTransformer
         , MSIODispose
         , MSIOBind
         , MSIOReturn
@@ -24,8 +25,10 @@ module Esferixis.MusicFramework.Signal.IO.MSignalIO(
    , MSIOUnitGen
    , MSIOProducer
    , MSIOProducerTemplate
-   , MSIOTransformer
-   , MSIOTransformerTemplate
+   , MSIOSymmetricTransformer
+   , MSIOSymmetricTransformerTemplate
+   , MSIOBufferedTransformer(msioInput, msioOutput)
+   , MSIOBufferedTransformerTemplate
    , MSIOConsumer
    , MSIOConsumerTemplate
    ) where
@@ -52,9 +55,16 @@ class (MSIOUnitGen p, MSChunk sc) => MSIOProducer p sc | p -> sc
 
 class (MSIOProducer p sc) => MSIOProducerTemplate pt p sc
 
-class (MSIOUnitGen t, MSChunk isc, MSChunk osc) => MSIOTransformer t isc osc | t -> isc, t -> osc
+class (MSIOUnitGen t, MSChunk isc, MSChunk osc) => MSIOSymmetricTransformer t isc osc | t -> isc, t -> osc
 
-class (MSIOTransformer t isc osc) => MSIOTransformerTemplate tt t isc osc
+class (MSIOSymmetricTransformer t isc osc) => MSIOSymmetricTransformerTemplate tt t isc osc | tt -> t, tt -> isc, tt -> osc
+
+data MSIOBufferedTransformer p c isc osc = MSIOBufferedTransformer {
+     msioInput :: (MSIOConsumer c isc) => p
+   , msioOutput :: (MSIOProducer p osc) => c
+   }
+
+class (MSIOConsumer c isc, MSIOProducer p osc, MSChunk isc, MSChunk osc) => MSIOBufferedTransformerTemplate tt p c isc osc
 
 class (MSChunk osc) => MSIOConsumer c osc | c -> osc
 
@@ -75,10 +85,13 @@ data MSignalIO r where
    -- Empuja un chunk al consumidor especificado
    MSIOPushChunk :: (MSIOConsumer c sc) => c -> sc -> MSignalIO ()
 
-   -- Crea un transformador con el template especificado
-   MSIONewTransformer :: (MSIOTransformerTemplate tt t isc osc) => tt -> MSignalIO t
-   -- Realiza una transformación con el transformador, el chunk de entrada y el chunk de salida especificados. Devuelve el chunk transformado.
-   MSIOTransform :: (MSIOTransformer t isc osc) => t -> isc -> osc -> MSignalIO ()
+   -- Crea un transformador simétrico con el template especificado
+   MSIONewSymmetricTransformer :: (MSIOSymmetricTransformerTemplate tt t isc osc) => tt -> MSignalIO t
+   -- Realiza una transformación con el transformador simétrico, el chunk de entrada y el chunk de salida especificados. Devuelve el chunk transformado.
+   MSIOTransform :: (MSIOSymmetricTransformer t isc osc) => t -> isc -> osc -> MSignalIO ()
+
+   -- Crea un transformador buffereado con el template especificado
+   MSIONewBufferedTransformer :: (MSIOBufferedTransformerTemplate tt p c isc osc) => tt -> MSignalIO ( MSIOBufferedTransformer p c isc osc )
 
    -- Termina el uso del objeto especificado
    MSIODispose :: (MSIODisposable a) => a -> MSignalIO ()
