@@ -91,7 +91,7 @@ data MSignalIO e r where
    -- Crea un productor con el template especificado
    MSIONewProducer :: (MSIOProducerTemplate e pt p sc) => pt -> MSignalIO e p
    -- Produce en el chunk especificado
-   MSIOPopChunk :: (MSIOProducer e p sc) => p -> sc -> MSignalIO e sc
+   MSIOPopChunk :: (MSIOProducer e p sc) => p -> sc -> MSignalIO e ()
 
    -- Crea un consumidor con el template especificado
    MSIONewConsumer :: (MSIOConsumerTemplate e ct c sc) => ct -> MSignalIO e c
