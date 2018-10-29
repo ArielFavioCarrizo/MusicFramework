@@ -8,7 +8,6 @@ module Esferixis.MusicFramework.Signal.Operations.Signal
    , SFSignalChunkIO(sfscIOInput, sfscIOOutput)
    , mkSFSignalChunkIO
    , SFSignalUnitSt(sfsuMaxFrames, sfsuPushTickOp, sfsuTerminate)
-   , sfsuDoTicksBatch
    ) where
 
 import Data.Word
@@ -44,26 +43,8 @@ mkSFSignalChunkIO inputChunk outputChunk =
 -- Definición de unidad de procesamiento de señal
 class SFSignalUnitSt su ti | su -> ti where
    -- Máxima cantidad de frames con los que puede operar en el tick. Los restantes son la cota superior mínima garantizada.
-   sfsuMaxFrames :: su -> Word64
-   -- Devuelve una acción que realiza la operación de tick con la entrada especificada. Devuelve el próximo estado.
-   sfsuPushTickOp :: su -> ti -> AsyncIO ( Maybe ( su ) )
+   sfsuMaxFrames :: su -> AsyncIO Word64
+   -- Devuelve una acción que realiza la operación de tick con la entrada especificada.
+   sfsuPushTickOp :: su -> ti -> AsyncIO ()
    -- Termina el uso de la unidad de procesamiento de señal
    sfsuTerminate :: su -> AsyncIO ()
-
-{-
-   Devuelve una acción que toma el estado de la unidad de procesamiento de señal
-   y la lista de entrada de ticks.
-   Realiza los ticks.
-   
-   La acción devuelve el próximo estado.
--}
-sfsuDoTicksBatch :: (SFSignalUnitSt su ti) => su -> [ti] -> AsyncIO ( Maybe su )
-sfsuDoTicksBatch unitSt [] = return $ Just $ unitSt
-sfsuDoTicksBatch unitSt (tickIn:nextTickIns) = do
-   mnextUnitSt <- sfsuPushTickOp unitSt tickIn
-   case mnextUnitSt of
-      Just nextUnitSt -> sfsuDoTicksBatch nextUnitSt nextTickIns
-      Nothing ->
-         if ( null nextTickIns )
-            then return $ Nothing
-            else fail "Unexpected signal processor unit termination"

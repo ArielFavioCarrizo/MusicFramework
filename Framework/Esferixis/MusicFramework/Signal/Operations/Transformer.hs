@@ -15,13 +15,6 @@ module Esferixis.MusicFramework.Signal.Operations.Transformer(
         , sftPushTickOp
         , sftTerminate
         )
-   , SFTransformerStConvertible(mkSFTransformerSt)
-   , SFTVTransformerSt(
-          SFTVTransformerSt
-        , sftTvMaxFrames
-        , sftTvPushTickOp
-        , sftTvTerminate
-        )
    ) where
 
 import Data.Word
@@ -52,13 +45,13 @@ class SFTransformerStConvertible sc state | state -> sc where
 data SFTransformerSt sc = 
    -- Estado de transformador sin terminar
    SFTransformerSt {
-        -- Máxima cantidad de frames con los que puede operar en el tick. Los restantes son la cota superior mínima garantizada.
-        sftMaxFrames :: Word64
+        -- Máxima cantidad de frames garantizada con los que puede operar en el tick y subsiguientes.
+        sftMaxFrames :: AsyncIO Word64
         {-
            Devuelve una acción que realiza la operación de tick con una función que
-           recibe el comando de tick a realizar y que devuelve del próximo estado.
+           recibe el comando de tick a realizar.
         -}
-      , sftPushTickOp :: Future ( SFTransformerTickCmd sc ) -> AsyncIO ( Maybe ( SFTransformerSt sc ) )
+      , sftPushTickOp :: Future ( SFTransformerTickCmd sc ) -> AsyncIO ()
         {-
            Termina el uso del transformador
         -}
@@ -69,39 +62,3 @@ instance SFSignalUnitSt (SFTransformerSt sc) ( Future ( SFTransformerTickCmd sc 
    sfsuMaxFrames = sftMaxFrames
    sfsuPushTickOp = sftPushTickOp
    sfsuTerminate = sftTerminate
-
--- Descripción de estado del transformador variante en el tiempo
-data SFTVTransformerSt sc = 
-   -- Estado de transformador sin terminar
-   SFTVTransformerSt {
-        -- Máxima cantidad de frames con los que puede operar en el tick. Los restantes son la cota superior mínima garantizada.
-        sftTvMaxFrames :: Word64
-        {-
-           Devuelve una acción que realiza la operación de tick con el comando especificado, y devuelve el próximo estado.
-        -}
-      , sftTvPushTickOp :: SFTransformerTickCmd sc -> AsyncIO ( Maybe ( SFTVTransformerSt sc ) )
-        {-
-           Termina el uso del transformador
-        -}
-      , sftTvTerminate :: AsyncIO ()
-      }
-
-instance SFSignalUnitSt (SFTVTransformerSt sc) ( SFTransformerTickCmd sc ) where
-   sfsuMaxFrames = sftTvMaxFrames
-   sfsuPushTickOp = sftTvPushTickOp
-   sfsuTerminate = sftTvTerminate
-
-instance SFTransformerStConvertible sc (SFTVTransformerSt sc) where
-   mkSFTransformerSt
-      SFTVTransformerSt {
-           sftTvMaxFrames = srcMaxFrames
-         , sftTvPushTickOp = srcPushTickOp
-         , sftTvTerminate = srcTerminate
-         } =
-             SFTransformerSt {
-                  sftMaxFrames = srcMaxFrames
-                , sftPushTickOp = \cmdFuture -> do
-                     nextSrcSt <- await cmdFuture >>= srcPushTickOp
-                     return $ (liftM mkSFTransformerSt) nextSrcSt
-                , sftTerminate = srcTerminate
-                }
