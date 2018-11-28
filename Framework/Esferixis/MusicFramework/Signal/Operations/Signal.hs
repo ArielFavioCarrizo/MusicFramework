@@ -23,7 +23,7 @@ data SFSignalChunk sc = SFSignalChunk {
    }
  
 -- Par E/S
-data SFSignalChunkIO sc= SFSignalChunkIO {
+data SFSignalChunkIO sc = SFSignalChunkIO {
      sfscIOInput :: SFSignalChunk sc
    , sfscIOOutput :: SFSignalChunk sc
    }

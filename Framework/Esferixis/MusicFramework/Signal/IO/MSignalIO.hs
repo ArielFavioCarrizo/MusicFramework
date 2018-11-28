@@ -7,6 +7,7 @@
 module Esferixis.MusicFramework.Signal.IO.MSignalIO(
      MSignalIO(
           MSIOMaxChunkLength
+        , MSIOWaitForConsumers
         , MSIONewProducer
         , MSIOPopChunk
         , MSIONewConsumer
@@ -21,7 +22,6 @@ module Esferixis.MusicFramework.Signal.IO.MSignalIO(
         )
    , MSIODisposable
    , MSChunk(scLength)
-   , MSChunkTuple
    , MSIOUnitGen
    , MSIOProducer
    , MSIOProducerTemplate
@@ -31,6 +31,7 @@ module Esferixis.MusicFramework.Signal.IO.MSignalIO(
    , MSIOBufferedTransformerTemplate
    , MSIOConsumer
    , MSIOConsumerTemplate
+   , MFramesChunk
    ) where
 
 import Data.Word
@@ -39,16 +40,16 @@ import Data.Proxy
 import Control.Applicative
 import Control.Monad
 
+class MSignalIOEnvironment e fc sc | e -> fc sc where
+
 class MSIODisposable a
 
-class (MSIODisposable fc) => MFramesChunk e fc csc | e -> fc, fc -> csc where
+class (MSIODisposable fc) => MFramesChunk e fc csc | e -> fc csc where
    fcLength :: Proxy e -> fc -> Word64
    fcChannels :: Proxy e -> fc -> Word32
 
 class (MSIODisposable sc) => MSChunk sc where
    scLength :: sc -> Word64
-
-class (MSChunk lsc, MSChunk rsc, MSChunk tsc) => MSChunkTuple tsc lsc rsc | lsc rsc -> tsc
 
 class (MSIODisposable p) => MSIOUnitGen p
 
@@ -73,16 +74,22 @@ class (MSIOUnitGen c, MSIOConsumer e c sc) => MSIOConsumerTemplate e ct c sc | e
 
 -- Acción con chunks de señales mutables, indicando el tipo del entorno, y el tipo de valor de retorno
 data MSignalIO e r where
-   -- Dado el UnitGen devuelve la longitud máxima garantizada que puede procesar de chunks de ahora para adelante. Si devuelve cero significa que no puede procesar más.
-   MSIOMaxChunkLength :: (MSIOUnitGen ug) => ug -> MSignalIO e Word64
+   {-
+      Dado el UnitGen devuelve la longitud máxima garantizada que puede procesar de chunks de ahora para adelante.
+      Si devuelve cero significa que no puede procesar más.
+      Si devuelve vacío significa que la unidad está ocupada y no puede
+      responder en éste momento.
+   -}
+   MSIOMaxChunkLength :: (MSIOUnitGen ug) => ug -> MSignalIO e ( Maybe Word64 )
+
+   -- Espera a que cualquiera de los consumidores se desocupe
+   MSIOWaitForConsumers :: MSignalIO e ()
 
    -- Crea un chunk de frames con la longitud y los canales especificados
    MSIONewFramesChunk :: (MFramesChunk e fc csc) => Word64 -> Word32 -> MSignalIO e fc
    -- Devuelve el chunk de señal del canal de chunk de frames especificado
    MSIOChannel :: (MFramesChunk e fc csc) => fc -> Word32 -> MSignalIO e csc
-
-   -- Une dos chunks en una tupla
-   MSIOJoin :: (MSChunkTuple tsc lsc rsc) => lsc -> rsc -> MSignalIO e tsc
+   
    -- Devuelve una porción del chunk de señal con el offset y el tamaño especificados
    MSIOSection :: (MSChunk sc) => sc -> Word64 -> Word64 -> MSignalIO e sc
    -- Copia el contenido del primer chunk de señal al segundo. Ambos tienen que ser de la misma longitud.

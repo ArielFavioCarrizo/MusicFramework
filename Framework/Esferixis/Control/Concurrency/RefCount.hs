@@ -27,25 +27,25 @@ data RefCount = RefCount {
    }
 
 {-
-   Crea una cuenta de referencias, que se destruye al alcanzar cero.
+   Crea una cuenta de referencias, que invoca la acción destrución al alcanzar cero.
    La cuenta de referencias inicialmente vale 1.
 -}
 mkRefCount :: AsyncIO () -> AsyncIO RefCount
-mkRefCount deleteFun = mkRefCountWithCount 1 deleteFun
+mkRefCount deleteAction = mkRefCountWithCount 1 deleteAction
 
 {-
    Crea una cuenta de referencias, que se destruye al alcanzar cero.
    La cuenta tiene que ser positiva
 -}
 mkRefCountWithCount :: Word64 -> AsyncIO () -> AsyncIO RefCount
-mkRefCountWithCount initialCount deleteFun = liftIO $
+mkRefCountWithCount initialCount deleteAction = liftIO $
    if ( initialCount > 0 )
       then do
          refCount <- newIORef initialCount
          return $
             RefCount {
                  refCountRefCount = refCount
-               , refCountDelete = deleteFun
+               , refCountDelete = deleteAction
                }
       else fail "Reference count must be positive"
 
