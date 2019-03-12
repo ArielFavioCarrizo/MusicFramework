@@ -24,11 +24,11 @@ toHMidiMsg (CC cId value) = HM.CC cId value
 toHMidiMsg (Aftertouch value) = HM.Aftertouch value
 toHMidiMsg (PitchWheel value) = HM.PitchWheel value
 
-play :: HM.Connection -> [MidiCmd] -> IO ()
-play connection ( (ChannelMsgCmd (ChannelMsg nChannel midiMsg) ) :nextCmd ) = do
+play :: HM.Connection -> [MidiEvent] -> IO ()
+play connection ( (MEvCmd (ChannelMsg nChannel midiMsg) ) :nextCmd ) = do
    HM.send connection $ HM.MidiMessage nChannel $ toHMidiMsg midiMsg
    play connection nextCmd
-play connection ( (TimestampDelta timeDelta) :nextCmd ) = do
+play connection ( (MEvTimestampDelta timeDelta) :nextCmd ) = do
    threadDelay timeDelta
    play connection nextCmd
 play connection [] =

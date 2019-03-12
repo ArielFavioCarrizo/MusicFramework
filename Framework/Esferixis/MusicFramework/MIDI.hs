@@ -16,8 +16,9 @@ data MidiMsg =
    Aftertouch Int | -- Global aftertouch
    PitchWheel Int -- From -8192 to 8191
 
-data ChannelMsg = ChannelMsg Int MidiMsg -- Channel number, message
-
 data MidiCmd =
-   ChannelMsgCmd ChannelMsg | -- Midi message for channel
-   TimestampDelta Int -- Timestamp delta in microseconds
+   ChannelMsg Int MidiMsg -- Channel number, message
+
+data MidiEvent =
+   MEvCmd MidiCmd | -- Midi message
+   MEvTimestampDelta Int -- Timestamp delta in microseconds
