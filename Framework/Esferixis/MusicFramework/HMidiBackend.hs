@@ -25,7 +25,7 @@ toHMidiMsg (Aftertouch value) = HM.Aftertouch value
 toHMidiMsg (PitchWheel value) = HM.PitchWheel value
 
 play :: HM.Connection -> [MidiCmd] -> IO ()
-play connection ( (ChannelMsg nChannel midiMsg) :nextCmd ) = do
+play connection ( (ChannelMsgCmd (ChannelMsg nChannel midiMsg) ) :nextCmd ) = do
    HM.send connection $ HM.MidiMessage nChannel $ toHMidiMsg midiMsg
    play connection nextCmd
 play connection ( (TimestampDelta timeDelta) :nextCmd ) = do

@@ -10,37 +10,104 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE Rank2Types #-}
 
 module Esferixis.MusicFramework.Music where
 
 import qualified Esferixis.MusicFramework.MIDI as MIDI
+import Data.Proxy
+import Data.Array
+import Data.Dynamic
+
+class (Typeable e) => Instrument e where
+   transposeIEvent :: e -> Double -> e -- Transpose pitch
 
 {-
-   Instrument
+   Instrument state
 
-   i: Instrument
    e: Instrument's event
 -}
-class Instrument i e where
-   instrumentEventToMIDI :: i -> e -> (Int, MIDI.MidiMsg) -- Transforms the given instrument's event into midi channel number and midi message
+data InstrumentState e = InstrumentState {
+   instrumentEventToMIDI :: (Instrument e) => e -> (InstrumentState e, MIDI.ChannelMsg)
+   }
 
-data Music where
-   IEvent :: (Instrument i e) => i -> e -> Music -- Instrument event
-   TDelta :: Double -> Music -- Time delta
-   MEmpty :: Music -- Empty music
-   (:+:) :: Music -> Music -> Music -- Sequential composition
-   (:=:) :: Music -> Music -> Music -- Parallel composition
+-- Instrument entry
+data InstrumentEntry where
+   InstrumentEntry :: (Instrument e) => InstrumentId e -> InstrumentState e -> InstrumentEntry
 
--- Converts music to midi
-musicToMidi :: Music -> [MIDI.MidiCmd]
-musicToMidi (IEvent instrument instrumentEvent) =
-   let (nChannel, midiMsg) = instrumentEventToMIDI instrument instrumentEvent
-   in [MIDI.ChannelMsg nChannel midiMsg]
-musicToMidi (TDelta delta) =
-   [MIDI.TimestampDelta $ floor $ delta]
-musicToMidi MEmpty =
-   []
-musicToMidi ( leftMusic :+: rightMusic ) =
-   ( musicToMidi leftMusic ) ++ ( musicToMidi rightMusic )
-musicToMidi ( leftMusic :=: rightMusic ) =
-   ( musicToMidi leftMusic ) `midiPar` ( musicToMidi rightMusic )
+data InstrumentId e = InstrumentId Int
+
+
+-- Musical context monad
+data MContext a where
+   --MContextMkInstrument :: MContext s -> InstrumentState e -> ( MContext s -> InstrumentId e 
+   MContextReturn :: [InstrumentEntry] -> a -> MContext a
+
+-- Instrument map
+data InstrumentMap = InstrumentMap (Array Int Dynamic)
+
+--mkInstrumentMap :: [InstrumentEntry] -> InstrumentMap
+--mkInstrumentMap 
+
+data IEvent where
+   IEvent :: (Instrument e) => InstrumentId e -> e -> IEvent
+
+-- Musical event
+data MEvent e =
+   IE e | -- Instrument event
+   TD Double -- Time delta
+
+-- Music DSL
+data Music =
+   ME (MEvent IEvent) | -- Instrument event
+   Music :+: Music | -- Sequential composition
+   Music :=: Music -- Parallel composition
+
+-- Transpose music's pitch
+transpose :: Music -> Double -> Music
+transpose (ME (IE (IEvent instrumentId iEvent))) pitchDelta  =
+   ME $ IE $ IEvent instrumentId $ transposeIEvent iEvent pitchDelta
+transpose music pitchDelta =
+   music
+
+-- Makes a music value from the given instrument id and instrument event
+i :: (Instrument e) => InstrumentId e -> e -> Music
+i instrumentId ievent = ME $ IE $ IEvent instrumentId ievent
+
+-- Makes a music value that represents a timestamp delta from raw timestamp delta value
+td :: Double -> Music
+td timeDelta =
+   ME $ TD timeDelta
+
+-- Converts music to a list of events
+musicToEvents :: Music -> [MEvent IEvent]
+musicToEvents (ME mevent) =
+   [mevent]
+musicToEvents ( leftMusic :+: rightMusic ) =
+   ( musicToEvents leftMusic ) ++ ( musicToEvents rightMusic )
+musicToEvents ( leftMusic :=: rightMusic ) =
+   ( musicToEvents leftMusic ) `mePar` ( musicToEvents rightMusic )
+
+-- Events paralellization
+mePar :: [MEvent e] -> [MEvent e] -> [MEvent e]
+mePar cmds [] = cmds
+mePar [] cmds = cmds
+mePar (TD leftTimeDelta:nextLCMDs) (TD rightTimeDelta:nextRCMDs) =
+   case ( compare leftTimeDelta rightTimeDelta ) of
+      LT -> TD leftTimeDelta:( nextLCMDs `mePar` ( TD ( rightTimeDelta - leftTimeDelta ) : nextRCMDs ) )
+      EQ -> TD leftTimeDelta:( nextLCMDs `mePar` nextRCMDs )
+      GT -> ( TD rightTimeDelta:nextRCMDs ) `mePar` ( TD leftTimeDelta:nextLCMDs)
+
+-- Converts musical events to midi events
+mEventsToMidiEvents :: InstrumentMap -> [MEvent IEvent] -> [MIDI.MidiCmd]
+mEventsToMidiEvents (InstrumentMap iArray) (mevent:nextMEvents) =
+   case mevent of
+      IE (IEvent (InstrumentId iIndex) ievent ) ->
+         case ( fromDynamic $ iArray ! iIndex ) of
+            Just instrument ->
+               let (newInstrument, midiChannelMsg) = instrumentEventToMIDI instrument ievent
+                   newIArray = iArray // [(iIndex, toDyn newInstrument)]
+               in MIDI.ChannelMsgCmd midiChannelMsg:(mEventsToMidiEvents (InstrumentMap newIArray) nextMEvents)
+            Nothing -> error "Instrument's event type mismatch"
+      TD timeDelta ->
+         (MIDI.TimestampDelta $ floor $ timeDelta):(mEventsToMidiEvents (InstrumentMap iArray) nextMEvents)
