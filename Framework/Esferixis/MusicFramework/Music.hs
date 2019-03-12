@@ -50,10 +50,10 @@ data InstrumentState e = InstrumentState {
    instrumentEventToMIDI :: (Instrument e) => e -> (InstrumentState e, MIDI.MidiCmd)
    }
 
-data InstrumentId e = InstrumentId Int
+data InstrumentId c e = InstrumentId Int
 
-data IEvent where
-   IEvent :: (Instrument e) => InstrumentId e -> e -> IEvent
+data IEvent c where
+   IEvent :: (Instrument e) => InstrumentId c e -> e -> IEvent c
 
 -- Musical event
 data MEvent e =
@@ -61,13 +61,13 @@ data MEvent e =
    TD Double -- Time delta
 
 -- Music DSL
-data Music =
-   ME (MEvent IEvent) | -- Instrument event
-   Music :+: Music | -- Sequential composition
-   Music :=: Music -- Parallel composition
+data Music c =
+   ME (MEvent (IEvent c)) | -- Instrument event
+   Music c :+: Music c | -- Sequential composition
+   Music c :=: Music c -- Parallel composition
 
 -- Map music events
-mMap :: (MEvent IEvent -> MEvent IEvent) -> Music -> Music
+mMap :: (MEvent (IEvent c) -> MEvent (IEvent c)) -> Music c -> Music c
 mMap mFun music =
    let self = mMap mFun
    in
@@ -77,7 +77,7 @@ mMap mFun music =
          leftMusic :=: rightMusic -> ( self leftMusic ) :=: ( self rightMusic )
 
 -- Transpose music's pitch
-transpose :: Music -> Double -> Music
+transpose :: Music c -> Double -> Music c
 transpose music pitchDelta =
    let mFun mEvent =
           case mEvent of
@@ -87,36 +87,36 @@ transpose music pitchDelta =
    in mMap mFun music
 
 -- Makes a music value that represents a timestamp delta from raw timestamp delta value
-td :: Double -> Music
+td :: Double -> Music c
 td timeDelta =
    ME $ TD timeDelta
 
 -- Musical context monad
-data MContext a where
-   MContextMkInstrument :: (Instrument e) => InstrumentState e -> MContext ( e -> Music )
-   MContextBind :: MContext b -> ( b -> MContext a ) -> MContext a
-   MContextReturn :: a -> MContext a
-   MContextFail :: String -> MContext a
+data MContext c r where
+   MContextMkInstrument :: (Instrument e) => InstrumentState e -> MContext c ( e -> Music r )
+   MContextBind :: MContext c s -> ( s -> MContext c r ) -> MContext c r
+   MContextReturn :: r -> MContext c r
+   MContextFail :: String -> MContext c r
 
-instance Monad MContext where
-   (>>=) :: forall a b. MContext a -> ( a -> MContext b ) -> MContext b
+instance Monad (MContext c) where
+   (>>=) :: forall s r. MContext c s -> ( s -> MContext c r ) -> MContext c r
    preMContext >>= k = MContextBind preMContext k
    
    return value = MContextReturn value
 
    fail message = MContextFail message
 
-instance Applicative MContext where
+instance Applicative (MContext c) where
    pure = return
    (<*>) = ap
 
-instance Functor MContext where
+instance Functor (MContext c) where
    fmap = liftM
 
-mkInstrument :: (Instrument e) => InstrumentState e -> MContext ( e -> Music )
+mkInstrument :: (Instrument e) => InstrumentState e -> MContext c ( e -> Music c )
 mkInstrument = MContextMkInstrument
 
-toMidi :: MContext Music -> [MIDI.MidiEvent]
+toMidi :: (forall c. MContext c (Music c)) -> [MIDI.MidiEvent]
 toMidi mContext =
    let (rawInstrMap, music) = runMContext [] mContext
    in
@@ -129,7 +129,7 @@ toMidi mContext =
 -- Instrument map
 data InstrumentMap = InstrumentMap (Array Int Dynamic)
 
-runMContext :: [(Int, Dynamic)] -> MContext r -> ([(Int, Dynamic)], r)
+runMContext :: [(Int, Dynamic)] -> MContext c r -> ([(Int, Dynamic)], r)
 runMContext instrEntries mContext =
    case mContext of
       MContextMkInstrument instrState ->
@@ -148,7 +148,7 @@ runMContext instrEntries mContext =
           error message
 
 -- Converts music to a list of events
-musicToEvents :: Music -> [MEvent IEvent]
+musicToEvents :: Music c -> [MEvent (IEvent c)]
 musicToEvents (ME mevent) =
    [mevent]
 musicToEvents ( leftMusic :+: rightMusic ) =
@@ -167,7 +167,7 @@ mePar (TD leftTimeDelta:nextLCMDs) (TD rightTimeDelta:nextRCMDs) =
       GT -> ( TD rightTimeDelta:nextRCMDs ) `mePar` ( TD leftTimeDelta:nextLCMDs)
 
 -- Converts musical events to midi events
-mEventsToMidiEvents :: InstrumentMap -> [MEvent IEvent] -> [MIDI.MidiEvent]
+mEventsToMidiEvents :: InstrumentMap -> [MEvent (IEvent c)] -> [MIDI.MidiEvent]
 mEventsToMidiEvents (InstrumentMap iArray) (mevent:nextMEvents) =
    case mevent of
       IE (IEvent (InstrumentId iIndex) ievent ) ->
