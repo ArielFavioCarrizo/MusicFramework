@@ -5,7 +5,10 @@
 -- Stability   : experimental
 -- Portability : ghc
 
-module Esferixis.MusicFramework.HMidiBackend where
+module Esferixis.MusicFramework.HMidiBackend(
+   play,
+   openByDeviceName
+   ) where
 
 import Esferixis.MusicFramework.MIDI
 import qualified System.MIDI as HM

@@ -19,3 +19,13 @@ data MidiMsg =
 data MidiCmd =
    ChannelMsg Int MidiMsg | -- Channel number, message
    TimestampDelta Int -- Timestamp delta in microseconds
+
+-- MIDI paralellization
+midiPar :: [MidiCmd] -> [MidiCmd] -> [MidiCmd]
+midiPar cmds [] = cmds
+midiPar [] cmds = cmds
+midiPar (TimestampDelta leftTimeDelta:nextLCMDs) (TimestampDelta rightTimeDelta:nextRCMDs) =
+   case ( compare leftTimeDelta rightTimeDelta ) of
+      LT -> TimestampDelta leftTimeDelta:( nextLCMDs `midiPar` ( TimestampDelta ( rightTimeDelta - leftTimeDelta ) : nextRCMDs ) )
+      EQ -> TimestampDelta leftTimeDelta:( nextLCMDs `midiPar` nextRCMDs )
+      GT -> (TimestampDelta rightTimeDelta:nextRCMDs) `midiPar` (TimestampDelta leftTimeDelta:nextLCMDs)
