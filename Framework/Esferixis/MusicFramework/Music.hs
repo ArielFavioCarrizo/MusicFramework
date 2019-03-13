@@ -30,7 +30,7 @@ module Esferixis.MusicFramework.Music(
 
 import qualified Esferixis.MusicFramework.MIDI as MIDI
 import Data.Proxy
-import Data.Array
+import qualified Data.Sequence as S
 import Data.Dynamic
 import Data.Maybe
 import qualified Data.List as L
@@ -47,7 +47,7 @@ class (Typeable e) => Instrument e where
    e: Instrument's event
 -}
 data InstrumentState e = InstrumentState {
-   instrumentEventToMIDI :: (Instrument e) => e -> (InstrumentState e, MIDI.MidiCmd)
+   instrumentEventToMIDI :: (Instrument e) => e -> (Maybe (InstrumentState e), MIDI.MidiCmd)
    }
 
 data InstrumentId c e = InstrumentId Int
@@ -118,32 +118,21 @@ mkInstrument = MContextMkInstrument
 
 toMidi :: (forall c. MContext c (Music c)) -> [MIDI.MidiEvent]
 toMidi mContext =
-   let (rawInstrMap, music) = runMContext [] mContext
-   in
-      case (L.uncons rawInstrMap) of
-         Just ( (lastIndex, _), _ ) ->
-            mEventsToMidiEvents (InstrumentMap $ array (0, lastIndex) rawInstrMap) (musicToEvents music)
-         Nothing ->
-            []
+   let (instrMap, music) = runMContext S.empty mContext
+   in mEventsToMidiEvents instrMap (musicToEvents music)
 
--- Instrument map
-data InstrumentMap = InstrumentMap (Array Int Dynamic)
-
-runMContext :: [(Int, Dynamic)] -> MContext c r -> ([(Int, Dynamic)], r)
-runMContext instrEntries mContext =
+runMContext :: S.Seq Dynamic -> MContext c r -> (S.Seq Dynamic, r)
+runMContext instrMap mContext =
    case mContext of
       MContextMkInstrument instrState ->
-          let newIndex =
-                 case (L.uncons instrEntries) of
-                    Just ( (lastIndex, _), _ ) -> lastIndex + 1
-                    Nothing -> 0
+          let newIndex = S.length instrMap
               putInstrEventFun = \iEvent -> ME $ IE $ IEvent (InstrumentId newIndex) iEvent
-          in ( (newIndex, toDyn instrState):instrEntries, putInstrEventFun )
+          in ( instrMap S.|> (toDyn instrState), putInstrEventFun )
       MContextBind preMContext transformMContextFun ->
-          let (newInstrEntries, preValue) = runMContext instrEntries preMContext
-          in runMContext newInstrEntries $ transformMContextFun preValue
+          let (newInstrMap, preValue) = runMContext instrMap preMContext
+          in runMContext newInstrMap $ transformMContextFun preValue
       MContextReturn value ->
-          (instrEntries, value)
+          (instrMap, value)
       MContextFail message ->
           error message
 
@@ -167,15 +156,21 @@ mePar (TD leftTimeDelta:nextLCMDs) (TD rightTimeDelta:nextRCMDs) =
       GT -> ( TD rightTimeDelta:nextRCMDs ) `mePar` ( TD leftTimeDelta:nextLCMDs)
 
 -- Converts musical events to midi events
-mEventsToMidiEvents :: InstrumentMap -> [MEvent (IEvent c)] -> [MIDI.MidiEvent]
-mEventsToMidiEvents (InstrumentMap iArray) (mevent:nextMEvents) =
+mEventsToMidiEvents :: S.Seq Dynamic -> [MEvent (IEvent c)] -> [MIDI.MidiEvent]
+mEventsToMidiEvents instrMap (mevent:nextMEvents) =
    case mevent of
       IE (IEvent (InstrumentId iIndex) ievent ) ->
-         case ( fromDynamic $ iArray ! iIndex ) of
-            Just instrument ->
-               let (newInstrument, midiCmd) = instrumentEventToMIDI instrument ievent
-                   newIArray = iArray // [(iIndex, toDyn newInstrument)]
-               in MIDI.MEvCmd midiCmd:(mEventsToMidiEvents (InstrumentMap newIArray) nextMEvents)
-            Nothing -> error "Instrument's event type mismatch"
+         case ( S.lookup iIndex instrMap ) of
+            Just instrSt ->
+               case (fromDynamic instrSt) of
+                  Just instrument ->
+                     let (maybeNewInstrSt, midiCmd) = instrumentEventToMIDI instrument ievent
+                         newInstrMap =
+                            case maybeNewInstrSt of
+                               Just newInstrSt -> S.update iIndex (toDyn newInstrSt) instrMap
+                               Nothing -> instrMap
+                     in MIDI.MEvCmd midiCmd:(mEventsToMidiEvents newInstrMap nextMEvents)
+                  Nothing -> error "Instrument's event type mismatch"
+            Nothing -> error "Instrument id doesn't exists"
       TD timeDelta ->
-         (MIDI.MEvTimestampDelta $ floor $ timeDelta):(mEventsToMidiEvents (InstrumentMap iArray) nextMEvents)
+         (MIDI.MEvTimestampDelta $ floor $ timeDelta):(mEventsToMidiEvents instrMap nextMEvents)
