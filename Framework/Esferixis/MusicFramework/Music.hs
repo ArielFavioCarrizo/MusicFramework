@@ -16,13 +16,13 @@
 module Esferixis.MusicFramework.Music(
    Instrument(transposeIEvent),
    InstrumentState(InstrumentState, instrumentEventToMIDI),
-   InstrumentId(InstrumentId),
+   InstrumentId,
    IEvent(IEvent),
    MEvent(IE, TD),
    Music(ME, (:+:), (:=:)),
    mMap,
    transpose,
-   td,
+   tdelta,
    MContext,
    mkInstrument,
    toMidi
@@ -87,8 +87,8 @@ transpose music pitchDelta =
    in mMap mFun music
 
 -- Makes a music value that represents a timestamp delta from raw timestamp delta value
-td :: Double -> Music c
-td timeDelta =
+tdelta :: Double -> Music c
+tdelta timeDelta =
    ME $ TD timeDelta
 
 -- Musical context monad
