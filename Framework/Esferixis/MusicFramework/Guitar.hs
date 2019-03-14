@@ -17,34 +17,27 @@ module Esferixis.MusicFramework.Guitar where
 
 import qualified Esferixis.MusicFramework.MIDI as MIDI
 import qualified Esferixis.MusicFramework.Music as M
-import Data.Proxy
-import Data.Array
-import Data.Dynamic
+import Data.Sequence
 import Data.Maybe
 import qualified Data.List as L
 
-data GuitarConfig = GuitarConfig {
+data GConfig = GConfig {
    nChannel :: Int,
-   tuning :: Array Int Double
+   tuningByString :: Seq Double
    }
+
+data GString = GString Int
 
 data GEvent =
-   GStringPick Int Double |
+   GStringPick GString Double |
    GPalmMutting Bool
 
-data GuitarSt = GuitarData {
-   stringSt :: Array Int StringSt,
-   guitarCfg :: GuitarConfig
-   }
-   
-data StringSt = StringSt {
-   lastPitch :: Maybe Int
+data GuitarSt = GuitarSt {
+   guitarStStringSt :: Seq StringSt,
+   guitarStGConfig :: GConfig
    }
 
-{-
-initialGuitarSt :: M.InstrumentState GEvent
-initialGuitarSt =
-   GuitarData {
-   stringSt = array (0, 5) StringSt { lastPitch = Nothing }
+data StringSt = StringSt {
+   stringStLastNotePitch :: Maybe Int
    }
--}
+
