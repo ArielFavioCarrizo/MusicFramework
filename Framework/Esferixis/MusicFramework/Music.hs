@@ -14,7 +14,7 @@
 {-# LANGUAGE InstanceSigs #-}
 
 module Esferixis.MusicFramework.Music(
-   Instrument(transposeIEvent),
+   Instrument(transposeIEvent, modWheel),
    InstrumentState(InstrumentState, instrumentEventToMIDI),
    InstrumentId,
    IEvent(IEvent),
@@ -39,7 +39,8 @@ import Control.Monad
 import Control.Monad.IO.Class
 
 class (Typeable e) => Instrument e where
-   transposeIEvent :: e -> Double -> e -- Transpose pitch
+   transposeIEvent :: e -> Int -> e -- Transpose pitch
+   modWheel :: Double -> e -- Modwheel event
 
 {-
    Instrument state
@@ -47,7 +48,7 @@ class (Typeable e) => Instrument e where
    e: Instrument's event
 -}
 data InstrumentState e = InstrumentState {
-   instrumentEventToMIDI :: (Instrument e) => e -> (Maybe (InstrumentState e), MIDI.MidiCmd)
+   instrumentEventToMIDI :: (Instrument e) => e -> (Maybe (InstrumentState e), [MIDI.MidiCmd])
    }
 
 data InstrumentId c e = InstrumentId Int
@@ -77,7 +78,7 @@ mMap mFun music =
          leftMusic :=: rightMusic -> ( self leftMusic ) :=: ( self rightMusic )
 
 -- Transpose music's pitch
-transpose :: Music c -> Double -> Music c
+transpose :: Music c -> Int -> Music c
 transpose music pitchDelta =
    let mFun mEvent =
           case mEvent of
@@ -164,12 +165,12 @@ mEventsToMidiEvents instrMap (mevent:nextMEvents) =
             Just instrSt ->
                case (fromDynamic instrSt) of
                   Just instrument ->
-                     let (maybeNewInstrSt, midiCmd) = instrumentEventToMIDI instrument ievent
+                     let (maybeNewInstrSt, midiCMDs) = instrumentEventToMIDI instrument ievent
                          newInstrMap =
                             case maybeNewInstrSt of
                                Just newInstrSt -> S.update iIndex (toDyn newInstrSt) instrMap
                                Nothing -> instrMap
-                     in MIDI.MEvCmd midiCmd:(mEventsToMidiEvents newInstrMap nextMEvents)
+                     in (map MIDI.MEvCmd midiCMDs) ++ (mEventsToMidiEvents newInstrMap nextMEvents)
                   Nothing -> error "Instrument's event type mismatch"
             Nothing -> error "Instrument id doesn't exists"
       TD timeDelta ->
