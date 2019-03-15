@@ -14,8 +14,8 @@
 {-# LANGUAGE InstanceSigs #-}
 
 module Esferixis.MusicFramework.KeyboardGuitar(
-   GuitarCfg(gCfgChannelNumber, gCfgPalmMutingCC, gCfgModWheelCC, gCfgTuning),
-   mkGuitar
+   GuitarCfg(GuitarCfg, gCfgChannelNumber, gCfgPalmMutingCC, gCfgModWheelCC, gCfgTuning),
+   mkGuitarSt
    ) where
 
 import qualified Esferixis.MusicFramework.MIDI as MIDI
@@ -24,6 +24,7 @@ import qualified Esferixis.MusicFramework.Guitar as G
 import qualified Data.Sequence as S
 import Data.Maybe
 import Data.Bool
+import Data.Foldable
 import qualified Data.List as L
 import Control.Arrow
 
@@ -34,8 +35,8 @@ data GuitarCfg = GuitarCfg {
    gCfgTuning :: G.GuitarTuning
    }
 
-mkGuitar :: GuitarCfg -> M.InstrumentState G.GEvent
-mkGuitar guitarCfg =
+mkGuitarSt :: GuitarCfg -> M.InstrumentState G.GEvent
+mkGuitarSt guitarCfg =
    mkGuitarInstrumentSt $
       GuitarSt {
          gStLastStringPitches = S.replicate G.numberOfGuitarStrings Nothing,
@@ -74,16 +75,19 @@ gEventToMidi guitarSt (G.GStringPick string rpitch velocity) =
    let guitar = gStGuitar guitarSt
        stringNumber = G.gStringNumber string
        lastStringPitches = gStLastStringPitches guitarSt
-       Just lastStringPitch = S.lookup stringNumber lastStringPitches
-       pitchOffset = G.gStringTuning (gTuning guitar) stringNumber
+       Just maybeLastStringPitch = S.lookup stringNumber lastStringPitches
+       pitchOffset = M.pitchValue $ G.gStringTuning (gTuning guitar) stringNumber
        absPitch = pitchOffset + rpitch
        noteOnMsg = [MIDI.NoteOn absPitch $ floor $ velocity * 127.0]
        isSamePitch = ( == Just absPitch )
-       isSamePitchAsPrevious = isSamePitch lastStringPitch
+       isSamePitchAsPrevious = isSamePitch maybeLastStringPitch
        noteOffMsg =
-          if ( ( not $ isSamePitchAsPrevious ) && (S.null $ S.filter isSamePitch $ S.deleteAt stringNumber lastStringPitches) )
-             then [MIDI.NoteOff absPitch 127]
-             else []
+          case maybeLastStringPitch of
+             Just lastStringPitch ->
+                if ( ( not $ isSamePitchAsPrevious ) && (S.null $ S.filter isSamePitch $ S.deleteAt stringNumber lastStringPitches) )
+                   then [MIDI.NoteOff lastStringPitch 127]
+                   else []
+             Nothing -> []
        nextGuitarSt = 
           if isSamePitchAsPrevious
              then Nothing
@@ -106,6 +110,13 @@ gEventToMidi guitarSt (G.GStringMute string ) =
                else doNothing
          Nothing -> doNothing
 
+gEventToMidi guitarSt G.GMuteAll =
+    let lastStringPitches = toList $ gStLastStringPitches guitarSt
+        noteOFFs = (map $ \(Just pitch) -> gMkMIDICmd (gStGuitar guitarSt) $ MIDI.NoteOff pitch 127 ) (filter isJust lastStringPitches)
+    in ( Just $ guitarSt { gStLastStringPitches = S.replicate G.numberOfGuitarStrings Nothing }, noteOFFs)
+
 gEventToMidi guitarSt (G.GPalmMutting value) = (Nothing, [gPalmMuting (gStGuitar guitarSt) value])
+
+gEventToMidi guitarSt (G.GPitchWheel value) = (Nothing, [gMkMIDICmd (gStGuitar guitarSt) $ MIDI.PitchWheel ( ( floor $ (value + 1.0) * 16383 / 2.0 ) - 8192 ) ])
 
 gEventToMidi guitarSt (G.GModWheel value) = (Nothing, [gModWheel (gStGuitar guitarSt) value])

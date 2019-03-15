@@ -7,7 +7,8 @@
 
 module Esferixis.MusicFramework.HMidiBackend(
    play,
-   openByDeviceName
+   openByDeviceName,
+   playByDeviceName
    ) where
 
 import Esferixis.MusicFramework.MIDI
@@ -43,3 +44,9 @@ openByDeviceName deviceName = do
       destinations
 
    HM.openDestination $ head filteredDestinations
+
+playByDeviceName :: String -> [MidiEvent] -> IO ()
+playByDeviceName deviceName midiEvents = do
+   connection <- openByDeviceName deviceName
+   play connection midiEvents
+   HM.close connection
