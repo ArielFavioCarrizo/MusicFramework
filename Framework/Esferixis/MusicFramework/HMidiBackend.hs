@@ -16,6 +16,7 @@ import qualified System.MIDI as HM
 import qualified System.MIDI as HM.Base
 import Control.Concurrent
 import Control.Monad
+import Control.Exception
 
 toHMidiMsg :: MidiMsg -> HM.MidiMessage'
 toHMidiMsg (NoteOff key velocity) = HM.NoteOff key velocity
@@ -46,7 +47,5 @@ openByDeviceName deviceName = do
    HM.openDestination $ head filteredDestinations
 
 playByDeviceName :: String -> [MidiEvent] -> IO ()
-playByDeviceName deviceName midiEvents = do
-   connection <- openByDeviceName deviceName
-   play connection midiEvents
-   HM.close connection
+playByDeviceName deviceName midiEvents =
+   bracket (openByDeviceName deviceName) (\connection -> HM.close connection) (\connection -> play connection midiEvents)

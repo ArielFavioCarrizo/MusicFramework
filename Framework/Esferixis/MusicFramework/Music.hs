@@ -35,6 +35,7 @@ module Esferixis.MusicFramework.Music(
    iline,
    line,
    r,
+   infLoop,
    ra,
    MContext,
    mkInstrument,
@@ -228,6 +229,9 @@ r :: Int -> Music c -> Music c
 r times music
    | times > 0 = music :+: ( r (times - 1) music ) 
    | otherwise = MEmpty
+
+infLoop :: Music c -> Music c
+infLoop music = music :+: (infLoop music)
 
 ra :: Int -> Music c -> Music c -> Music c
 ra times musicA musicB = (r times (musicA :+: musicB)) :+: musicB
