@@ -36,24 +36,29 @@ test2 = do
       (guitar $ gsPick gs6 0 1.0) :+:
       (guitar $ gMuteAll)
 
+
 test1 :: MContext c (Music c)
 test1 = do
    guitar <- mkInstrument $ KG.mkGuitarSt guitarCfg
    
    return $
-      let pm = \value -> guitar $ gPalmMutting value
-          gStop = guitar gMuteAll
-          pc7 = ((guitar $ gsPick gs6 0 1.0) :=: (guitar $ gsPick gs5 2 1.0)) :+: unitTD :+: gStop
-          pc5 = ((guitar $ gsPick gs6 0 1.0) :=: (guitar $ gsPick gs5 0 1.0)) :+: unitTD :+: gStop
-          x1 = (guitar $ gsPick gs6 0 1.0) :+: unitTD
-          x2 = r 12 x1
-          x3 = tempo (4/9) $ transpose 1 $ r 3 x1
-          x4 = x1
-          x5 = x3 :+: x4 :+: x3
-          x6 = x2 :+: ( r 1 x5 )
-          x7 = pm True :+: (r 3 x6) :+: gStop
-          x8 = pm False :+: (tempo 2 $ (transpose 5 pc7) :+: (transpose 4 pc7))
-          x9 = r 3 (x7 :+: x8)
-      in
-          tempo (1/6) $
-             (pm True) :+: x9
+      let
+         pm value = guitar $ gPalmMutting value
+         gStop = guitar gMuteAll
+         pc7 h = transpose h $ ((guitar $ gsPick gs6 0 1.0) :=: (guitar $ gsPick gs5 2 1.0)) :+: unitTD :+: gStop
+         pc5 h = transpose h $ ((guitar $ gsPick gs6 0 1.0) :=: (guitar $ gsPick gs5 0 1.0)) :+: unitTD :+: gStop
+         x1 = (guitar $ gsPick gs6 0 1.0) :+: unitTD
+         x10 = r 3 x1 :+: unitTD
+         
+         x7 =
+            let
+               x2 = r 12 x1
+               x3 = tempo (4/9) $ transpose 1 $ r 3 x1
+               x5 = x3 :+: x1 :+: x3
+               x6 = x2 :+: x5
+            in pm True :+: (r 3 x6) :+: gStop
+
+         x8 = pm False :+: (tempo 2 $ (pc7 5) :+: (pc7 4))
+         x9 = r 3 (x7 :+: x8)
+         
+      in tempo (1/6) $ (pm True) :+: x9
