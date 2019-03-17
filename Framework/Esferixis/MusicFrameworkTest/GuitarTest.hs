@@ -18,22 +18,42 @@ module Esferixis.MusicFrameworkTest.GuitarTest where
 import Esferixis.MusicFramework.Guitar
 import qualified Esferixis.MusicFramework.KeyboardGuitar as KG
 import Esferixis.MusicFramework.Music
+import Esferixis.MusicFramework.VST as VST
 import Esferixis.MusicFramework.HMidiBackend
 
-guitarCfg :: KG.GuitarCfg = 
+revitarGuitarCfg :: KG.GuitarCfg = 
    KG.GuitarCfg {
       KG.gCfgChannelNumber = 0,
-      KG.gCfgPalmMutingCC = 15,
+      KG.gCfgPalmMuting = VST.MidiBoolFlagCfgByCC 15,
+      KG.gCfgKeyMapping = VST.IdMidiKeyMapping,
       KG.gCfgModWheelCC = 1,
       KG.gCfgTuning = standardGuitarTuning
       }
+      
+lethalityGuitarCfg :: KG.GuitarCfg =
+   KG.GuitarCfg {
+      KG.gCfgChannelNumber = 0,
+      KG.gCfgPalmMuting = VST.MidiBoolFlagCfgByKeys (absPitch 60) (absPitch 61),
+      KG.gCfgKeyMapping =
+         VST.AffineMidiKeyMapping $
+            VST.AffineMidiKeyMappingDesc {
+               midiKeyMappingMinInPitch = e 2,
+               midiKeyMappingMinOutPitch = absPitch 64,
+               midiKeyMappingMaxOutPitch = absPitch 103
+            },
+      KG.gCfgModWheelCC = 1,
+      KG.gCfgTuning = standardGuitarTuning
+   }
+   
+guitarCfg = lethalityGuitarCfg
 
 test2 :: MContext c (Music c)
 test2 = do
    guitar <- mkInstrument $ KG.mkGuitarSt guitarCfg
 
    return $
-      (guitar $ gsPick gs6 0 1.0) :+:
+      (guitar $ gPalmMutting True) :+:
+      (guitar $ gsPick gs6 0 1.0) :+: unitTD :+:
       (guitar $ gMuteAll)
 
 
