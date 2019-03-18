@@ -23,7 +23,7 @@ import Esferixis.MusicFramework.HMidiBackend
 
 revitarGuitarCfg :: KG.GuitarCfg = 
    KG.GuitarCfg {
-      KG.gCfgChannelNumber = 0,
+      KG.gCfgChannelNumber = 1,
       KG.gCfgPalmMuting = MIDIMusic.MidiBoolFlagCfgByCC 15,
       KG.gCfgKeyMapping = MIDIMusic.IdMidiKeyMapping,
       KG.gCfgModWheelCC = 1,
@@ -32,7 +32,7 @@ revitarGuitarCfg :: KG.GuitarCfg =
       
 lethalityGuitarCfg :: KG.GuitarCfg =
    KG.GuitarCfg {
-      KG.gCfgChannelNumber = 0,
+      KG.gCfgChannelNumber = 2,
       KG.gCfgPalmMuting = MIDIMusic.MidiBoolFlagCfgByKeys (absPitch 60) (absPitch 61),
       KG.gCfgKeyMapping =
          MIDIMusic.AffineMidiKeyMapping $
@@ -45,7 +45,7 @@ lethalityGuitarCfg :: KG.GuitarCfg =
       KG.gCfgTuning = standardGuitarTuning
    }
    
-guitarCfg = lethalityGuitarCfg
+guitarCfg = revitarGuitarCfg
 
 test2 :: MContext c (Music c)
 test2 = do
@@ -68,17 +68,13 @@ test1 = do
          pc7 h = transpose h $ ((guitar $ gsPick gs6 0 1.0) :=: (guitar $ gsPick gs5 2 1.0)) :+: unitTD :+: gStop
          pc5 h = transpose h $ ((guitar $ gsPick gs6 0 1.0) :=: (guitar $ gsPick gs5 0 1.0)) :+: unitTD :+: gStop
          x1 = (guitar $ gsPick gs6 0 1.0) :+: unitTD :+: gStop
-         x10 = r 3 x1 :+: unitTD
          
-         x7 =
-            let
-               x2 = r 12 x1
-               x3 = tempo (4/9) $ transpose 1 $ r 3 x1
-               x5 = x3 :+: x1 :+: x3
-               x6 = x2 :+: x5
-            in pm True :+: (r 3 x6) :+: gStop
-
-         x8 = pm False :+: (tempo 2 $ (pc7 5) :+: (pc7 4))
-         x9 = r 3 (x7 :+: x8)
+         x2 = (pm True) :+: x1 :+: ( r 2 $ tempo (1/2) x1 ) :+: x1
+         x3 = (pm True) :+: ( r 2 $ tempo (1/2) x1 )
          
-      in tempo (1/6) $ (pm True) :+: (infLoop x9)
+         x5 = (r 3 x2) :+: x3
+         x6 = (pm False) :+: (transpose 3 $ line $ map pc7 [0, 1, 2, 1])
+         --x6 = (pm False) :+: (transpose 3 $ (line $ map pc7 [0, 1, 2]) :+: (pc5 0))
+         x7 = (r 2 x5) :+: x6
+         
+      in tempo (1/6) $ (pm True) :+: (infLoop x7)
