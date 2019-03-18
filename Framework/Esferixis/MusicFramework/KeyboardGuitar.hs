@@ -21,7 +21,7 @@ module Esferixis.MusicFramework.KeyboardGuitar(
 import qualified Esferixis.MusicFramework.MIDI as MIDI
 import qualified Esferixis.MusicFramework.Music as M
 import qualified Esferixis.MusicFramework.Guitar as G
-import qualified Esferixis.MusicFramework.VST as VST
+import qualified Esferixis.MusicFramework.MIDIMusic as MIDIMusic
 import qualified Data.Sequence as S
 import Data.Maybe
 import Data.Bool
@@ -31,8 +31,8 @@ import Control.Arrow
 
 data GuitarCfg = GuitarCfg {
    gCfgChannelNumber :: Int,
-   gCfgPalmMuting :: VST.MidiBoolFlagCfg,
-   gCfgKeyMapping :: VST.MidiKeyMapping,
+   gCfgPalmMuting :: MIDIMusic.MidiBoolFlagCfg,
+   gCfgKeyMapping :: MIDIMusic.MidiKeyMapping,
    gCfgModWheelCC :: Int,
    gCfgTuning :: G.GuitarTuning
    }
@@ -42,13 +42,13 @@ mkGuitarSt guitarCfg =
    mkGuitarInstrumentSt $
       GuitarSt {
          gStLastStringPitches = S.replicate G.numberOfGuitarStrings Nothing,
-         gStPalmMutingSt = VST.mkMidiBoolFlag $ gCfgPalmMuting guitarCfg,
+         gStPalmMutingSt = MIDIMusic.mkMidiBoolFlag $ gCfgPalmMuting guitarCfg,
          gStGuitar =
             let mkMIDICmd = MIDI.ChannelMsg $ gCfgChannelNumber guitarCfg
             in
                Guitar {
                   gMkMIDICmd = MIDI.ChannelMsg $ gCfgChannelNumber guitarCfg,
-                  gKeyMapping = VST.mkMidiKeyMappingFun $ gCfgKeyMapping guitarCfg,
+                  gKeyMapping = MIDIMusic.mkMidiKeyMappingFun $ gCfgKeyMapping guitarCfg,
                   gModWheel = (\value -> mkMIDICmd $ MIDI.CC (gCfgModWheelCC guitarCfg) $ floor $ (value + 1.0) * 127.0 / 2.0 ),
                   gTuning = gCfgTuning guitarCfg
                   }
@@ -64,7 +64,7 @@ data Guitar = Guitar {
 
 data GuitarSt = GuitarSt {
    gStLastStringPitches :: S.Seq (Maybe Int),
-   gStPalmMutingSt :: VST.MidiBoolFlagSt,
+   gStPalmMutingSt :: MIDIMusic.MidiBoolFlagSt,
    gStGuitar :: Guitar
    }
 
@@ -87,7 +87,7 @@ gEventToMidi guitarSt (G.GStringPick string rpitch velocity) =
        Just maybeLastStringPitch = S.lookup stringNumber lastStringPitches
        pitchMap = gKeyMapping guitar
        pitchOffset = M.pitchValue $ G.gStringTuning (gTuning guitar) stringNumber
-       absPitch = gKeyMapping guitar $ M.absPitch $ pitchOffset + rpitch
+       absPitch = pitchMap $ M.absPitch $ pitchOffset + rpitch
        noteOnMsg = [MIDI.NoteOn absPitch $ floor $ velocity * 127.0]
        isSamePitch = ( == Just absPitch )
        isSamePitchAsPrevious = isSamePitch maybeLastStringPitch
@@ -128,7 +128,7 @@ gEventToMidi guitarSt G.GMuteAll =
 gEventToMidi guitarSt (G.GPalmMutting value) =
    let guitar = gStGuitar guitarSt
        palmMutingSt = gStPalmMutingSt guitarSt
-       (nextPalmMutingSt, midiCMDs) = VST.setMidiBoolFlag palmMutingSt value
+       (nextPalmMutingSt, midiCMDs) = MIDIMusic.setMidiBoolFlag palmMutingSt value
    in ( Just $ guitarSt { gStPalmMutingSt = nextPalmMutingSt }, map (gMkMIDICmd guitar) midiCMDs )
 
 gEventToMidi guitarSt (G.GPitchWheel value) = (Nothing, [gMkMIDICmd (gStGuitar guitarSt) $ MIDI.PitchWheel ( ( floor $ (value + 1.0) * 16383 / 2.0 ) - 8192 ) ])

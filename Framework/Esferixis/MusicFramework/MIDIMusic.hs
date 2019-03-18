@@ -1,11 +1,11 @@
 -- |
--- Module      :  Esferixis.MusicFramework.VST
+-- Module      :  Esferixis.MusicFramework.MIDIMusic
 -- Copyright   :  (c) 2019 Ariel Favio Carrizo
 -- License     :  BSD-3-Clause
 -- Stability   : experimental
 -- Portability : ghc
 
-module Esferixis.MusicFramework.VST(
+module Esferixis.MusicFramework.MIDIMusic(
    MidiBoolFlagCfg(MidiBoolFlagCfgByCC, MidiBoolFlagCfgByKeys),
    MidiBoolFlagSt,
    mkMidiBoolFlag,
@@ -63,16 +63,21 @@ mkMidiKeyMappingFun (AffineMidiKeyMapping midiKeyMapping) =
    let minInPitchValue = M.pitchValue $ midiKeyMappingMinInPitch midiKeyMapping
        minOutPitchValue = M.pitchValue $ midiKeyMappingMinOutPitch midiKeyMapping
        maxOutPitchValue = M.pitchValue $ midiKeyMappingMaxOutPitch midiKeyMapping
-       maxInPitchValue = (maxOutPitchValue - minOutPitchValue) + maxInPitchValue
-   in \inPitch ->
-         let inPitchValue = M.pitchValue inPitch
-         in
-            if ( inPitchValue >= minInPitchValue )
-               then
-                  if ( inPitchValue <= maxInPitchValue )
+       maxInPitchValue = (maxOutPitchValue - minOutPitchValue) + minInPitchValue
+   in
+      if ( maxOutPitchValue >= minOutPitchValue )
+         then
+            \inPitch ->
+               let inPitchValue = M.pitchValue inPitch
+               in
+                  if ( inPitchValue >= minInPitchValue )
                      then
-                        inPitchValue + minOutPitchValue - minInPitchValue
+                        if ( inPitchValue <= maxInPitchValue )
+                           then
+                              inPitchValue + minOutPitchValue - minInPitchValue
+                           else
+                              error "Pitch overflow"
                      else
-                        error "Pitch overflow"
-               else
-                  error "Pitch underflow"
+                        error "Pitch underflow"
+         else
+            error "MaxOutPitch < MinOutPitch!"
