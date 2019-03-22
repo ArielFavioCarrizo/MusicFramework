@@ -1,4 +1,2 @@
-En EsferixisMusicFrameworkNative, se encuentra la interfaz C para acceder la biblioteca The Synthesis ToolKit (STK).
-Es una solución de la suite de desarrollo de Microsoft Visual Studio.
+A framework written in Haskell for music composition with dynamics.
 
-En el directorio 'Framework' se encuentra el framework.
